@@ -3,17 +3,23 @@ import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
-TransactionItem item(int id, TransactionType type, int amount, DateTime date) =>
-    TransactionItem(
-      id: id,
-      type: type,
-      amount: amount,
-      accountId: 1,
-      accountName: 'Cash',
-      date: date,
-      note: '',
-      createdAt: date,
-    );
+TransactionItem item(
+  int id,
+  TransactionType type,
+  int amount,
+  DateTime date, {
+  bool isAdjustment = false,
+}) => TransactionItem(
+  id: id,
+  type: type,
+  amount: amount,
+  accountId: 1,
+  accountName: 'Cash',
+  date: date,
+  note: '',
+  createdAt: date,
+  isAdjustment: isAdjustment,
+);
 
 void main() {
   const income = TransactionType.income;
@@ -34,6 +40,16 @@ void main() {
       ]);
 
       expect(totals, (income: 5100, expense: 1500));
+    });
+
+    test('does not count balance adjustments', () {
+      final totals = totalsOf([
+        item(1, income, 99999, DateTime(2026, 10, 1), isAdjustment: true),
+        item(2, expense, 88888, DateTime(2026, 10, 1), isAdjustment: true),
+        item(3, expense, 100, DateTime(2026, 10, 1)),
+      ]);
+
+      expect(totals, (income: 0, expense: 100));
     });
 
     test('does not count transfers', () {

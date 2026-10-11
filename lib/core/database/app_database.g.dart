@@ -1077,6 +1077,21 @@ class $TransactionsTable extends Transactions
     requiredDuringInsert: false,
     defaultValue: const Constant(''),
   );
+  static const VerificationMeta _isAdjustmentMeta = const VerificationMeta(
+    'isAdjustment',
+  );
+  @override
+  late final GeneratedColumn<bool> isAdjustment = GeneratedColumn<bool>(
+    'is_adjustment',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("is_adjustment" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -1111,6 +1126,7 @@ class $TransactionsTable extends Transactions
     categoryId,
     date,
     note,
+    isAdjustment,
     createdAt,
     updatedAt,
   ];
@@ -1174,6 +1190,15 @@ class $TransactionsTable extends Transactions
         note.isAcceptableOrUnknown(data['note']!, _noteMeta),
       );
     }
+    if (data.containsKey('is_adjustment')) {
+      context.handle(
+        _isAdjustmentMeta,
+        isAdjustment.isAcceptableOrUnknown(
+          data['is_adjustment']!,
+          _isAdjustmentMeta,
+        ),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -1229,6 +1254,10 @@ class $TransactionsTable extends Transactions
         DriftSqlType.string,
         data['${effectivePrefix}note'],
       )!,
+      isAdjustment: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}is_adjustment'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -1269,6 +1298,12 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
   /// time zone (`date.toLocal()`), never the UTC date.
   final DateTime date;
   final String note;
+
+  /// True for the transaction that "Adjust balance" records to bring an
+  /// account in line with reality. It changes the account's balance, but it is
+  /// not real income or spending, so budgets and income/expense totals leave
+  /// it out.
+  final bool isAdjustment;
   final DateTime createdAt;
   final DateTime updatedAt;
   const TransactionRow({
@@ -1280,6 +1315,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
     this.categoryId,
     required this.date,
     required this.note,
+    required this.isAdjustment,
     required this.createdAt,
     required this.updatedAt,
   });
@@ -1302,6 +1338,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
     }
     map['date'] = Variable<DateTime>(date);
     map['note'] = Variable<String>(note);
+    map['is_adjustment'] = Variable<bool>(isAdjustment);
     map['created_at'] = Variable<DateTime>(createdAt);
     map['updated_at'] = Variable<DateTime>(updatedAt);
     return map;
@@ -1321,6 +1358,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
           : Value(categoryId),
       date: Value(date),
       note: Value(note),
+      isAdjustment: Value(isAdjustment),
       createdAt: Value(createdAt),
       updatedAt: Value(updatedAt),
     );
@@ -1342,6 +1380,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
       categoryId: serializer.fromJson<int?>(json['categoryId']),
       date: serializer.fromJson<DateTime>(json['date']),
       note: serializer.fromJson<String>(json['note']),
+      isAdjustment: serializer.fromJson<bool>(json['isAdjustment']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -1360,6 +1399,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
       'categoryId': serializer.toJson<int?>(categoryId),
       'date': serializer.toJson<DateTime>(date),
       'note': serializer.toJson<String>(note),
+      'isAdjustment': serializer.toJson<bool>(isAdjustment),
       'createdAt': serializer.toJson<DateTime>(createdAt),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -1374,6 +1414,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
     Value<int?> categoryId = const Value.absent(),
     DateTime? date,
     String? note,
+    bool? isAdjustment,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) => TransactionRow(
@@ -1385,6 +1426,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     date: date ?? this.date,
     note: note ?? this.note,
+    isAdjustment: isAdjustment ?? this.isAdjustment,
     createdAt: createdAt ?? this.createdAt,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -1402,6 +1444,9 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
           : this.categoryId,
       date: data.date.present ? data.date.value : this.date,
       note: data.note.present ? data.note.value : this.note,
+      isAdjustment: data.isAdjustment.present
+          ? data.isAdjustment.value
+          : this.isAdjustment,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
       updatedAt: data.updatedAt.present ? data.updatedAt.value : this.updatedAt,
     );
@@ -1418,6 +1463,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
           ..write('categoryId: $categoryId, ')
           ..write('date: $date, ')
           ..write('note: $note, ')
+          ..write('isAdjustment: $isAdjustment, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -1434,6 +1480,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
     categoryId,
     date,
     note,
+    isAdjustment,
     createdAt,
     updatedAt,
   );
@@ -1449,6 +1496,7 @@ class TransactionRow extends DataClass implements Insertable<TransactionRow> {
           other.categoryId == this.categoryId &&
           other.date == this.date &&
           other.note == this.note &&
+          other.isAdjustment == this.isAdjustment &&
           other.createdAt == this.createdAt &&
           other.updatedAt == this.updatedAt);
 }
@@ -1462,6 +1510,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionRow> {
   final Value<int?> categoryId;
   final Value<DateTime> date;
   final Value<String> note;
+  final Value<bool> isAdjustment;
   final Value<DateTime> createdAt;
   final Value<DateTime> updatedAt;
   const TransactionsCompanion({
@@ -1473,6 +1522,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionRow> {
     this.categoryId = const Value.absent(),
     this.date = const Value.absent(),
     this.note = const Value.absent(),
+    this.isAdjustment = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -1485,6 +1535,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionRow> {
     this.categoryId = const Value.absent(),
     required DateTime date,
     this.note = const Value.absent(),
+    this.isAdjustment = const Value.absent(),
     this.createdAt = const Value.absent(),
     this.updatedAt = const Value.absent(),
   }) : type = Value(type),
@@ -1500,6 +1551,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionRow> {
     Expression<int>? categoryId,
     Expression<DateTime>? date,
     Expression<String>? note,
+    Expression<bool>? isAdjustment,
     Expression<DateTime>? createdAt,
     Expression<DateTime>? updatedAt,
   }) {
@@ -1512,6 +1564,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionRow> {
       if (categoryId != null) 'category_id': categoryId,
       if (date != null) 'date': date,
       if (note != null) 'note': note,
+      if (isAdjustment != null) 'is_adjustment': isAdjustment,
       if (createdAt != null) 'created_at': createdAt,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -1526,6 +1579,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionRow> {
     Value<int?>? categoryId,
     Value<DateTime>? date,
     Value<String>? note,
+    Value<bool>? isAdjustment,
     Value<DateTime>? createdAt,
     Value<DateTime>? updatedAt,
   }) {
@@ -1538,6 +1592,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionRow> {
       categoryId: categoryId ?? this.categoryId,
       date: date ?? this.date,
       note: note ?? this.note,
+      isAdjustment: isAdjustment ?? this.isAdjustment,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -1572,6 +1627,9 @@ class TransactionsCompanion extends UpdateCompanion<TransactionRow> {
     if (note.present) {
       map['note'] = Variable<String>(note.value);
     }
+    if (isAdjustment.present) {
+      map['is_adjustment'] = Variable<bool>(isAdjustment.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -1592,6 +1650,7 @@ class TransactionsCompanion extends UpdateCompanion<TransactionRow> {
           ..write('categoryId: $categoryId, ')
           ..write('date: $date, ')
           ..write('note: $note, ')
+          ..write('isAdjustment: $isAdjustment, ')
           ..write('createdAt: $createdAt, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2962,6 +3021,7 @@ typedef $$TransactionsTableCreateCompanionBuilder =
       Value<int?> categoryId,
       required DateTime date,
       Value<String> note,
+      Value<bool> isAdjustment,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -2975,6 +3035,7 @@ typedef $$TransactionsTableUpdateCompanionBuilder =
       Value<int?> categoryId,
       Value<DateTime> date,
       Value<String> note,
+      Value<bool> isAdjustment,
       Value<DateTime> createdAt,
       Value<DateTime> updatedAt,
     });
@@ -3067,6 +3128,11 @@ class $$TransactionsTableFilterComposer
 
   ColumnFilters<String> get note => $composableBuilder(
     column: $table.note,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get isAdjustment => $composableBuilder(
+    column: $table.isAdjustment,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3184,6 +3250,11 @@ class $$TransactionsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get isAdjustment => $composableBuilder(
+    column: $table.isAdjustment,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -3287,6 +3358,11 @@ class $$TransactionsTableAnnotationComposer
 
   GeneratedColumn<String> get note =>
       $composableBuilder(column: $table.note, builder: (column) => column);
+
+  GeneratedColumn<bool> get isAdjustment => $composableBuilder(
+    column: $table.isAdjustment,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -3404,6 +3480,7 @@ class $$TransactionsTableTableManager
                 Value<int?> categoryId = const Value.absent(),
                 Value<DateTime> date = const Value.absent(),
                 Value<String> note = const Value.absent(),
+                Value<bool> isAdjustment = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => TransactionsCompanion(
@@ -3415,6 +3492,7 @@ class $$TransactionsTableTableManager
                 categoryId: categoryId,
                 date: date,
                 note: note,
+                isAdjustment: isAdjustment,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),
@@ -3428,6 +3506,7 @@ class $$TransactionsTableTableManager
                 Value<int?> categoryId = const Value.absent(),
                 required DateTime date,
                 Value<String> note = const Value.absent(),
+                Value<bool> isAdjustment = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => TransactionsCompanion.insert(
@@ -3439,6 +3518,7 @@ class $$TransactionsTableTableManager
                 categoryId: categoryId,
                 date: date,
                 note: note,
+                isAdjustment: isAdjustment,
                 createdAt: createdAt,
                 updatedAt: updatedAt,
               ),

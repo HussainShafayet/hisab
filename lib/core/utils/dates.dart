@@ -12,6 +12,14 @@ bool isSameDay(DateTime a, DateTime b) =>
 /// Midnight on the 1st of [date]'s month. The budget month starts on the 1st.
 DateTime monthStart(DateTime date) => DateTime(date.year, date.month);
 
+/// `2026-10`: how a month is written in the database (`budgets.month`).
+String monthKey(DateTime date) =>
+    '${date.year.toString().padLeft(4, '0')}-'
+    '${date.month.toString().padLeft(2, '0')}';
+
+/// The number of days in [date]'s month.
+int daysInMonth(DateTime date) => DateTime(date.year, date.month + 1, 0).day;
+
 /// The first day of the month that is [delta] months after [month]
 /// (negative for earlier months).
 DateTime addMonths(DateTime month, int delta) =>

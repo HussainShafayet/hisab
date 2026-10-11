@@ -341,6 +341,7 @@ void main() {
       expect(transaction.type, TransactionType.income);
       expect(transaction.accountId, cash);
       expect(transaction.note, balanceAdjustmentNote);
+      expect(transaction.isAdjustment, isTrue);
       final category = (await db.categoriesDao.getById(
         transaction.categoryId!,
       ))!;

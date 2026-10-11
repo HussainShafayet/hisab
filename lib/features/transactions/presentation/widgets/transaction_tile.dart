@@ -43,7 +43,12 @@ class TransactionTile extends StatelessWidget {
       isTransfer
           ? '${item.accountName} → ${item.toAccountName ?? '?'}'
           : item.accountName,
-      if (item.note.isNotEmpty) item.note,
+      // A correction is not real income or spending, so it is drawn in the
+      // neutral color and says why the day and month totals skip it.
+      if (item.isAdjustment)
+        'Correction, not counted in totals'
+      else if (item.note.isNotEmpty)
+        item.note,
     ];
 
     return ListTile(
@@ -78,7 +83,9 @@ class TransactionTile extends StatelessWidget {
           child: Text(
             amountText,
             style: theme.textTheme.titleMedium?.tabular.copyWith(
-              color: amountColor,
+              color: item.isAdjustment
+                  ? theme.colorScheme.onSurface
+                  : amountColor,
               fontWeight: FontWeight.w600,
             ),
           ),

@@ -100,6 +100,21 @@ Future<void> _seed(AppDatabase db) async {
 
   const expense = TransactionType.expense;
   await add(
+    expense,
+    480000,
+    'Bank',
+    DateTime(2026, 10, 4, 12),
+    category: 'Groceries',
+    note: 'Bazar',
+  );
+  await add(
+    expense,
+    90000,
+    'Cash',
+    DateTime(2026, 10, 6, 9),
+    category: 'Ride sharing',
+  );
+  await add(
     TransactionType.income,
     4500000,
     'Bank',
@@ -159,6 +174,22 @@ Future<void> _seed(AppDatabase db) async {
     category: 'Restaurants',
     note: 'Lunch with Rahim',
   );
+
+  Future<void> budget(int amount, {String? category}) async =>
+      db.budgetsDao.insertBudget(
+        BudgetsCompanion.insert(
+          month: '2026-10',
+          amount: amount,
+          categoryId: Value(
+            category == null ? null : await _categoryId(db, category),
+          ),
+        ),
+      );
+  await budget(4000000); // overall: 40,000
+  await budget(800000, category: 'Food'); // 8,000
+  await budget(100000, category: 'Transport'); // 1,000
+  await budget(1200000, category: 'Rent'); // 12,000, exactly used
+  await budget(300000, category: 'Shopping'); // 3,000
 }
 
 Future<GlobalKey> _pump(WidgetTester tester, AppDatabase db) async {
@@ -221,6 +252,9 @@ void main() {
     await _capture(tester, key, '4_add_transfer');
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
+
+    await _openTab(tester, 'Budget');
+    await _capture(tester, key, '8_budget');
 
     await _openTab(tester, 'More');
     await tester.tap(listRow('Accounts'));

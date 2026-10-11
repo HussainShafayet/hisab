@@ -11,7 +11,7 @@ import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/transaction_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
-import 'package:hishab/features/transactions/presentation/widgets/month_switcher.dart';
+import 'package:hishab/core/widgets/month_switcher.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_filter_sheet.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 

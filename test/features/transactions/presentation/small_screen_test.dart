@@ -334,4 +334,46 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  for (final scale in [1.0, 1.5]) {
+    testWithDatabase('the budget screen fits a small phone (text x$scale)', (
+      tester,
+      db,
+    ) async {
+      useSmallPhone(tester, textScale: scale);
+      await tester.runAsync(loadRealFonts);
+      final b = await seedBasics(db);
+      await db.budgetsDao.insertBudget(
+        BudgetsCompanion.insert(month: '2026-10', amount: 5000000000),
+      );
+      await db.budgetsDao.insertBudget(
+        BudgetsCompanion.insert(
+          month: '2026-10',
+          amount: 100,
+          categoryId: Value(b.food),
+        ),
+      );
+      await addTransaction(
+        db,
+        type: TransactionType.expense,
+        amount: 123456789,
+        accountId: b.cash,
+        categoryId: b.food,
+        date: DateTime(2026, 10, 3),
+      );
+      await pumpAppWithDatabase(tester, db);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Budget'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      // An overflow or a ListTile layout failure is reported as an exception.
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('overall-budget')), findsOneWidget);
+    });
+  }
 }

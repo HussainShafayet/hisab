@@ -126,6 +126,7 @@ class TransactionsRepository {
         date: item.date,
         note: Value(item.note),
         createdAt: Value(item.createdAt),
+        isAdjustment: Value(item.isAdjustment),
       ),
     );
   }
@@ -274,6 +275,7 @@ class TransactionsRepository {
       date: transaction.date.toLocal(),
       note: transaction.note,
       createdAt: transaction.createdAt.toLocal(),
+      isAdjustment: transaction.isAdjustment,
     );
   }
 }

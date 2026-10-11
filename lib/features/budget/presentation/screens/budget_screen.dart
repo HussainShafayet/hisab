@@ -1,15 +1,273 @@
 import 'package:flutter/material.dart';
-import 'package:hishab/core/widgets/placeholder_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/core/utils/clock.dart';
+import 'package:hishab/core/utils/date_labels.dart';
+import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/month_switcher.dart';
+import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/features/budget/domain/budget_item.dart';
+import 'package:hishab/features/budget/presentation/providers/budget_providers.dart';
+import 'package:hishab/features/budget/presentation/widgets/budget_cards.dart';
+import 'package:hishab/features/budget/presentation/widgets/budget_limit_dialog.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
+import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 
-class BudgetScreen extends StatelessWidget {
+class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
 
   @override
+  ConsumerState<BudgetScreen> createState() => _BudgetScreenState();
+}
+
+class _BudgetScreenState extends ConsumerState<BudgetScreen> {
+  late DateTime _month = monthStart(ref.read(clockProvider)());
+
+  void _showMessage(String text) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+  }
+
+  /// Runs [action] and shows its [ValidationException] message, if any.
+  Future<void> _run(Future<void> Function() action) async {
+    try {
+      await action();
+    } on ValidationException catch (e) {
+      if (mounted) _showMessage(e.message);
+    }
+  }
+
+  Future<void> _editOverall(BudgetItem? current) async {
+    final result = await showDialog<BudgetDialogResult>(
+      context: context,
+      builder: (context) => BudgetLimitDialog(
+        title: 'Monthly budget',
+        initialAmount: current?.limit,
+        canRemove: current != null,
+      ),
+    );
+    if (result == null) return;
+    final repository = ref.read(budgetsRepositoryProvider);
+    await _run(() async {
+      if (result.remove) {
+        await repository.removeBudget(current!.id);
+      } else {
+        await repository.setBudget(month: _month, amount: result.amount!);
+      }
+    });
+  }
+
+  Future<void> _editCategory(BudgetItem item) async {
+    final result = await showDialog<BudgetDialogResult>(
+      context: context,
+      builder: (context) => BudgetLimitDialog(
+        title: '${item.categoryName} budget',
+        initialAmount: item.limit,
+        canRemove: true,
+      ),
+    );
+    if (result == null) return;
+    final repository = ref.read(budgetsRepositoryProvider);
+    await _run(() async {
+      if (result.remove) {
+        await repository.removeBudget(item.id);
+      } else {
+        await repository.setBudget(
+          month: _month,
+          amount: result.amount!,
+          categoryId: item.categoryId,
+        );
+      }
+    });
+  }
+
+  Future<void> _addCategory(MonthBudget budget) async {
+    final categories = await ref
+        .read(categoriesRepositoryProvider)
+        .getCategories();
+    final hasBudget = {for (final item in budget.categories) item.categoryId};
+    final byId = {for (final c in categories) c.id: c};
+    final choices = [
+      for (final category in flattenCategoryTree(
+        buildCategoryTree(
+          categories.where((c) => c.type == CategoryType.expense),
+        ),
+      ))
+        if (!hasBudget.contains(category.id))
+          (
+            id: category.id,
+            label: category.parentId == null
+                ? category.name
+                : '${byId[category.parentId]?.name ?? '?'} › ${category.name}',
+          ),
+    ];
+    if (!mounted) return;
+    if (choices.isEmpty) {
+      _showMessage('Every expense category already has a budget.');
+      return;
+    }
+
+    final result = await showDialog<BudgetDialogResult>(
+      context: context,
+      builder: (context) => BudgetLimitDialog(
+        title: 'Add category budget',
+        categoryChoices: choices,
+      ),
+    );
+    if (result == null) return;
+    await _run(
+      () => ref
+          .read(budgetsRepositoryProvider)
+          .setBudget(
+            month: _month,
+            amount: result.amount!,
+            categoryId: result.categoryId,
+          ),
+    );
+  }
+
+  Future<void> _copyLastMonth() async {
+    final previous = addMonths(_month, -1);
+    await _run(() async {
+      final copied = await ref
+          .read(budgetsRepositoryProvider)
+          .copyFromPreviousMonth(_month);
+      if (!mounted) return;
+      _showMessage(
+        copied == 0
+            ? 'Nothing new to copy: this month already has those budgets.'
+            : 'Copied $copied ${copied == 1 ? 'budget' : 'budgets'} from '
+                  '${monthLabel(previous)}.',
+      );
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return const PlaceholderScreen(
-      title: 'Budget',
+    final now = ref.read(clockProvider)();
+    final budget = ref.watch(monthBudgetProvider(_month));
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Budget'),
+        actions: [
+          PopupMenuButton<void>(
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                onTap: _copyLastMonth,
+                child: const Text("Copy last month's budget"),
+              ),
+            ],
+          ),
+        ],
+      ),
+      body: Column(
+        children: [
+          MonthSwitcher(
+            month: _month,
+            // One month ahead, to plan the next month in advance.
+            canGoNext: _month.isBefore(addMonths(monthStart(now), 1)),
+            onPrevious: () => setState(() => _month = addMonths(_month, -1)),
+            onNext: () => setState(() => _month = addMonths(_month, 1)),
+          ),
+          Expanded(
+            child: budget.when(
+              loading: () => const LoadingView(),
+              error: (error, _) => ErrorView(
+                message: describeError(error),
+                onRetry: () => ref.invalidate(monthBudgetProvider(_month)),
+              ),
+              data: (data) =>
+                  data.isEmpty ? _buildEmpty() : _buildContent(data, now),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmpty() {
+    return EmptyState(
       icon: Icons.savings_outlined,
-      message: 'Coming in Milestone 5.',
+      title: 'No budget for ${monthLabel(_month)}',
+      message: 'Set how much you want to spend this month.',
+      action: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          FilledButton(
+            onPressed: () => _editOverall(null),
+            child: const Text('Set monthly budget'),
+          ),
+          TextButton(
+            onPressed: _copyLastMonth,
+            child: const Text("Copy last month's budget"),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildContent(MonthBudget data, DateTime now) {
+    final theme = Theme.of(context);
+    final overall = data.overall;
+
+    return ListView(
+      // Room below the last row so the add button never covers it.
+      padding: const EdgeInsets.only(bottom: 96),
+      children: [
+        if (overall != null)
+          OverallBudgetCard(
+            item: overall,
+            month: _month,
+            today: now,
+            onTap: () => _editOverall(overall),
+          )
+        else
+          Card(
+            margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+            child: ListTile(
+              key: const ValueKey('set-overall-budget'),
+              leading: const Icon(Icons.savings_outlined),
+              title: const Text('Set a monthly budget'),
+              subtitle: const Text('One limit for all your spending'),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => _editOverall(null),
+            ),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
+          child: Text('By category', style: theme.textTheme.titleSmall),
+        ),
+        if (data.categories.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Text(
+              'No category budgets yet.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+        for (final item in data.categories)
+          CategoryBudgetTile(
+            key: ValueKey('budget-${item.categoryId}'),
+            item: item,
+            month: _month,
+            today: now,
+            onTap: () => _editCategory(item),
+          ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: OutlinedButton.icon(
+              onPressed: () => _addCategory(data),
+              icon: const Icon(Icons.add),
+              label: const Text('Add category budget'),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
