@@ -1,0 +1,382 @@
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/features/categories/data/categories_repository.dart';
+import 'package:hishab/features/categories/domain/category.dart';
+import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/categories/presentation/category_style.dart';
+import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
+import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
+
+/// Creates a category, or edits the one with [categoryId]. When creating,
+/// [initialType] and [initialParentId] pre-fill the form (used by
+/// "Add sub-category").
+class CategoryFormScreen extends ConsumerWidget {
+  const CategoryFormScreen({
+    this.categoryId,
+    this.initialType,
+    this.initialParentId,
+    super.key,
+  });
+
+  final int? categoryId;
+  final CategoryType? initialType;
+  final int? initialParentId;
+
+  bool get _isEditing => categoryId != null;
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final title = Text(_isEditing ? 'Edit category' : 'New category');
+
+    // Archived categories are included so we can tell whether a category has
+    // sub-categories and find a parent that was archived later.
+    return ref
+        .watch(categoriesProvider(true))
+        .when(
+          loading: () => Scaffold(
+            appBar: AppBar(title: title),
+            body: const LoadingView(),
+          ),
+          error: (error, _) => Scaffold(
+            appBar: AppBar(title: title),
+            body: ErrorView(
+              message: '$error',
+              onRetry: () => ref.invalidate(categoriesProvider(true)),
+            ),
+          ),
+          data: (all) {
+            Category? find(int? id) {
+              for (final category in all) {
+                if (category.id == id) return category;
+              }
+              return null;
+            }
+
+            final initial = find(categoryId);
+            if (_isEditing && initial == null) {
+              return Scaffold(
+                appBar: AppBar(title: title),
+                body: const ErrorView(
+                  message: 'This category no longer exists.',
+                ),
+              );
+            }
+            return _CategoryForm(
+              all: all,
+              initial: initial,
+              presetParent: find(initialParentId),
+              presetType: initialType,
+            );
+          },
+        );
+  }
+}
+
+class _CategoryForm extends ConsumerStatefulWidget {
+  const _CategoryForm({
+    required this.all,
+    this.initial,
+    this.presetParent,
+    this.presetType,
+  });
+
+  /// Every category, archived ones included.
+  final List<Category> all;
+
+  /// The category being edited, or null when creating.
+  final Category? initial;
+
+  /// Parent chosen by "Add sub-category", when creating.
+  final Category? presetParent;
+  final CategoryType? presetType;
+
+  @override
+  ConsumerState<_CategoryForm> createState() => _CategoryFormState();
+}
+
+class _CategoryFormState extends ConsumerState<_CategoryForm> {
+  final _formKey = GlobalKey<FormState>();
+  late final _name = TextEditingController(text: widget.initial?.name);
+  late CategoryType _type =
+      widget.initial?.type ??
+      widget.presetParent?.type ??
+      widget.presetType ??
+      CategoryType.expense;
+  late int? _parentId = widget.initial != null
+      ? widget.initial!.parentId
+      : widget.presetParent?.id;
+  late String _icon =
+      widget.initial?.icon ?? widget.presetParent?.icon ?? 'category';
+  late int _color =
+      widget.initial?.color ??
+      widget.presetParent?.color ??
+      defaultCategoryColor;
+  bool _saving = false;
+  String? _error;
+
+  bool get _isEditing => widget.initial != null;
+
+  bool get _hasChildren =>
+      _isEditing && widget.all.any((c) => c.parentId == widget.initial!.id);
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    setState(() {
+      _saving = true;
+      _error = null;
+    });
+
+    final repository = ref.read(categoriesRepositoryProvider);
+    try {
+      if (_isEditing) {
+        await repository.updateCategory(
+          widget.initial!.id,
+          name: _name.text,
+          parentId: _parentId,
+          icon: _icon,
+          color: _color,
+        );
+      } else {
+        await repository.createCategory(
+          name: _name.text,
+          type: _type,
+          parentId: _parentId,
+          icon: _icon,
+          color: _color,
+        );
+      }
+      if (mounted) context.pop();
+    } on ValidationException catch (e) {
+      if (mounted) {
+        setState(() {
+          _error = e.message;
+          _saving = false;
+        });
+      }
+    }
+  }
+
+  /// Top-level categories of the chosen type that can be a parent, plus the
+  /// current parent even if it has been archived since.
+  List<Category> get _parentOptions {
+    final options = widget.all
+        .where(
+          (c) =>
+              c.parentId == null &&
+              c.type == _type &&
+              c.id != widget.initial?.id &&
+              (!c.isArchived || c.id == _parentId),
+        )
+        .toList();
+    return options..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(_isEditing ? 'Edit category' : 'New category'),
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: const EdgeInsets.all(16),
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          children: [
+            Row(
+              children: [
+                CategoryAvatar(icon: _icon, color: _color, radius: 24),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: TextFormField(
+                    controller: _name,
+                    autofocus: !_isEditing,
+                    textCapitalization: TextCapitalization.words,
+                    textInputAction: TextInputAction.done,
+                    inputFormatters: [
+                      LengthLimitingTextInputFormatter(
+                        CategoriesRepository.maxNameLength,
+                      ),
+                    ],
+                    decoration: const InputDecoration(labelText: 'Name'),
+                    validator: (value) =>
+                        (value?.trim().isEmpty ?? true) ? 'Enter a name' : null,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            SegmentedButton<CategoryType>(
+              showSelectedIcon: false,
+              segments: const [
+                ButtonSegment(
+                  value: CategoryType.expense,
+                  label: Text('Expense'),
+                ),
+                ButtonSegment(
+                  value: CategoryType.income,
+                  label: Text('Income'),
+                ),
+              ],
+              selected: {_type},
+              // The type of an existing category never changes, because old
+              // transactions depend on it.
+              onSelectionChanged: _isEditing
+                  ? null
+                  : (selection) => setState(() {
+                      _type = selection.first;
+                      _parentId = null;
+                    }),
+            ),
+            if (_isEditing)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  'The type of an existing category cannot be changed.',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 24),
+            DropdownButtonFormField<int?>(
+              key: ValueKey('parent-$_type-$_parentId'),
+              initialValue: _parentId,
+              decoration: InputDecoration(
+                labelText: 'Parent category',
+                helperText: _hasChildren
+                    ? 'This category has sub-categories, so it stays top-level.'
+                    : null,
+              ),
+              items: [
+                const DropdownMenuItem<int?>(
+                  value: null,
+                  child: Text('None (top-level)'),
+                ),
+                for (final parent in _parentOptions)
+                  DropdownMenuItem<int?>(
+                    value: parent.id,
+                    child: Text(parent.name),
+                  ),
+              ],
+              onChanged: _hasChildren
+                  ? null
+                  : (value) => setState(() => _parentId = value),
+            ),
+            const SizedBox(height: 24),
+            Text('Icon', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final entry in categoryIcons.entries)
+                  _PickerCell(
+                    key: ValueKey('icon-${entry.key}'),
+                    label: entry.key.replaceAll('_', ' '),
+                    selected: _icon == entry.key,
+                    onTap: () => setState(() => _icon = entry.key),
+                    child: Icon(entry.value),
+                  ),
+              ],
+            ),
+            const SizedBox(height: 24),
+            Text('Color', style: theme.textTheme.labelLarge),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (final color in categoryColors)
+                  _PickerCell(
+                    key: ValueKey('color-${color.toRadixString(16)}'),
+                    label: 'Color ${color.toRadixString(16)}',
+                    selected: _color == color,
+                    onTap: () => setState(() => _color = color),
+                    child: Container(
+                      width: 28,
+                      height: 28,
+                      decoration: BoxDecoration(
+                        color: Color(color),
+                        shape: BoxShape.circle,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+            if (_error != null) ...[
+              const SizedBox(height: 16),
+              Text(
+                _error!,
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+            ],
+            const SizedBox(height: 24),
+            FilledButton(
+              onPressed: _saving ? null : _save,
+              child: Text(_isEditing ? 'Save changes' : 'Add category'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// One square in the icon or color picker.
+class _PickerCell extends StatelessWidget {
+  const _PickerCell({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+    required this.child,
+    super.key,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final scheme = Theme.of(context).colorScheme;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label: label,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(12),
+        child: Container(
+          width: 48,
+          height: 48,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(12),
+            color: selected ? scheme.primaryContainer : null,
+            border: Border.all(
+              color: selected ? scheme.primary : scheme.outlineVariant,
+              width: selected ? 2 : 1,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
+  }
+}
