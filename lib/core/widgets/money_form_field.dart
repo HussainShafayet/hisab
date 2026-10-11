@@ -13,6 +13,7 @@ class MoneyFormField extends StatelessWidget {
     this.autofocus = false,
     this.onChanged,
     this.helperText,
+    this.focusNode,
     super.key,
   });
 
@@ -25,11 +26,13 @@ class MoneyFormField extends StatelessWidget {
   final bool autofocus;
   final ValueChanged<String>? onChanged;
   final String? helperText;
+  final FocusNode? focusNode;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
+      focusNode: focusNode,
       autofocus: autofocus,
       onChanged: onChanged,
       keyboardType: TextInputType.numberWithOptions(

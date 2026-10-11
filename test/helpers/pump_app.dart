@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/app.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/database/database_provider.dart';
+import 'package:hishab/core/utils/clock.dart';
 
 import 'test_database.dart';
 
@@ -31,11 +32,23 @@ void testWithDatabase(
   });
 }
 
-/// Runs the whole app on [db] and waits until it settles.
-Future<void> pumpAppWithDatabase(WidgetTester tester, AppDatabase db) async {
+/// The time the app believes it is in widget tests: Sunday 11 October 2026.
+final testNow = DateTime(2026, 10, 11, 14, 30);
+
+/// Runs the whole app on [db] and waits until it settles. The app's clock
+/// stands still at [now].
+Future<void> pumpAppWithDatabase(
+  WidgetTester tester,
+  AppDatabase db, {
+  DateTime? now,
+}) async {
+  final time = now ?? testNow;
   await tester.pumpWidget(
     ProviderScope(
-      overrides: [appDatabaseProvider.overrideWithValue(db)],
+      overrides: [
+        appDatabaseProvider.overrideWithValue(db),
+        clockProvider.overrideWithValue(() => time),
+      ],
       child: const HishabApp(),
     ),
   );

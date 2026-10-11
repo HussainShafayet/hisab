@@ -15,7 +15,7 @@ import 'package:hishab/features/dashboard/presentation/screens/dashboard_screen.
 import 'package:hishab/features/reports/presentation/screens/reports_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/more_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/settings_screen.dart';
-import 'package:hishab/features/transactions/presentation/screens/add_transaction_screen.dart';
+import 'package:hishab/features/transactions/presentation/screens/transaction_form_screen.dart';
 import 'package:hishab/features/transactions/presentation/screens/transactions_screen.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -157,11 +157,25 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
         ],
       ),
-      // Outside the shell, so it opens full screen above the bottom bar.
+      // Outside the shell, so they open full screen above the bottom bar.
       GoRoute(
         path: AppRoutes.addTransaction,
         parentNavigatorKey: _rootNavigatorKey,
-        builder: (context, state) => const AddTransactionScreen(),
+        builder: (context, state) => TransactionFormScreen(
+          duplicateId: int.tryParse(
+            state.uri.queryParameters['duplicate'] ?? '',
+          ),
+        ),
+      ),
+      GoRoute(
+        path: '/transaction/:id',
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final id = _idOf(state);
+          return id == null
+              ? const _InvalidIdScreen('transaction')
+              : TransactionFormScreen(editId: id);
+        },
       ),
     ],
   );

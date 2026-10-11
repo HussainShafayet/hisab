@@ -1,0 +1,252 @@
+import 'package:flutter_test/flutter_test.dart';
+import 'package:hishab/features/transactions/domain/transaction_filter.dart';
+import 'package:hishab/features/transactions/domain/transaction_item.dart';
+import 'package:hishab/features/transactions/domain/transaction_type.dart';
+
+TransactionItem item(
+  int id, {
+  TransactionType type = TransactionType.expense,
+  int amount = 10000,
+  int accountId = 1,
+  int? toAccountId,
+  int? categoryId = 10,
+  int? parentId,
+  String categoryName = 'Food',
+  String note = '',
+  DateTime? date,
+}) => TransactionItem(
+  id: id,
+  type: type,
+  amount: amount,
+  accountId: accountId,
+  accountName: 'Cash',
+  toAccountId: toAccountId,
+  categoryId: type == TransactionType.transfer ? null : categoryId,
+  categoryName: type == TransactionType.transfer ? null : categoryName,
+  categoryParentId: parentId,
+  date: date ?? DateTime(2026, 10, 11, 12),
+  note: note,
+  createdAt: DateTime(2026, 10, 11),
+);
+
+List<int> ids(List<TransactionItem> items) => items.map((i) => i.id).toList();
+
+void main() {
+  final items = [
+    item(1, note: 'Lunch with Rahim', amount: 25000),
+    item(
+      2,
+      type: TransactionType.income,
+      categoryId: 20,
+      categoryName: 'Salary',
+      amount: 5000000,
+    ),
+    item(
+      3,
+      type: TransactionType.transfer,
+      accountId: 1,
+      toAccountId: 2,
+      amount: 100000,
+    ),
+    item(
+      4,
+      categoryId: 11,
+      parentId: 10,
+      categoryName: 'Groceries',
+      accountId: 2,
+      amount: 15050,
+    ),
+    item(
+      5,
+      categoryId: 30,
+      categoryName: 'Rent',
+      note: 'october',
+      date: DateTime(2026, 10, 2),
+    ),
+  ];
+
+  test('no filter keeps everything in order', () {
+    expect(ids(applyTransactionFilter(items, const TransactionFilter())), [
+      1,
+      2,
+      3,
+      4,
+      5,
+    ]);
+    expect(const TransactionFilter().isActive, isFalse);
+  });
+
+  group('type', () {
+    test('keeps only that type', () {
+      expect(
+        ids(
+          applyTransactionFilter(
+            items,
+            const TransactionFilter(type: TransactionType.income),
+          ),
+        ),
+        [2],
+      );
+      expect(
+        ids(
+          applyTransactionFilter(
+            items,
+            const TransactionFilter(type: TransactionType.transfer),
+          ),
+        ),
+        [3],
+      );
+      expect(
+        ids(
+          applyTransactionFilter(
+            items,
+            const TransactionFilter(type: TransactionType.expense),
+          ),
+        ),
+        [1, 4, 5],
+      );
+    });
+  });
+
+  group('category', () {
+    test('matches the category itself', () {
+      expect(
+        ids(
+          applyTransactionFilter(
+            items,
+            const TransactionFilter(categoryId: 30),
+          ),
+        ),
+        [5],
+      );
+    });
+
+    test('a parent also matches its sub-categories', () {
+      expect(
+        ids(
+          applyTransactionFilter(
+            items,
+            const TransactionFilter(categoryId: 10),
+          ),
+        ),
+        [1, 4],
+      );
+    });
+
+    test('a sub-category does not match its parent', () {
+      expect(
+        ids(
+          applyTransactionFilter(
+            items,
+            const TransactionFilter(categoryId: 11),
+          ),
+        ),
+        [4],
+      );
+    });
+  });
+
+  group('account', () {
+    test('matches the account money leaves or arrives in', () {
+      expect(
+        ids(
+          applyTransactionFilter(items, const TransactionFilter(accountId: 2)),
+        ),
+        [3, 4],
+      );
+      expect(
+        ids(
+          applyTransactionFilter(items, const TransactionFilter(accountId: 1)),
+        ),
+        [1, 2, 3, 5],
+      );
+    });
+  });
+
+  group('date range', () {
+    test('includes the start and excludes the end', () {
+      final range = (start: DateTime(2026, 10, 2), end: DateTime(2026, 10, 3));
+      expect(
+        ids(applyTransactionFilter(items, TransactionFilter(range: range))),
+        [5],
+      );
+    });
+  });
+
+  group('search text', () {
+    List<int> search(String text) =>
+        ids(applyTransactionFilter(items, TransactionFilter(query: text)));
+
+    test('matches the note, ignoring case', () {
+      expect(search('lunch'), [1]);
+      expect(search('  RAHIM '), [1]);
+      expect(search('OCT'), [5]);
+    });
+
+    test('matches the category name', () {
+      expect(search('grocer'), [4]);
+      expect(search('salary'), [2]);
+    });
+
+    test('matches part of the amount', () {
+      expect(search('250'), [1]);
+      expect(search('150.5'), [4]);
+      expect(search('1,000'), [3]);
+      expect(search('50000'), [2]);
+    });
+
+    test('matches nothing for unknown text', () {
+      expect(search('zzz'), isEmpty);
+    });
+
+    test('blank text matches everything', () {
+      expect(search('   '), [1, 2, 3, 4, 5]);
+    });
+  });
+
+  test('all conditions must match together', () {
+    final filter = const TransactionFilter(
+      type: TransactionType.expense,
+      accountId: 1,
+      query: 'lunch',
+    );
+
+    expect(ids(applyTransactionFilter(items, filter)), [1]);
+    expect(filter.isActive, isTrue);
+  });
+
+  group('isActive and counting options', () {
+    test('a search text counts as active but not as a sheet option', () {
+      const filter = TransactionFilter(query: 'x');
+      expect(filter.isActive, isTrue);
+      expect(filter.sheetOptionCount, 0);
+    });
+
+    test('counts each option of the filter sheet', () {
+      final filter = TransactionFilter(
+        type: TransactionType.income,
+        categoryId: 1,
+        accountId: 2,
+        range: (start: DateTime(2026), end: DateTime(2027)),
+      );
+      expect(filter.sheetOptionCount, 4);
+    });
+
+    test(
+      'withQuery keeps the options and withoutSheetOptions keeps the query',
+      () {
+        const filter = TransactionFilter(
+          query: 'a',
+          type: TransactionType.income,
+          accountId: 3,
+        );
+
+        expect(filter.withQuery('b').type, TransactionType.income);
+        expect(filter.withQuery('b').query, 'b');
+        expect(filter.withoutSheetOptions().query, 'a');
+        expect(filter.withoutSheetOptions().type, isNull);
+        expect(filter.withoutSheetOptions().accountId, isNull);
+      },
+    );
+  });
+}

@@ -361,4 +361,112 @@ void main() {
       expect(emissions.last, 1);
     });
   });
+
+  group('details', () {
+    test('reads the accounts and category with each transaction', () async {
+      final groceries = await insertTestCategory(
+        db,
+        name: 'Groceries',
+        parentId: food,
+      );
+      final expenseId = await db.transactionsDao.insertTransaction(
+        TransactionsCompanion.insert(
+          type: TransactionType.expense,
+          amount: 100,
+          accountId: cash,
+          categoryId: Value(groceries),
+          date: DateTime(2026, 10, 5),
+        ),
+      );
+      final transferId = await db.transactionsDao.insertTransaction(transfer());
+
+      final rows = await db.transactionsDao
+          .watchBetweenWithDetails(DateTime(2026, 10), DateTime(2026, 11))
+          .first;
+
+      final byId = {for (final r in rows) r.transaction.id: r};
+      expect(byId[expenseId]!.account.name, 'Cash');
+      expect(byId[expenseId]!.toAccount, isNull);
+      expect(byId[expenseId]!.category!.name, 'Groceries');
+      expect(byId[expenseId]!.category!.parentId, food);
+      expect(byId[transferId]!.account.name, 'Cash');
+      expect(byId[transferId]!.toAccount!.name, 'bKash');
+      expect(byId[transferId]!.category, isNull);
+    });
+
+    test('is newest first and respects the range', () async {
+      final a = await db.transactionsDao.insertTransaction(
+        expense(date: DateTime(2026, 10, 1)),
+      );
+      final b = await db.transactionsDao.insertTransaction(
+        expense(date: DateTime(2026, 10, 20)),
+      );
+      await db.transactionsDao.insertTransaction(
+        expense(date: DateTime(2026, 11)),
+      );
+
+      final rows = await db.transactionsDao
+          .watchBetweenWithDetails(DateTime(2026, 10), DateTime(2026, 11))
+          .first;
+
+      expect(rows.map((r) => r.transaction.id), [b, a]);
+    });
+
+    test('getWithDetails finds one transaction or null', () async {
+      final id = await db.transactionsDao.insertTransaction(expense());
+
+      expect(
+        (await db.transactionsDao.getWithDetails(id))!.account.name,
+        'Cash',
+      );
+      expect(await db.transactionsDao.getWithDetails(999), isNull);
+    });
+  });
+
+  group('usage', () {
+    test('counts uses per category of a type since a date', () async {
+      Future<void> add(int category, DateTime date) =>
+          db.transactionsDao.insertTransaction(
+            TransactionsCompanion.insert(
+              type: TransactionType.expense,
+              amount: 100,
+              accountId: cash,
+              categoryId: Value(category),
+              date: date,
+            ),
+          );
+      await add(food, DateTime(2026, 10, 1));
+      await add(food, DateTime(2026, 10, 9));
+      await add(food, DateTime(2026, 8, 1)); // too old
+      await db.transactionsDao.insertTransaction(
+        TransactionsCompanion.insert(
+          type: TransactionType.income,
+          amount: 100,
+          accountId: cash,
+          categoryId: Value(salary),
+          date: DateTime(2026, 10, 2),
+        ),
+      );
+      await db.transactionsDao.insertTransaction(transfer());
+
+      final usage = await db.transactionsDao.categoryUsage(
+        TransactionType.expense,
+        since: DateTime(2026, 9),
+      );
+
+      expect(usage.keys, [food]);
+      expect(usage[food]!.count, 2);
+      expect(usage[food]!.lastUsed, DateTime(2026, 10, 9));
+    });
+
+    test('lastUsedAccountId follows the newest saved transaction', () async {
+      expect(await db.transactionsDao.lastUsedAccountId(), isNull);
+
+      await db.transactionsDao.insertTransaction(expense());
+      expect(await db.transactionsDao.lastUsedAccountId(), cash);
+
+      await db.transactionsDao.insertTransaction(expense(accountId: bkash));
+      expect(await db.transactionsDao.lastUsedAccountId(), bkash);
+    });
+  });
 }

@@ -38,3 +38,8 @@ List<CategoryNode> buildCategoryTree(Iterable<Category> categories) {
       ),
   ];
 }
+
+/// The tree as one list: each parent followed by its sub-categories.
+List<Category> flattenCategoryTree(List<CategoryNode> nodes) => [
+  for (final node in nodes) ...[node.category, ...node.children],
+];
