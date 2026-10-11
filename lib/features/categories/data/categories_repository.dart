@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/features/categories/data/category_mapper.dart';
 import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 
@@ -20,12 +21,12 @@ class CategoriesRepository {
   Stream<List<Category>> watchCategories({bool includeArchived = false}) {
     return _db.categoriesDao
         .watchAll(includeArchived: includeArchived)
-        .map((rows) => rows.map(_toCategory).toList());
+        .map((rows) => rows.map((row) => row.toDomain()).toList());
   }
 
   Future<Category?> getCategory(int id) async {
     final row = await _db.categoriesDao.getById(id);
-    return row == null ? null : _toCategory(row);
+    return row?.toDomain();
   }
 
   /// Returns the new category's id. A sub-category passes its parent's
@@ -212,15 +213,4 @@ class CategoriesRepository {
     }
     return highest + 1;
   }
-
-  Category _toCategory(CategoryRow row) => Category(
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    parentId: row.parentId,
-    icon: row.icon,
-    color: row.color,
-    isArchived: row.isArchived,
-    sortOrder: row.sortOrder,
-  );
 }

@@ -26,6 +26,11 @@ abstract final class AppRoutes {
   ).toString();
   static String editCategory(int id) => '/more/categories/$id';
 
-  // Full-screen, opened above the bottom navigation by the global FAB.
+  // Full-screen, opened above the bottom navigation.
   static const addTransaction = '/add';
+
+  /// Opens the add form pre-filled with a copy of transaction [id].
+  static String duplicateTransaction(int id) => '/add?duplicate=$id';
+
+  static String editTransaction(int id) => '/transaction/$id';
 }

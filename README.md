@@ -30,3 +30,14 @@ dart run build_runner build --delete-conflicting-outputs
 Feature-first, repository pattern. Each feature has `data/` (tables, DAOs,
 repository), `domain/` (models, pure logic) and `presentation/` (screens, widgets,
 providers). Shared code is in `lib/core/` (database, router, theme, utils, widgets).
+
+## Seeing the screens without a phone
+
+```sh
+SCREENSHOTS=1 flutter test test/screenshots
+```
+
+draws the main screens to `build/screenshots/*.png` (phone size, with the real
+Roboto font). It is skipped in a normal `flutter test`. The heavy black rings
+around the add button and cards come from the test renderer's shadows, not
+from the app.

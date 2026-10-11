@@ -9,3 +9,8 @@ class ValidationException implements Exception {
   @override
   String toString() => 'ValidationException: $message';
 }
+
+/// The text to show the user for [error]: the message of a
+/// [ValidationException], or the error itself for anything unexpected.
+String describeError(Object error) =>
+    error is ValidationException ? error.message : '$error';

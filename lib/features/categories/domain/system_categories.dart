@@ -5,3 +5,10 @@ const balanceAdjustmentCategoryName = 'Balance adjustment';
 
 /// Note saved on balance-adjustment transactions.
 const balanceAdjustmentNote = 'Balance adjustment';
+
+/// Expense category for transfer fees. It matches a default category, and is
+/// created on first use if the user removed or renamed it.
+const transferFeeCategoryName = 'Fees & charges';
+
+/// Note saved on the expense that records a transfer fee.
+const transferFeeNote = 'Transfer fee';

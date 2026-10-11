@@ -59,6 +59,32 @@ class CategoriesDao extends DatabaseAccessor<AppDatabase>
         CategoriesCompanion(isArchived: Value(archived)),
       );
 
+  /// The id of the top-level category called [name] of [type], archived or
+  /// not. Creates it when it does not exist yet. The match is on the exact
+  /// name, so a category the user renamed is simply not found.
+  Future<int> findOrCreateTopLevel(
+    String name,
+    CategoryType type, {
+    required String icon,
+    int? color,
+  }) async {
+    final existing = await getAll(type: type, includeArchived: true);
+    for (final category in existing) {
+      if (category.parentId == null && category.name == name) {
+        return category.id;
+      }
+    }
+    return insertCategory(
+      CategoriesCompanion.insert(
+        name: name,
+        type: type,
+        icon: Value(icon),
+        color: color == null ? const Value.absent() : Value(color),
+        sortOrder: Value(existing.length),
+      ),
+    );
+  }
+
   Future<void> insertDefaults() async {
     await _insertDefaultsOfType(CategoryType.expense, defaultExpenseCategories);
     await _insertDefaultsOfType(CategoryType.income, defaultIncomeCategories);

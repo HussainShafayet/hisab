@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/features/accounts/data/account_mapper.dart';
 import 'package:hishab/features/accounts/data/accounts_dao.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/domain/account_balance.dart';
@@ -30,7 +31,7 @@ class AccountsRepository {
 
   Future<Account?> getAccount(int id) async {
     final row = await _db.accountsDao.getById(id);
-    return row == null ? null : _toAccount(row);
+    return row?.toDomain();
   }
 
   /// Returns the new account's id.
@@ -117,26 +118,9 @@ class AccountsRepository {
     });
   }
 
-  Future<int> _balanceAdjustmentCategoryId(CategoryType type) async {
-    final existing = await _db.categoriesDao.getAll(
-      type: type,
-      includeArchived: true,
-    );
-    for (final category in existing) {
-      if (category.parentId == null &&
-          category.name == balanceAdjustmentCategoryName) {
-        return category.id;
-      }
-    }
-    return _db.categoriesDao.insertCategory(
-      CategoriesCompanion.insert(
-        name: balanceAdjustmentCategoryName,
-        type: type,
-        icon: const Value('tune'),
-        sortOrder: Value(existing.length),
-      ),
-    );
-  }
+  Future<int> _balanceAdjustmentCategoryId(CategoryType type) => _db
+      .categoriesDao
+      .findOrCreateTopLevel(balanceAdjustmentCategoryName, type, icon: 'tune');
 
   Future<AccountRow> _requireRow(int id) async {
     final row = await _db.accountsDao.getById(id);
@@ -175,16 +159,7 @@ class AccountsRepository {
 
   AccountWithBalance _toAccountWithBalance(AccountWithFlows row) =>
       AccountWithBalance(
-        account: _toAccount(row.account),
+        account: row.account.toDomain(),
         balance: _balanceOf(row),
       );
-
-  Account _toAccount(AccountRow row) => Account(
-    id: row.id,
-    name: row.name,
-    type: row.type,
-    openingBalance: row.openingBalance,
-    includeInTotal: row.includeInTotal,
-    isArchived: row.isArchived,
-  );
 }

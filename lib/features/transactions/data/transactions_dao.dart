@@ -1,10 +1,22 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/features/accounts/data/accounts_table.dart';
+import 'package:hishab/features/categories/data/categories_table.dart';
 import 'package:hishab/features/transactions/data/transactions_table.dart';
+import 'package:hishab/features/transactions/domain/category_usage.dart';
+import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 part 'transactions_dao.g.dart';
 
-@DriftAccessor(tables: [Transactions])
+/// A transaction row with the rows it points to, read in one query.
+typedef TransactionWithDetails = ({
+  TransactionRow transaction,
+  AccountRow account,
+  AccountRow? toAccount,
+  CategoryRow? category,
+});
+
+@DriftAccessor(tables: [Transactions, Accounts, Categories])
 class TransactionsDao extends DatabaseAccessor<AppDatabase>
     with _$TransactionsDaoMixin {
   TransactionsDao(super.attachedDatabase);
@@ -33,6 +45,82 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
         (t) => OrderingTerm.desc(t.date),
         (t) => OrderingTerm.desc(t.id),
       ]);
+  }
+
+  /// Like [watchBetween], with the accounts and category of every row.
+  Stream<List<TransactionWithDetails>> watchBetweenWithDetails(
+    DateTime start,
+    DateTime end,
+  ) => _selectWithDetails(
+    (t) => t.date.isBiggerOrEqualValue(start) & t.date.isSmallerThanValue(end),
+  ).watch();
+
+  Future<TransactionWithDetails?> getWithDetails(int id) =>
+      _selectWithDetails((t) => t.id.equals(id)).getSingleOrNull();
+
+  Selectable<TransactionWithDetails> _selectWithDetails(
+    Expression<bool> Function($TransactionsTable t) where,
+  ) {
+    final from = alias(accounts, 'from_account');
+    final to = alias(accounts, 'to_account');
+    final query =
+        select(transactions).join([
+            innerJoin(from, from.id.equalsExp(transactions.accountId)),
+            leftOuterJoin(to, to.id.equalsExp(transactions.toAccountId)),
+            leftOuterJoin(
+              categories,
+              categories.id.equalsExp(transactions.categoryId),
+            ),
+          ])
+          ..where(where(transactions))
+          ..orderBy([
+            OrderingTerm.desc(transactions.date),
+            OrderingTerm.desc(transactions.id),
+          ]);
+
+    return query.map(
+      (row) => (
+        transaction: row.readTable(transactions),
+        account: row.readTable(from),
+        toAccount: row.readTableOrNull(to),
+        category: row.readTableOrNull(categories),
+      ),
+    );
+  }
+
+  /// How often each category of [type] was used since [since], for ordering
+  /// the quick-pick chips. Categories never used are not in the result.
+  Future<Map<int, CategoryUsage>> categoryUsage(
+    TransactionType type, {
+    required DateTime since,
+  }) async {
+    final rows = await customSelect(
+      'SELECT category_id, COUNT(*) AS uses, MAX(date) AS last_used '
+      'FROM transactions '
+      'WHERE type = ? AND category_id IS NOT NULL AND date >= ? '
+      'GROUP BY category_id',
+      variables: [Variable.withString(type.name), Variable.withDateTime(since)],
+      readsFrom: {transactions},
+    ).get();
+
+    return {
+      for (final row in rows)
+        row.read<int>('category_id'): CategoryUsage(
+          count: row.read<int>('uses'),
+          lastUsed: row.read<DateTime>('last_used'),
+        ),
+    };
+  }
+
+  /// The account of the transaction that was saved last, or null if there are
+  /// no transactions.
+  Future<int?> lastUsedAccountId() async {
+    final latest =
+        await (select(transactions)
+              ..orderBy([(t) => OrderingTerm.desc(t.id)])
+              ..limit(1))
+            .getSingleOrNull();
+    return latest?.accountId;
   }
 
   /// Returns the new id.

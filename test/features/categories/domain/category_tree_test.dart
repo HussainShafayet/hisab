@@ -51,4 +51,17 @@ void main() {
     expect(tree.single.category.id, 2);
     expect(tree.single.children, isEmpty);
   });
+
+  test('flattenCategoryTree lists each parent before its sub-categories', () {
+    final tree = buildCategoryTree([
+      category(1),
+      category(2, parentId: 1),
+      category(3),
+      category(4, parentId: 3),
+      category(5, parentId: 1),
+    ]);
+
+    expect(flattenCategoryTree(tree).map((c) => c.id), [1, 2, 5, 3, 4]);
+    expect(flattenCategoryTree([]), isEmpty);
+  });
 }

@@ -108,4 +108,56 @@ void main() {
     expect(reloaded.name, 'Groceries');
     expect(reloaded.icon, 'shopping_cart');
   });
+
+  group('findOrCreateTopLevel', () {
+    test('creates the category once and then finds it', () async {
+      final first = await db.categoriesDao.findOrCreateTopLevel(
+        'Fees',
+        CategoryType.expense,
+        icon: 'account_balance',
+        color: 0xFF78909C,
+      );
+      final second = await db.categoriesDao.findOrCreateTopLevel(
+        'Fees',
+        CategoryType.expense,
+        icon: 'account_balance',
+      );
+
+      expect(second, first);
+      final category = (await db.categoriesDao.getById(first))!;
+      expect(category.icon, 'account_balance');
+      expect(category.color, 0xFF78909C);
+      expect(await db.categoriesDao.getAll(), hasLength(1));
+    });
+
+    test('keeps income and expense separate', () async {
+      final expense = await db.categoriesDao.findOrCreateTopLevel(
+        'Other',
+        CategoryType.expense,
+        icon: 'x',
+      );
+      final income = await db.categoriesDao.findOrCreateTopLevel(
+        'Other',
+        CategoryType.income,
+        icon: 'x',
+      );
+
+      expect(income, isNot(expense));
+    });
+
+    test('finds an archived category and ignores sub-categories', () async {
+      final parent = await insertTestCategory(db, name: 'Food');
+      await insertTestCategory(db, name: 'Fees', parentId: parent);
+      final fees = await insertTestCategory(db, name: 'Fees');
+      await db.categoriesDao.setArchived(fees, archived: true);
+
+      final found = await db.categoriesDao.findOrCreateTopLevel(
+        'Fees',
+        CategoryType.expense,
+        icon: 'x',
+      );
+
+      expect(found, fees);
+    });
+  });
 }
