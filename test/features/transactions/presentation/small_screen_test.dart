@@ -257,4 +257,81 @@ void main() {
       },
     );
   });
+
+  group('on a short window (phone turned sideways, split screen)', () {
+    void useShortWindow(WidgetTester tester) {
+      tester.view.physicalSize = const Size(640, 360);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+    }
+
+    testWithDatabase('the add form scrolls instead of overflowing', (
+      tester,
+      db,
+    ) async {
+      useShortWindow(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // An overflow is reported as an exception.
+      expect(tester.takeException(), isNull);
+    });
+
+    testWithDatabase('a transaction can be saved from start to finish', (
+      tester,
+      db,
+    ) async {
+      useShortWindow(tester);
+      final b = await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      // The form is one long list here, so scroll to each part like a user.
+      // The Note text field has a Scrollable of its own: take the outer one.
+      final formList = find.byType(Scrollable).first;
+      await tester.ensureVisible(find.byKey(ValueKey('category-${b.food}')));
+      await tester.tap(find.byKey(ValueKey('category-${b.food}')));
+      await tester.pump();
+      for (final key in '75'.split('')) {
+        await tester.scrollUntilVisible(
+          find.byKey(ValueKey('key-$key')),
+          100,
+          scrollable: formList,
+        );
+        await tester.tap(find.byKey(ValueKey('key-$key')));
+      }
+      await tester.scrollUntilVisible(
+        find.text('Save'),
+        100,
+        scrollable: formList,
+      );
+      await tester.tap(find.text('Save'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      final rows = await db.transactionsDao.getBetween(
+        DateTime(2000),
+        DateTime(2100),
+      );
+      expect(rows.single.amount, 7500);
+    });
+
+    testWithDatabase('the transfer form fits too', (tester, db) async {
+      useShortWindow(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      await tester.ensureVisible(find.text('Transfer'));
+      await tester.tap(find.text('Transfer'));
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+    });
+  });
 }

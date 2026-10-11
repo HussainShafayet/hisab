@@ -269,136 +269,165 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       TransactionType.transfer => theme.colorScheme.onSurface,
     };
 
+    final header = <Widget>[
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: SegmentedButton<TransactionType>(
+          showSelectedIcon: false,
+          segments: const [
+            ButtonSegment(
+              value: TransactionType.expense,
+              label: Text('Expense'),
+            ),
+            ButtonSegment(value: TransactionType.income, label: Text('Income')),
+            ButtonSegment(
+              value: TransactionType.transfer,
+              label: Text('Transfer'),
+            ),
+          ],
+          selected: {_type},
+          onSelectionChanged: (selection) => _setType(selection.first),
+        ),
+      ),
+      _AmountDisplay(expression: _expression, color: amountColor),
+      if (_error != null)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Text(
+            _error!,
+            key: const ValueKey('form-error'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.error,
+            ),
+          ),
+        )
+      else if (_notice != null)
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.check_circle_outline,
+                size: 18,
+                color: theme.colorScheme.primary,
+              ),
+              const SizedBox(width: 6),
+              Text(
+                _notice!,
+                key: const ValueKey('form-notice'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.primary,
+                ),
+              ),
+            ],
+          ),
+        ),
+    ];
+
+    final fields = <Widget>[
+      if (_type == TransactionType.transfer)
+        ..._transferFields(context)
+      else ...[
+        _SectionLabel(
+          _type == TransactionType.income
+              ? 'Income category'
+              : 'Expense category',
+        ),
+        _categoryChips(context),
+        const SizedBox(height: 16),
+        const _SectionLabel('Account'),
+        _accountChips(
+          selected: _accountId,
+          keyPrefix: 'account',
+          onSelected: (id) => setState(() => _accountId = id),
+        ),
+      ],
+      const SizedBox(height: 16),
+      const _SectionLabel('Date'),
+      _dateChips(context),
+      const SizedBox(height: 16),
+      TextField(
+        controller: _note,
+        focusNode: _noteFocus,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: const InputDecoration(labelText: 'Note'),
+      ),
+    ];
+
+    final keypad = textFieldFocused ? null : AmountKeypad(onKey: _onKey);
+
+    final saveBar = SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+        child: _isEditing
+            ? SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _saving ? null : _saveAndClose,
+                  child: const Text('Save changes'),
+                ),
+              )
+            : Row(
+                children: [
+                  Expanded(
+                    flex: 3,
+                    child: OutlinedButton(
+                      onPressed: _saving ? null : _saveAndAddAnother,
+                      child: const Text('Save & add another'),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    flex: 2,
+                    child: FilledButton(
+                      onPressed: _saving ? null : _saveAndClose,
+                      child: const Text('Save'),
+                    ),
+                  ),
+                ],
+              ),
+      ),
+    );
+
+    // The amount, keypad and Save buttons take about 410 dp. On a short
+    // window (a phone turned sideways, split screen) nothing is left for the
+    // fields, so everything scrolls together. The window height does not
+    // shrink when the system keyboard opens, so typing a note keeps the
+    // normal layout with the Save buttons above the keyboard.
+    final isShort = MediaQuery.sizeOf(context).height < 520;
+
     return Scaffold(
       appBar: AppBar(title: title),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: SegmentedButton<TransactionType>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(
-                  value: TransactionType.expense,
-                  label: Text('Expense'),
-                ),
-                ButtonSegment(
-                  value: TransactionType.income,
-                  label: Text('Income'),
-                ),
-                ButtonSegment(
-                  value: TransactionType.transfer,
-                  label: Text('Transfer'),
-                ),
-              ],
-              selected: {_type},
-              onSelectionChanged: (selection) => _setType(selection.first),
-            ),
-          ),
-          _AmountDisplay(expression: _expression, color: amountColor),
-          if (_error != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                _error!,
-                key: const ValueKey('form-error'),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-            )
-          else if (_notice != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.check_circle_outline,
-                    size: 18,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    _notice!,
-                    key: const ValueKey('form-notice'),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          Expanded(
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+      body: isShort
+          ? ListView(
               children: [
-                if (_type == TransactionType.transfer)
-                  ..._transferFields(context)
-                else ...[
-                  _SectionLabel(
-                    _type == TransactionType.income
-                        ? 'Income category'
-                        : 'Expense category',
+                ...header,
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: fields,
                   ),
-                  _categoryChips(context),
-                  const SizedBox(height: 16),
-                  const _SectionLabel('Account'),
-                  _accountChips(
-                    selected: _accountId,
-                    keyPrefix: 'account',
-                    onSelected: (id) => setState(() => _accountId = id),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                const _SectionLabel('Date'),
-                _dateChips(context),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: _note,
-                  focusNode: _noteFocus,
-                  textCapitalization: TextCapitalization.sentences,
-                  decoration: const InputDecoration(labelText: 'Note'),
                 ),
+                ?keypad,
+                saveBar,
+              ],
+            )
+          : Column(
+              children: [
+                ...header,
+                Expanded(
+                  child: ListView(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                    children: fields,
+                  ),
+                ),
+                ?keypad,
+                saveBar,
               ],
             ),
-          ),
-          if (!textFieldFocused) AmountKeypad(onKey: _onKey),
-          SafeArea(
-            top: false,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-              child: _isEditing
-                  ? SizedBox(
-                      width: double.infinity,
-                      child: FilledButton(
-                        onPressed: _saving ? null : _saveAndClose,
-                        child: const Text('Save changes'),
-                      ),
-                    )
-                  : Row(
-                      children: [
-                        Expanded(
-                          flex: 3,
-                          child: OutlinedButton(
-                            onPressed: _saving ? null : _saveAndAddAnother,
-                            child: const Text('Save & add another'),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          flex: 2,
-                          child: FilledButton(
-                            onPressed: _saving ? null : _saveAndClose,
-                            child: const Text('Save'),
-                          ),
-                        ),
-                      ],
-                    ),
-            ),
-          ),
-        ],
-      ),
     );
   }
 

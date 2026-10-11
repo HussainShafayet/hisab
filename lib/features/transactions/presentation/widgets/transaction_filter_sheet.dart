@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
 import 'package:hishab/features/categories/domain/category.dart';
@@ -209,7 +210,21 @@ class _TransactionFilterSheetState
                   ],
                 ),
               )
-            : const SizedBox(height: 240, child: LoadingView()),
+            : SizedBox(
+                // Tall enough for the icon, message and Retry button.
+                height: 320,
+                child: accounts.hasError || categories.hasError
+                    ? ErrorView(
+                        message: describeError(
+                          (accounts.error ?? categories.error)!,
+                        ),
+                        onRetry: () {
+                          ref.invalidate(accountsProvider(true));
+                          ref.invalidate(categoriesProvider(true));
+                        },
+                      )
+                    : const LoadingView(),
+              ),
       ),
     );
   }
