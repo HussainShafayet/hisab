@@ -11,6 +11,7 @@ class TransactionItem {
     required this.date,
     required this.note,
     required this.createdAt,
+    this.isAdjustment = false,
     this.toAccountId,
     this.toAccountName,
     this.categoryId,
@@ -49,4 +50,8 @@ class TransactionItem {
   /// When the transaction was first saved. Kept so a deleted transaction can
   /// be restored exactly.
   final DateTime createdAt;
+
+  /// A correction recorded by "Adjust balance". It counts in the account's
+  /// balance but not in income, expense or budget totals.
+  final bool isAdjustment;
 }

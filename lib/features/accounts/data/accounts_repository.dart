@@ -112,6 +112,7 @@ class AccountsRepository {
           categoryId: Value(categoryId),
           date: DateTime.now(),
           note: const Value(balanceAdjustmentNote),
+          isAdjustment: const Value(true),
         ),
       );
       return adjustment;

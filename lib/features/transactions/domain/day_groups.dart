@@ -3,11 +3,13 @@ import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// Income and expense totals of [items], in poisha. Transfers only move money
-/// between accounts, so they are not counted.
+/// between accounts, and balance adjustments are corrections, not real income
+/// or spending, so neither is counted.
 ({int income, int expense}) totalsOf(Iterable<TransactionItem> items) {
   var income = 0;
   var expense = 0;
   for (final item in items) {
+    if (item.isAdjustment) continue;
     switch (item.type) {
       case TransactionType.income:
         income += item.amount;

@@ -457,6 +457,25 @@ void main() {
       expect(await balanceOf(bkash), 40000);
     });
 
+    test('restoring keeps a balance adjustment marked as one', () async {
+      await AccountsRepository(db).adjustBalance(cash, targetBalance: 5000);
+      final item =
+          (await repo.watchBetween(DateTime(2000), DateTime(2100)).first)
+              .single;
+      expect(item.isAdjustment, isTrue);
+
+      final deleted = (await repo.deleteTransaction(item.id))!;
+      await repo.restoreTransaction(deleted);
+
+      expect((await repo.getTransaction(item.id))!.isAdjustment, isTrue);
+    });
+
+    test('an ordinary transaction is not an adjustment', () async {
+      final id = await repo.addTransaction(expense());
+
+      expect((await repo.getTransaction(id))!.isAdjustment, isFalse);
+    });
+
     test('restoring works after the account was archived', () async {
       final id = await repo.addTransaction(expense());
       final deleted = (await repo.deleteTransaction(id))!;

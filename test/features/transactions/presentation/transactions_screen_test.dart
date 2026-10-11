@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
@@ -227,6 +228,39 @@ void main() {
       expect(find.text('Food'), findsOneWidget);
       // The day header, the row and the (negative) balance in the summary.
       expect(find.text('-৳123.00'), findsNWidgets(3));
+    });
+  });
+
+  group('balance adjustments', () {
+    testWithDatabase('are shown as corrections and left out of the totals', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final d = await seedMonth(db);
+      await db.transactionsDao.insertTransaction(
+        TransactionsCompanion.insert(
+          type: TransactionType.income,
+          amount: 20000,
+          accountId: d.basics.cash,
+          categoryId: Value(d.basics.salary),
+          date: DateTime(2026, 10, 11, 13),
+          isAdjustment: const Value(true),
+        ),
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openTab(tester);
+
+      expect(
+        find.text('Cash · Correction, not counted in totals'),
+        findsOneWidget,
+      );
+      // The row is there, in the neutral color with its sign.
+      expect(find.text('+৳200.00'), findsOneWidget);
+      // The summary and the day header still show the real numbers only.
+      expect(find.text('৳50,000.00'), findsOneWidget);
+      expect(find.text('+৳50,000.00'), findsNWidgets(2));
+      expect(find.text('৳330.00'), findsOneWidget);
     });
   });
 

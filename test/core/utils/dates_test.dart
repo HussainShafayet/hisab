@@ -68,4 +68,27 @@ void main() {
       DateTime(2026, 10, 9, 14, 5, 7),
     );
   });
+
+  group('monthKey', () {
+    test('is year-month with a two digit month', () {
+      expect(monthKey(DateTime(2026, 10, 11)), '2026-10');
+      expect(monthKey(DateTime(2026, 1, 31, 23, 59)), '2026-01');
+      expect(monthKey(DateTime(2027, 12)), '2027-12');
+    });
+  });
+
+  group('daysInMonth', () {
+    test('knows month lengths', () {
+      expect(daysInMonth(DateTime(2026, 1)), 31);
+      expect(daysInMonth(DateTime(2026, 4, 15)), 30);
+      expect(daysInMonth(DateTime(2026, 12, 31)), 31);
+    });
+
+    test('knows leap years', () {
+      expect(daysInMonth(DateTime(2026, 2)), 28);
+      expect(daysInMonth(DateTime(2028, 2)), 29);
+      expect(daysInMonth(DateTime(2100, 2)), 28);
+      expect(daysInMonth(DateTime(2000, 2)), 29);
+    });
+  });
 }

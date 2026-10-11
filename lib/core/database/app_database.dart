@@ -8,6 +8,7 @@ import 'package:hishab/features/budget/data/budgets_table.dart';
 import 'package:hishab/features/categories/data/categories_dao.dart';
 import 'package:hishab/features/categories/data/categories_table.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/transactions/data/transactions_dao.dart';
 import 'package:hishab/features/transactions/data/transactions_table.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -37,8 +38,10 @@ class AppDatabase extends _$AppDatabase {
 
   final bool seedDefaults;
 
+  /// 1: first version.
+  /// 2: `transactions.is_adjustment`.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -48,6 +51,19 @@ class AppDatabase extends _$AppDatabase {
       if (seedDefaults) {
         await accountsDao.insertDefaults();
         await categoriesDao.insertDefaults();
+      }
+    },
+    onUpgrade: (migrator, from, to) async {
+      if (from < 2) {
+        await migrator.addColumn(transactions, transactions.isAdjustment);
+        // Mark the corrections that were saved before the column existed:
+        // everything in the "Balance adjustment" categories.
+        await customStatement(
+          'UPDATE transactions SET is_adjustment = 1 '
+          'WHERE category_id IN (SELECT id FROM categories '
+          "WHERE name = '$balanceAdjustmentCategoryName' "
+          'AND parent_id IS NULL)',
+        );
       }
     },
     beforeOpen: (details) async {

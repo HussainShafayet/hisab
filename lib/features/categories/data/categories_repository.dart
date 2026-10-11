@@ -24,6 +24,14 @@ class CategoriesRepository {
         .map((rows) => rows.map((row) => row.toDomain()).toList());
   }
 
+  /// A one-off read of the categories, for when a stream is not needed.
+  Future<List<Category>> getCategories({bool includeArchived = false}) async {
+    final rows = await _db.categoriesDao.getAll(
+      includeArchived: includeArchived,
+    );
+    return [for (final row in rows) row.toDomain()];
+  }
+
   Future<Category?> getCategory(int id) async {
     final row = await _db.categoriesDao.getById(id);
     return row?.toDomain();

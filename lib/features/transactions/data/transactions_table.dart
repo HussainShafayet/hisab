@@ -41,6 +41,12 @@ class Transactions extends Table {
 
   TextColumn get note => text().withDefault(const Constant(''))();
 
+  /// True for the transaction that "Adjust balance" records to bring an
+  /// account in line with reality. It changes the account's balance, but it is
+  /// not real income or spending, so budgets and income/expense totals leave
+  /// it out.
+  BoolColumn get isAdjustment => boolean().withDefault(const Constant(false))();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
