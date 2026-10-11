@@ -51,6 +51,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Future<void> _openFilterSheet() async {
     final result = await showModalBottomSheet<TransactionFilter>(
       context: context,
+      // On the root navigator the sheet covers the bottom bar and the "Add"
+      // button instead of opening underneath them.
+      useRootNavigator: true,
       isScrollControlled: true,
       builder: (context) => TransactionFilterSheet(initial: _filter),
     );
@@ -97,6 +100,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   Future<void> _showActions(TransactionItem item) {
     return showModalBottomSheet<void>(
       context: context,
+      useRootNavigator: true,
       builder: (sheetContext) => SafeArea(
         child: Column(
           mainAxisSize: MainAxisSize.min,

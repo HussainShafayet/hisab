@@ -19,8 +19,9 @@ void testWithDatabase(
   String description,
   Future<void> Function(WidgetTester tester, AppDatabase db) body, {
   bool seedDefaults = false,
+  bool skip = false,
 }) {
-  testWidgets(description, (tester) async {
+  testWidgets(description, skip: skip, (tester) async {
     final db = createTestDatabase(seedDefaults: seedDefaults);
     try {
       await body(tester, db);

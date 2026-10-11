@@ -65,11 +65,23 @@ class TransactionTile extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
-      trailing: Text(
-        amountText,
-        style: theme.textTheme.titleMedium?.tabular.copyWith(
-          color: amountColor,
-          fontWeight: FontWeight.w600,
+      // A ListTile fails to lay out when the trailing widget takes the whole
+      // row, which a big amount in large text can do. So the amount gets at
+      // most 40% of the width and shrinks to fit.
+      trailing: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width * 0.4,
+        ),
+        child: FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: Alignment.centerRight,
+          child: Text(
+            amountText,
+            style: theme.textTheme.titleMedium?.tabular.copyWith(
+              color: amountColor,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
         ),
       ),
     );
@@ -95,24 +107,42 @@ class DayHeader extends StatelessWidget {
       child: Row(
         children: [
           Expanded(
+            flex: 2,
             child: Text(
               label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: theme.textTheme.labelLarge?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
             ),
           ),
-          if (group.income > 0)
-            Text(
-              '+${formatPoisha(group.income)}',
-              style: style?.copyWith(color: colors.income),
+          // The amounts sit on the right and shrink instead of overflowing
+          // when they are big.
+          Expanded(
+            flex: 3,
+            child: FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerRight,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (group.income > 0)
+                    Text(
+                      '+${formatPoisha(group.income)}',
+                      style: style?.copyWith(color: colors.income),
+                    ),
+                  if (group.income > 0 && group.expense > 0)
+                    const SizedBox(width: 12),
+                  if (group.expense > 0)
+                    Text(
+                      formatPoisha(-group.expense),
+                      style: style?.copyWith(color: colors.expense),
+                    ),
+                ],
+              ),
             ),
-          if (group.income > 0 && group.expense > 0) const SizedBox(width: 12),
-          if (group.expense > 0)
-            Text(
-              formatPoisha(-group.expense),
-              style: style?.copyWith(color: colors.expense),
-            ),
+          ),
         ],
       ),
     );

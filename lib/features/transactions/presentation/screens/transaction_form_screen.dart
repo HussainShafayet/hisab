@@ -379,6 +379,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                   : Row(
                       children: [
                         Expanded(
+                          flex: 3,
                           child: OutlinedButton(
                             onPressed: _saving ? null : _saveAndAddAnother,
                             child: const Text('Save & add another'),
@@ -386,6 +387,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                         ),
                         const SizedBox(width: 12),
                         Expanded(
+                          flex: 2,
                           child: FilledButton(
                             onPressed: _saving ? null : _saveAndClose,
                             child: const Text('Save'),
@@ -446,7 +448,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           focusNode: _feeFocus,
           label: 'Fee (optional)',
           isRequired: false,
-          helperText: 'Saved as a separate expense on the "From" account.',
+          helperText: 'Saved as an expense on the "From" account.',
         ),
       ],
     ];
@@ -472,12 +474,23 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       );
     }
 
+    // A sub-category is shown by its own name, which keeps the chips short.
+    // The parent's name is added only when two chips would read the same.
     final byId = {for (final c in categories) c.id: c};
+    final sameNameCount = <String, int>{};
+    for (final c in categories) {
+      sameNameCount.update(
+        c.name.toLowerCase(),
+        (count) => count + 1,
+        ifAbsent: () => 1,
+      );
+    }
     String labelOf(Category category) {
       final parent = byId[category.parentId];
-      return parent == null
-          ? category.name
-          : '${parent.name} › ${category.name}';
+      final isAmbiguous = sameNameCount[category.name.toLowerCase()]! > 1;
+      return parent != null && isAmbiguous
+          ? '${parent.name} › ${category.name}'
+          : category.name;
     }
 
     return Wrap(

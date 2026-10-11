@@ -164,43 +164,55 @@ class _AccountTile extends ConsumerWidget {
       ),
       subtitle: Text(notes.join(' · ')),
       onTap: () => context.push(AppRoutes.editAccount(_account.id)),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            formatPoisha(item.balance),
-            style: theme.textTheme.titleMedium?.tabular.copyWith(
-              color: item.balance < 0
-                  ? context.financeColors.expense
-                  : muted
-                  ? theme.colorScheme.onSurfaceVariant
-                  : null,
-            ),
-          ),
-          PopupMenuButton<_AccountAction>(
-            onSelected: (action) => _onAction(context, ref, action),
-            itemBuilder: (context) => [
-              const PopupMenuItem(
-                value: _AccountAction.edit,
-                child: Text('Edit'),
-              ),
-              const PopupMenuItem(
-                value: _AccountAction.adjust,
-                child: Text('Adjust balance'),
-              ),
-              if (_account.isArchived)
-                const PopupMenuItem(
-                  value: _AccountAction.restore,
-                  child: Text('Restore'),
-                )
-              else
-                const PopupMenuItem(
-                  value: _AccountAction.archive,
-                  child: Text('Archive'),
+      // Limited in width, like the amount in a transaction row, so a big
+      // balance in large text cannot fill the whole tile.
+      trailing: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxWidth: MediaQuery.sizeOf(context).width * 0.6,
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Flexible(
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  formatPoisha(item.balance),
+                  style: theme.textTheme.titleMedium?.tabular.copyWith(
+                    color: item.balance < 0
+                        ? context.financeColors.expense
+                        : muted
+                        ? theme.colorScheme.onSurfaceVariant
+                        : null,
+                  ),
                 ),
-            ],
-          ),
-        ],
+              ),
+            ),
+            PopupMenuButton<_AccountAction>(
+              onSelected: (action) => _onAction(context, ref, action),
+              itemBuilder: (context) => [
+                const PopupMenuItem(
+                  value: _AccountAction.edit,
+                  child: Text('Edit'),
+                ),
+                const PopupMenuItem(
+                  value: _AccountAction.adjust,
+                  child: Text('Adjust balance'),
+                ),
+                if (_account.isArchived)
+                  const PopupMenuItem(
+                    value: _AccountAction.restore,
+                    child: Text('Restore'),
+                  )
+                else
+                  const PopupMenuItem(
+                    value: _AccountAction.archive,
+                    child: Text('Archive'),
+                  ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
