@@ -2,8 +2,6 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/budget/data/budgets_repository.dart';
-import 'package:hishab/features/debts/data/debts_repository.dart';
-import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/insights/data/insights_repository.dart';
 import 'package:hishab/features/insights/domain/insights.dart';
 import 'package:hishab/features/recurring/data/recurring_repository.dart';
@@ -94,40 +92,6 @@ void main() {
 
     expect(over.args['limit'], 100000);
     expect(over.args['projected'], 112727);
-  });
-
-  test('mentions loans that are owed and overdue', () async {
-    await DebtsRepository(db).createDebt(
-      person: 'Rahim',
-      direction: DebtDirection.lent,
-      amount: 50000,
-      openedOn: DateTime(2026, 9, 1),
-      dueOn: DateTime(2026, 10, 1),
-    );
-
-    final list = await repo.load(now);
-
-    expect(
-      list.map((i) => i.kind),
-      containsAll([InsightKind.loansOverdue, InsightKind.loansToGet]),
-    );
-    expect(
-      list.firstWhere((i) => i.kind == InsightKind.loansToGet).args['amount'],
-      50000,
-    );
-  });
-
-  test('settled loans are not mentioned', () async {
-    final id = await DebtsRepository(db).createDebt(
-      person: 'Rahim',
-      direction: DebtDirection.lent,
-      amount: 50000,
-      openedOn: DateTime(2026, 9, 1),
-    );
-    await DebtsRepository(db)
-        .addPayment(id, amount: 50000, paidOn: DateTime(2026, 10, 1));
-
-    expect(await kinds(), isEmpty);
   });
 
   test('mentions the next recurring item that is coming up', () async {

@@ -6,19 +6,19 @@ import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:intl/intl.dart';
 
-/// "They owe you" or "You owe".
+/// "Owes you" or "You owe".
 String debtDirectionText(DebtDirection direction) =>
-    direction == DebtDirection.lent ? tr('They owe you') : tr('You owe');
+    direction == DebtDirection.lent ? tr('Owes you') : tr('You owe');
 
-/// "Due 15 Oct", "Due today", "Overdue by 3 days", "Settled", or null.
+/// "Due 15 Oct", "Due today", "3 days late", "All paid", or null.
 String? debtDueText(DebtItem item, DateTime today) {
-  if (item.isSettled) return tr('Settled');
+  if (item.isSettled) return tr('All paid');
   final days = item.daysUntilDue(today);
   if (days == null) return null;
   if (days < 0) {
     return days == -1
-        ? tr('Overdue by 1 day')
-        : tr('Overdue by {days} days', {'days': -days});
+        ? tr('1 day late')
+        : tr('{days} days late', {'days': -days});
   }
   if (days == 0) return tr('Due today');
   return tr('Due {date}', {
@@ -27,17 +27,23 @@ String? debtDueText(DebtItem item, DateTime today) {
 }
 
 /// One loan in the list: the person, what is left, and how far it is paid.
+/// With [showPerson] off (a list of one person's loans) the title is the day
+/// it was given instead of the name.
 class DebtTile extends StatelessWidget {
   const DebtTile({
     required this.item,
     required this.today,
     required this.onTap,
+    this.onLongPress,
+    this.showPerson = true,
     super.key,
   });
 
   final DebtItem item;
   final DateTime today;
   final VoidCallback onTap;
+  final VoidCallback? onLongPress;
+  final bool showPerson;
 
   @override
   Widget build(BuildContext context) {
@@ -55,6 +61,7 @@ class DebtTile extends StatelessWidget {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -73,13 +80,27 @@ class DebtTile extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          item.debt.person,
+                          showPerson
+                              ? item.debt.person
+                              : (lent
+                                    ? tr('Lent on {date}', {
+                                        'date': DateFormat('d MMM yyyy')
+                                            .format(item.debt.openedOn),
+                                      })
+                                    : tr('Borrowed on {date}', {
+                                        'date': DateFormat('d MMM yyyy')
+                                            .format(item.debt.openedOn),
+                                      })),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleMedium,
                         ),
                         Text(
-                          debtDirectionText(item.debt.direction),
+                          showPerson || item.debt.note.isEmpty
+                              ? debtDirectionText(item.debt.direction)
+                              : item.debt.note,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),

@@ -6,14 +6,13 @@ import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/clock.dart';
-import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/money.dart';
-import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/debts/presentation/widgets/debt_tile.dart';
-import 'package:hishab/features/debts/presentation/widgets/payment_dialog.dart';
+import 'package:hishab/features/debts/presentation/widgets/debt_actions.dart';
+import 'package:hishab/features/debts/presentation/widgets/loan_share.dart';
 import 'package:intl/intl.dart';
 
 /// One loan: what is left, the payments so far, and a way to add one.
@@ -22,98 +21,16 @@ class DebtDetailScreen extends ConsumerWidget {
 
   final int debtId;
 
-  void _message(BuildContext context, String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
-  }
-
-  Future<void> _addPayment(BuildContext context, DebtItem item) async {
-    final saved = await showDialog<bool>(
-      context: context,
-      builder: (context) => PaymentDialog(item: item),
-    );
-    if (saved == true && context.mounted) {
-      _message(context, tr('Payment saved.'));
-    }
-  }
-
-  Future<void> _settle(
-    BuildContext context,
-    WidgetRef ref,
-    DebtItem item,
-  ) async {
-    try {
-      await ref
-          .read(debtsRepositoryProvider)
-          .addPayment(
-            item.debt.id,
-            amount: item.remaining,
-            paidOn: combineDayWithTime(
-              dateOnly(ref.read(clockProvider)()),
-              ref.read(clockProvider)(),
-            ),
-            accountId: item.debt.accountId,
-          );
-      if (context.mounted) _message(context, tr('Marked as paid.'));
-    } on ValidationException catch (e) {
-      if (context.mounted) _message(context, e.message);
-    }
-  }
-
-  Future<bool> _confirm(
-    BuildContext context,
-    String title,
-    String body,
-    String action,
-  ) async {
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(title),
-        content: Text(body),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: Text(tr('Cancel')),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.of(context).pop(true),
-            child: Text(action),
-          ),
-        ],
-      ),
-    );
-    return result == true;
-  }
-
-  Future<void> _delete(
-    BuildContext context,
-    WidgetRef ref,
-    DebtItem item,
-  ) async {
-    final ok = await _confirm(
-      context,
-      tr('Delete this loan?'),
-      tr(
-        'The loan and its payments are removed, and so is any change they made '
-        'to an account balance.',
-      ),
-      tr('Delete'),
-    );
-    if (!ok || !context.mounted) return;
-    await ref.read(debtsRepositoryProvider).deleteDebt(item.debt.id);
-    if (context.mounted) context.pop();
-  }
-
   Future<void> _deletePayment(
     BuildContext context,
     WidgetRef ref,
     DebtPayment payment,
   ) async {
-    final ok = await _confirm(
+    final ok = await confirmLoanAction(
       context,
-      tr('Delete this payment?'),
-      tr('The amount is added back to what is left to pay.'),
-      tr('Delete'),
+      title: tr('Delete this payment?'),
+      body: tr('The amount goes back to what is left.'),
+      action: tr('Delete'),
     );
     if (!ok || !context.mounted) return;
     await ref.read(debtsRepositoryProvider).deletePayment(payment.id);
@@ -146,6 +63,11 @@ class DebtDetailScreen extends ConsumerWidget {
             ? theme.colorScheme.onSurfaceVariant
             : (lent ? colors.income : colors.expense);
         final due = debtDueText(debt, today);
+        final sameName = (ref.watch(debtsProvider).value ?? const <DebtItem>[])
+            .where(
+              (i) => personKey(i.debt.person) == personKey(debt.debt.person),
+            )
+            .length;
 
         return Scaffold(
           appBar: AppBar(
@@ -161,7 +83,11 @@ class DebtDetailScreen extends ConsumerWidget {
                 key: const ValueKey('delete-loan'),
                 tooltip: tr('Delete'),
                 icon: const Icon(Icons.delete_outline),
-                onPressed: () => _delete(context, ref, debt),
+                onPressed: () async {
+                  if (await deleteLoan(context, ref, debt) && context.mounted) {
+                    context.pop();
+                  }
+                },
               ),
             ],
           ),
@@ -192,7 +118,7 @@ class DebtDetailScreen extends ConsumerWidget {
                         ),
                       ),
                       Text(
-                        tr('is left to pay back'),
+                        lent ? tr('left to get back') : tr('left to pay back'),
                         style: theme.textTheme.bodySmall,
                       ),
                       const SizedBox(height: 12),
@@ -217,10 +143,12 @@ class DebtDetailScreen extends ConsumerWidget {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        tr('Given on {date}', {
-                          'date': DateFormat('d MMM yyyy')
-                              .format(debt.debt.openedOn),
-                        }),
+                        (lent ? tr('Lent on {date}') : tr('Borrowed on {date}'))
+                            .replaceAll(
+                              '{date}',
+                              DateFormat('d MMM yyyy')
+                                  .format(debt.debt.openedOn),
+                            ),
                         style: theme.textTheme.bodySmall,
                       ),
                       if (due != null)
@@ -248,30 +176,55 @@ class DebtDetailScreen extends ConsumerWidget {
                     Expanded(
                       child: FilledButton.icon(
                         key: const ValueKey('add-payment'),
-                        onPressed: () => _addPayment(context, debt),
+                        onPressed: () => addLoanPayment(context, debt),
                         icon: const Icon(Icons.add),
-                        label: Text(tr('Add payment')),
+                        label: Text(tr('Add a payment')),
                       ),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: OutlinedButton.icon(
                         key: const ValueKey('mark-paid'),
-                        onPressed: () => _settle(context, ref, debt),
+                        onPressed: () => markLoanPaid(context, ref, debt),
                         icon: const Icon(Icons.done_all),
-                        label: Text(tr('Mark as paid')),
+                        label: Text(tr('All paid')),
                       ),
                     ),
                   ],
                 ),
+                if (lent) ...[
+                  const SizedBox(height: 8),
+                  TextButton.icon(
+                    key: const ValueKey('remind'),
+                    onPressed: () => shareLoanReminder(
+                      context,
+                      ref,
+                      name: debt.debt.person,
+                      amount: debt.remaining,
+                      dueOn: debt.debt.dueOn,
+                    ),
+                    icon: const Icon(Icons.share_outlined),
+                    label: Text(tr('Send a reminder')),
+                  ),
+                ],
               ],
+              if (sameName > 1)
+                TextButton.icon(
+                  key: const ValueKey('see-person'),
+                  onPressed: () =>
+                      context.push(AppRoutes.debtPerson(debt.debt.person)),
+                  icon: const Icon(Icons.people_outline),
+                  label: Text(
+                    tr('Everything with {name}', {'name': debt.debt.person}),
+                  ),
+                ),
               const SizedBox(height: 20),
               Text(tr('Payments'), style: theme.textTheme.titleSmall),
               if (payments.isEmpty)
                 Padding(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   child: Text(
-                    tr('Nothing has been paid back yet.'),
+                    tr('No payments yet.'),
                     key: const ValueKey('no-payments'),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,

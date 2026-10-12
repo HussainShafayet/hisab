@@ -38,6 +38,8 @@ class BackupRepository {
             includeInTotal: a.includeInTotal,
             isArchived: a.isArchived,
             createdAt: a.createdAt.toUtc(),
+            creditLimit: a.creditLimit,
+            billDueDay: a.billDueDay,
           ),
       ],
       categories: [
@@ -145,6 +147,8 @@ class BackupRepository {
                 includeInTotal: Value(a.includeInTotal),
                 isArchived: Value(a.isArchived),
                 createdAt: Value(a.createdAt),
+                creditLimit: Value(a.creditLimit),
+                billDueDay: Value(a.billDueDay),
               ),
           ]);
           // Parents first: a sub-category points at its parent. (The sort is

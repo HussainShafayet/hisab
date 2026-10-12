@@ -36,6 +36,9 @@ class FakeFileGateway implements FileGateway {
   final shared = <DeliveredFile>[];
   final pickRequests = <List<String>>[];
 
+  /// The texts that were sent to the share sheet.
+  final sharedTexts = <String>[];
+
   /// Makes [pick] return a file with this text.
   void pickText(String name, String text) {
     picked = PickedFile(
@@ -55,6 +58,12 @@ class FakeFileGateway implements FileGateway {
       DeliveredFile(fileName: fileName, bytes: bytes, mimeType: mimeType),
     );
     return saveResult;
+  }
+
+  @override
+  Future<void> shareText(String text) async {
+    if (failure != null) throw failure!;
+    sharedTexts.add(text);
   }
 
   @override

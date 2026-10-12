@@ -69,7 +69,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').getSingle();
       // Every upgrade step ran, up to the current version.
-      expect(version.read<int>('user_version'), 5);
+      expect(version.read<int>('user_version'), 6);
     },
   );
 
@@ -98,7 +98,7 @@ void main() {
     expect(await db.settingsDao.getAll(), {'language': 'bangla'});
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 5);
+    expect(version.read<int>('user_version'), 6);
   });
 
   test('upgrading from version 3 adds the loan tables', () async {
@@ -140,7 +140,48 @@ void main() {
     expect((await db.debtsDao.getWithPaid(debt))!.paid, 400);
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 5);
+    expect(version.read<int>('user_version'), 6);
+  });
+
+  test('upgrading from version 5 adds the credit card columns', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    final account = await db.accountsDao.insertAccount(
+      AccountsCompanion.insert(name: 'Cash', type: AccountType.cash),
+    );
+    await db.customStatement('ALTER TABLE accounts DROP COLUMN credit_limit');
+    await db.customStatement('ALTER TABLE accounts DROP COLUMN bill_due_day');
+    await db.customStatement('PRAGMA user_version = 5');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    // The account that was there has no limit and no bill day.
+    final old = (await db.accountsDao.getById(account))!;
+    expect(old.name, 'Cash');
+    expect(old.creditLimit, isNull);
+    expect(old.billDueDay, isNull);
+    // And a credit card can use both.
+    final card = await db.accountsDao.insertAccount(
+      AccountsCompanion.insert(
+        name: 'Visa',
+        type: AccountType.creditCard,
+        creditLimit: const Value(5000000),
+        billDueDay: const Value(15),
+      ),
+    );
+    final saved = (await db.accountsDao.getById(card))!;
+    expect(saved.creditLimit, 5000000);
+    expect(saved.billDueDay, 15);
+    final version = await db.customSelect('PRAGMA user_version').getSingle();
+    expect(version.read<int>('user_version'), 6);
   });
 
   test(
@@ -167,7 +208,7 @@ void main() {
         contains('app_settings'),
       );
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 5);
+      expect(version.read<int>('user_version'), 6);
       expect(
         tables.map((t) => t.read<String>('name')),
         containsAll(['debts', 'debt_payments', 'recurring_rules']),

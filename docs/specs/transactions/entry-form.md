@@ -21,7 +21,12 @@ number by default; the calculator is there when wanted.
 - **Account** (income / expense): a [wallet card](../accounts/wallet-cards.md)
   with its balance and "After this"; tap to choose another.
 - **Transfer**: "From" and "To" wallet cards, a swap button between them, a
-  fee field, no category.
+  fee field, no category. With nothing chosen the cards ask "Where does the
+  money come from?" and "Where does the money go?".
+- **Pay bill** (from Loans): the form opens as a transfer into a credit card for
+  what it owes. See [credit cards](../accounts/credit-cards.md).
+- A [credit card](../accounts/credit-cards.md) account says "Owed after this"
+  and warns only when a purchase goes over its limit.
 - Date: Today / Yesterday / Pick date. Note: free text.
 - **Save** saves and closes. **Save & new** saves, then empties the amount,
   category and note and puts the cursor back in the amount, keeping the type,

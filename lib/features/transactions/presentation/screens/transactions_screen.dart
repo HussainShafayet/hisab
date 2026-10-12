@@ -218,8 +218,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       if (_filter.isActive) {
         return EmptyState(
           icon: Icons.search_off,
-          title: tr('Nothing matches'),
-          message: tr('No transaction fits your search and filters.'),
+          title: tr('No results'),
+          message: tr('Nothing found. Try a different search or filter.'),
           action: FilledButton(
             onPressed: _clearFilters,
             child: Text(tr('Clear filters')),
@@ -228,8 +228,8 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       }
       return EmptyState(
         icon: Icons.receipt_long_outlined,
-        title: tr('No transactions in {month}', {'month': monthLabel(_month)}),
-        message: tr('Tap + to add your first one.'),
+        title: tr('Nothing recorded in {month}', {'month': monthLabel(_month)}),
+        message: tr('Tap + to add one.'),
         action: FilledButton(
           onPressed: () => context.push(AppRoutes.addTransaction),
           child: Text(tr('Add transaction')),

@@ -54,14 +54,19 @@ class AccountsRepository {
     required AccountType type,
     int openingBalance = 0,
     bool includeInTotal = true,
+    int? creditLimit,
+    int? billDueDay,
   }) async {
     final cleanName = await _validatedName(name);
+    final card = _validatedCard(type, creditLimit, billDueDay);
     return _db.accountsDao.insertAccount(
       AccountsCompanion.insert(
         name: cleanName,
         type: type,
         openingBalance: Value(openingBalance),
         includeInTotal: Value(includeInTotal),
+        creditLimit: Value(card.limit),
+        billDueDay: Value(card.dueDay),
       ),
     );
   }
@@ -72,17 +77,39 @@ class AccountsRepository {
     required AccountType type,
     required int openingBalance,
     required bool includeInTotal,
+    int? creditLimit,
+    int? billDueDay,
   }) async {
     final current = await _requireRow(id);
     final cleanName = await _validatedName(name, excludeId: id);
+    final card = _validatedCard(type, creditLimit, billDueDay);
     await _db.accountsDao.updateAccount(
       current.copyWith(
         name: cleanName,
         type: type,
         openingBalance: openingBalance,
         includeInTotal: includeInTotal,
+        creditLimit: Value(card.limit),
+        billDueDay: Value(card.dueDay),
       ),
     );
+  }
+
+  /// The limit and bill day to save: only a credit card has them, and they
+  /// must make sense.
+  ({int? limit, int? dueDay}) _validatedCard(
+    AccountType type,
+    int? creditLimit,
+    int? billDueDay,
+  ) {
+    if (type != AccountType.creditCard) return (limit: null, dueDay: null);
+    if (creditLimit != null && creditLimit <= 0) {
+      throw ValidationException(tr('The credit limit must be above zero.'));
+    }
+    if (billDueDay != null && (billDueDay < 1 || billDueDay > 31)) {
+      throw ValidationException(tr('The bill day must be from 1 to 31.'));
+    }
+    return (limit: creditLimit, dueDay: billDueDay);
   }
 
   /// Hides the account from lists. Its transactions are untouched.

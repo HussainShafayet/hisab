@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/debts/data/debts_dao.dart';
@@ -103,25 +104,89 @@ class DebtsRepository {
     });
   }
 
-  /// Changes the name, the due day and the note. The amount, the direction and
-  /// the account stay: to change those, delete the debt and make it again.
+  /// Changes a debt. Everything can change, with two limits: the amount
+  /// cannot go below what is paid already, and the direction cannot change
+  /// once something is paid (the payments went the other way).
+  ///
+  /// The balance change the debt made is made again for the new values: the
+  /// old one is taken back and, with an [accountId], a new one is made. Payments
+  /// keep their own balance changes.
   Future<void> updateDebt(
     int id, {
     required String person,
+    required DebtDirection direction,
+    required int amount,
+    required DateTime openedOn,
     required DateTime? dueOn,
     required String note,
+    required int? accountId,
   }) {
     return _db.transaction(() async {
       final debt = await _requireDebt(id);
+      final paid = (await getDebt(id))!.paid;
       final name = _validatedPerson(person);
+      if (amount <= 0) {
+        throw ValidationException(tr('The amount must be above zero.'));
+      }
+      if (amount < paid) {
+        throw ValidationException(
+          tr('The amount cannot be less than the {paid} already paid.', {
+            'paid': formatPoisha(paid),
+          }),
+        );
+      }
+      if (direction != debt.direction && paid > 0) {
+        throw ValidationException(
+          tr('The kind of loan cannot change once something is paid.'),
+        );
+      }
       _validateNote(note);
-      if (dueOn != null && dateOnly(dueOn).isBefore(dateOnly(debt.openedOn))) {
+      if (dueOn != null && dateOnly(dueOn).isBefore(dateOnly(openedOn))) {
         throw ValidationException(
           tr('The due day cannot be before the day it was given.'),
         );
       }
+      if (accountId != debt.accountId) await _requireUsableAccount(accountId);
+
+      var transactionId = debt.transactionId;
+      final changesBalance =
+          name != debt.person ||
+          direction != debt.direction ||
+          amount != debt.amount ||
+          accountId != debt.accountId ||
+          !openedOn.isAtSameMomentAs(debt.openedOn);
+      if (changesBalance) {
+        // A transaction the person deleted by hand stays deleted, unless a
+        // different account is chosen now.
+        final remake =
+            accountId != null &&
+            (transactionId != null || accountId != debt.accountId);
+        await _deleteTransaction(transactionId);
+        transactionId = remake
+            ? await _moveBalance(
+                accountId: accountId,
+                type: direction == DebtDirection.lent
+                    ? TransactionType.expense
+                    : TransactionType.income,
+                amount: amount,
+                date: openedOn,
+                note: direction == DebtDirection.lent
+                    ? 'Lent to $name'
+                    : 'Borrowed from $name',
+              )
+            : null;
+      }
       await _db.debtsDao.updateDebt(
-        debt.copyWith(person: name, dueOn: Value(dueOn), note: note.trim()),
+        debt.copyWith(
+          person: name,
+          direction: direction,
+          amount: amount,
+          openedOn: openedOn,
+          dueOn: Value(dueOn),
+          note: note.trim(),
+          accountId: Value(accountId),
+          transactionId: Value(transactionId),
+        ),
       );
     });
   }
@@ -171,6 +236,49 @@ class DebtsRepository {
           transactionId: Value(transactionId),
         ),
       );
+    });
+  }
+
+  /// Sets what [person] owes me off against what I owe them: the same amount
+  /// is paid on the loans going each way, so only the difference is left. No
+  /// account balance changes. Returns the ids of the payments made, so they
+  /// can be taken back with [deletePayments].
+  Future<List<int>> setOff(String person, {required DateTime on}) {
+    return _db.transaction(() async {
+      final key = personKey(person);
+      final items = [
+        for (final row in await _db.debtsDao.getAllWithPaid())
+          if (personKey(row.debt.person) == key) _toItem(row),
+      ];
+      final grouped = items.isEmpty ? null : groupByPerson(items, on).single;
+      final steps = grouped == null
+          ? const <SetOffStep>[]
+          : planSetOff(grouped);
+      if (grouped == null || steps.isEmpty) {
+        throw ValidationException(tr('There is nothing to set off.'));
+      }
+      final name = grouped.name;
+      return [
+        for (final step in steps)
+          await addPayment(
+            step.debtId,
+            amount: step.amount,
+            paidOn: on,
+            note: 'Set off with $name',
+          ),
+      ];
+    });
+  }
+
+  /// Takes several payments back at once (see [setOff]).
+  Future<void> deletePayments(Iterable<int> ids) {
+    return _db.transaction(() async {
+      for (final id in ids) {
+        final payment = await _db.debtsDao.getPayment(id);
+        if (payment == null) continue;
+        await _db.debtsDao.deletePayment(id);
+        await _deleteTransaction(payment.transactionId);
+      }
     });
   }
 

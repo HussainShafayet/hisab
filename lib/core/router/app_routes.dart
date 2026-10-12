@@ -25,6 +25,14 @@ abstract final class AppRoutes {
   static String debt(int id) => '/more/debts/$id';
   static String editDebt(int id) => '/more/debts/$id/edit';
 
+  /// A new loan with the name already filled in.
+  static String newDebtFor(String person) =>
+      '/more/debts/new?person=${Uri.encodeQueryComponent(person)}';
+
+  /// Every loan with one person.
+  static String debtPerson(String name) =>
+      '/more/debts/person?name=${Uri.encodeQueryComponent(name)}';
+
   static const newAccount = '/more/accounts/new';
   static String editAccount(int id) => '/more/accounts/$id';
 
@@ -41,6 +49,10 @@ abstract final class AppRoutes {
 
   /// Opens the add form pre-filled with a copy of transaction [id].
   static String duplicateTransaction(int id) => '/add?duplicate=$id';
+
+  /// A transfer into a credit card, for [owed] poisha: paying its bill.
+  static String payCardBill(int cardId, int owed) =>
+      '/add?payCard=$cardId&amount=$owed';
 
   static String editTransaction(int id) => '/transaction/$id';
 }

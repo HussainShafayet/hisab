@@ -12,13 +12,11 @@ const bnInsights = <String, String>{
   'No income in this period.': 'এই সময়ে কোনো আয় নেই।',
   'No income or expense in this period.': 'এই সময়ে কোনো আয় বা খরচ নেই।',
   'On track for the month': 'মাসের হিসাবে ঠিক পথে আছে',
-  'People owe you {amount}.': 'লোকজন আপনাকে {amount} দেবে।',
   'Spending faster than the month goes':
       'মাস যত দ্রুত যাচ্ছে, খরচ তার চেয়ে দ্রুত হচ্ছে',
   'Spending slower than the month goes':
       'মাস যত দ্রুত যাচ্ছে, খরচ তার চেয়ে ধীরে হচ্ছে',
   'Spent {percent}% more than income': 'আয়ের চেয়ে {percent}% বেশি খরচ হয়েছে',
-  'You owe people {amount}.': 'আপনি লোকজনকে {amount} দেবেন।',
   'You spent {percent}% less than the same days last month.':
       'গত মাসের একই কয়দিনের চেয়ে আপনি {percent}% কম খরচ করেছেন।',
   'You spent {percent}% more than the same days last month.':

@@ -9,5 +9,7 @@ extension AccountRowToDomain on AccountRow {
     openingBalance: openingBalance,
     includeInTotal: includeInTotal,
     isArchived: isArchived,
+    creditLimit: creditLimit,
+    billDueDay: billDueDay,
   );
 }

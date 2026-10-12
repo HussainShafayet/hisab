@@ -49,17 +49,3 @@ List<Reminder> remindersFor(Iterable<RecurringRule> rules, DateTime now) {
       ),
   ];
 }
-
-/// Keeps recurring things up to date: adds what is due for the rules that add
-/// themselves, then sets the reminders. It runs again when a rule changes, and
-/// when the app comes back to the front (see `HishabApp`).
-final recurringSyncProvider = FutureProvider<void>((ref) async {
-  final rules = ref.watch(recurringRulesProvider).value;
-  if (rules == null) return;
-  final repository = ref.read(recurringRepositoryProvider);
-  final now = ref.read(clockProvider)();
-  await repository.addAutomatic(now);
-  await ref
-      .read(reminderSchedulerProvider)
-      .replaceAll(remindersFor(await repository.getRules(), now));
-});

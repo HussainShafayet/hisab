@@ -352,14 +352,35 @@ void main() {
   });
 
   group('changing a loan', () {
-    test('changes the name, due day and note, not the money', () async {
+    Future<void> change(
+      int id, {
+      String person = 'Rahim',
+      DebtDirection direction = DebtDirection.lent,
+      int amount = 50000,
+      DateTime? openedOn,
+      DateTime? dueOn,
+      String note = '',
+      int? accountId,
+    }) => repo.updateDebt(
+      id,
+      person: person,
+      direction: direction,
+      amount: amount,
+      openedOn: openedOn ?? opened,
+      dueOn: dueOn,
+      note: note,
+      accountId: accountId,
+    );
+
+    test('changes the name, due day and note, and keeps the money', () async {
       final id = await lend(50000, accountId: cash);
 
-      await repo.updateDebt(
+      await change(
         id,
         person: '  Rahim Uddin ',
         dueOn: DateTime(2026, 12, 1),
         note: 'new note',
+        accountId: cash,
       );
 
       final item = (await repo.getDebt(id))!;
@@ -370,36 +391,185 @@ void main() {
       expect(item.debt.direction, DebtDirection.lent);
       expect(item.debt.accountId, cash);
       expect(await balanceOf(cash), -50000);
+      expect(await transactions(), hasLength(1));
     });
 
     test('can lose its due day', () async {
       final id = await lend(50000, dueOn: DateTime(2026, 11, 1));
 
-      await repo.updateDebt(id, person: 'Rahim', dueOn: null, note: '');
+      await change(id);
 
       expect((await repo.getDebt(id))!.debt.dueOn, isNull);
+    });
+
+    test('moves the balance again when the amount changes', () async {
+      final id = await lend(50000, accountId: cash);
+
+      await change(id, amount: 80000, accountId: cash);
+
+      expect((await repo.getDebt(id))!.debt.amount, 80000);
+      expect(await balanceOf(cash), -80000);
+      expect(await transactions(), hasLength(1));
+    });
+
+    test('moves the balance to another account', () async {
+      final id = await lend(50000, accountId: cash);
+
+      await change(id, accountId: bkash);
+
+      expect(await balanceOf(cash), 0);
+      expect(await balanceOf(bkash), -50000);
+      expect((await repo.getDebt(id))!.debt.accountId, bkash);
+      expect(await transactions(), hasLength(1));
+    });
+
+    test('can start and stop using an account', () async {
+      final id = await lend(50000);
+      expect(await transactions(), isEmpty);
+
+      await change(id, accountId: cash);
+      expect(await balanceOf(cash), -50000);
+      expect(await transactions(), hasLength(1));
+
+      await change(id);
+      expect(await balanceOf(cash), 0);
+      expect(await transactions(), isEmpty);
+      expect((await repo.getDebt(id))!.debt.accountId, isNull);
+    });
+
+    test('turns money I gave into money I took, before any payment', () async {
+      final id = await lend(50000, accountId: cash);
+
+      await change(id, direction: DebtDirection.borrowed, accountId: cash);
+
+      expect((await repo.getDebt(id))!.debt.direction, DebtDirection.borrowed);
+      // Borrowing brings money in.
+      expect(await balanceOf(cash), 50000);
+      final transaction = (await transactions()).single;
+      expect(transaction.type, TransactionType.income);
+    });
+
+    test('keeps a transaction that was deleted by hand deleted', () async {
+      final id = await lend(50000, accountId: cash);
+      final row = (await db.debtsDao.getDebt(id))!;
+      await db.transactionsDao.deleteTransaction(row.transactionId!);
+
+      await change(id, note: 'still the same account', accountId: cash);
+
+      expect(await transactions(), isEmpty);
+      expect(await balanceOf(cash), 0);
+    });
+
+    test('does not let the amount go below what is paid', () async {
+      final id = await lend(50000);
+      await repo.addPayment(id, amount: 30000, paidOn: opened);
+
+      expect(
+        () => change(id, amount: 20000),
+        throwsValidation('less than the'),
+      );
+      await change(id, amount: 30000);
+      expect((await repo.getDebt(id))!.isSettled, isTrue);
+    });
+
+    test('does not let the kind change once something is paid', () async {
+      final id = await lend(50000);
+      await repo.addPayment(id, amount: 10000, paidOn: opened);
+
+      expect(
+        () => change(id, direction: DebtDirection.borrowed),
+        throwsValidation('cannot change'),
+      );
     });
 
     test('is checked like a new one', () async {
       final id = await lend(50000);
 
       expect(
-        () => repo.updateDebt(id, person: '', dueOn: null, note: ''),
+        () => change(id, person: ''),
         throwsValidation('Name is required'),
       );
+      expect(() => change(id, amount: 0), throwsValidation('above zero'));
       expect(
-        () => repo.updateDebt(
-          id,
-          person: 'Rahim',
-          dueOn: DateTime(2026, 10, 1),
-          note: '',
-        ),
+        () => change(id, dueOn: DateTime(2026, 10, 1)),
         throwsValidation('due day'),
       );
+      expect(() => change(999), throwsValidation('not found'));
+    });
+
+    test('cannot move to an archived account', () async {
+      final id = await lend(50000, accountId: cash);
+      await AccountsRepository(db).archiveAccount(bkash);
+
+      expect(() => change(id, accountId: bkash), throwsValidation('archived'));
+      // The old account is untouched.
+      expect(await balanceOf(cash), -50000);
+    });
+  });
+
+  group('setting off', () {
+    test('pays the same amount on both sides and moves no balance', () async {
+      final lent = await lend(100000, accountId: cash);
+      final borrowed = await borrow(30000, person: 'Rahim');
+      final before = await balanceOf(cash);
+
+      final ids = await repo.setOff('Rahim', on: opened);
+
+      expect(ids, hasLength(2));
+      expect((await repo.getDebt(lent))!.remaining, 70000);
+      expect((await repo.getDebt(borrowed))!.isSettled, isTrue);
+      // Only a note: no account changes and no new transactions.
+      expect(await balanceOf(cash), before);
+      expect(await transactions(), hasLength(1));
+      final payments = await db.debtsDao.getAllPayments();
+      expect(payments.map((p) => p.note), everyElement('Set off with Rahim'));
+      expect(payments.map((p) => p.transactionId), everyElement(isNull));
+    });
+
+    test('leaves only the difference between the two', () async {
+      await lend(100000);
+      await borrow(30000, person: 'Rahim');
+
+      await repo.setOff('Rahim', on: opened);
+
+      final people = groupByPerson(await repo.watchDebts().first, opened);
+      expect(people.single.net, 70000);
+      expect(people.single.setOffAmount, 0);
+    });
+
+    test('can be taken back', () async {
+      final lent = await lend(100000);
+      final borrowed = await borrow(30000, person: 'Rahim');
+
+      final ids = await repo.setOff('Rahim', on: opened);
+      await repo.deletePayments(ids);
+
+      expect((await repo.getDebt(lent))!.remaining, 100000);
+      expect((await repo.getDebt(borrowed))!.remaining, 30000);
+      expect(await db.debtsDao.getAllPayments(), isEmpty);
+    });
+
+    test('says so when the money goes only one way', () async {
+      await lend(100000);
+
       expect(
-        () => repo.updateDebt(999, person: 'A', dueOn: null, note: ''),
-        throwsValidation('not found'),
+        () => repo.setOff('Rahim', on: opened),
+        throwsValidation('nothing to set off'),
       );
+      expect(
+        () => repo.setOff('Nobody', on: opened),
+        throwsValidation('nothing to set off'),
+      );
+    });
+
+    test('leaves other people alone', () async {
+      await lend(100000);
+      await borrow(30000, person: 'Rahim');
+      final other = await lend(5000, person: 'Karim');
+
+      await repo.setOff('Rahim', on: opened);
+
+      expect((await repo.getDebt(other))!.remaining, 5000);
     });
   });
 

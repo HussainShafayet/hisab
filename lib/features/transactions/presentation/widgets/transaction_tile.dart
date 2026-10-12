@@ -55,8 +55,8 @@ class TransactionTile extends StatelessWidget {
       // neutral color and says why the day and month totals skip it.
       if (item.isAdjustment)
         (item.note.isEmpty || item.note == balanceAdjustmentNote)
-            ? tr('Correction, not counted in totals')
-            : tr('{note} · not counted in totals', {'note': item.note})
+            ? tr('Balance fix, not in your totals')
+            : tr('{note} · not in your totals', {'note': item.note})
       else if (item.note.isNotEmpty)
         item.note,
     ];

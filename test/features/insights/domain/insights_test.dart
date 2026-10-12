@@ -1,5 +1,4 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/insights/domain/insights.dart';
 import 'package:hishab/features/reports/domain/category_total.dart';
 
@@ -21,7 +20,6 @@ InsightInput input({
   List<CategoryTotal> lastCategories = const [],
   int? limit,
   int spent = 0,
-  DebtTotals loans = const DebtTotals(),
   UpcomingRecurring? recurring,
   DateTime? now,
 }) => InsightInput(
@@ -32,7 +30,6 @@ InsightInput input({
   categoriesLastPeriod: lastCategories,
   budgetLimit: limit,
   budgetSpent: spent,
-  loans: loans,
   recurring: recurring,
 );
 
@@ -193,32 +190,6 @@ void main() {
     });
   });
 
-  group('loans', () {
-    test('overdue loans are a warning', () {
-      final list = buildInsights(
-        input(loans: const DebtTotals(overdueCount: 2)),
-      );
-
-      expect(list.single.kind, InsightKind.loansOverdue);
-      expect(list.single.tone, InsightTone.warning);
-      expect(list.single.args['count'], 2);
-    });
-
-    test('what is owed either way is a plain fact', () {
-      final list = buildInsights(
-        input(loans: const DebtTotals(toReceive: 50000, toPay: 20000)),
-      );
-
-      expect(kinds(list), [InsightKind.loansToGet, InsightKind.loansToPay]);
-      expect(list.first.args['amount'], 50000);
-      expect(list.last.args['amount'], 20000);
-    });
-
-    test('no loans says nothing', () {
-      expect(buildInsights(input(loans: const DebtTotals())), isEmpty);
-    });
-  });
-
   group('recurring', () {
     test('mentions an item due within a week', () {
       final list = buildInsights(
@@ -259,7 +230,7 @@ void main() {
       limit: 100000,
       spent: 20000,
       categories: [category(1, 'Food', 100000)],
-      loans: const DebtTotals(toReceive: 1000, overdueCount: 1),
+      lastCategories: [category(1, 'Food', 40000)],
       recurring: const UpcomingRecurring(title: 'Rent', days: 2),
     );
 
@@ -268,10 +239,9 @@ void main() {
 
       expect(kinds(list), [
         InsightKind.spendingUp,
-        InsightKind.loansOverdue,
+        InsightKind.categoryJump,
         InsightKind.withinBudgetPace,
         InsightKind.topCategory,
-        InsightKind.loansToGet,
         InsightKind.recurringSoon,
       ]);
     });

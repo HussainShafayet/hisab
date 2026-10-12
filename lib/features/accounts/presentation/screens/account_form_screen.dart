@@ -14,6 +14,7 @@ import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_type_ui.dart';
+import 'package:hishab/features/reminders/reminder_sync.dart';
 
 /// Creates an account, or edits the one with [accountId].
 class AccountFormScreen extends ConsumerWidget {
@@ -64,11 +65,23 @@ class _AccountForm extends ConsumerStatefulWidget {
 class _AccountFormState extends ConsumerState<_AccountForm> {
   final _formKey = GlobalKey<FormState>();
   late final _name = TextEditingController(text: widget.initial?.name);
+  // For a credit card the field holds what is owed, so the opposite sign of
+  // the opening balance.
   late final _openingBalance = TextEditingController(
     text: widget.initial == null || widget.initial!.openingBalance == 0
         ? ''
-        : poishaToInput(widget.initial!.openingBalance),
+        : poishaToInput(
+            widget.initial!.isCreditCard
+                ? -widget.initial!.openingBalance
+                : widget.initial!.openingBalance,
+          ),
   );
+  late final _creditLimit = TextEditingController(
+    text: widget.initial?.creditLimit == null
+        ? ''
+        : poishaToInput(widget.initial!.creditLimit!),
+  );
+  late int? _billDueDay = widget.initial?.billDueDay;
   late AccountType _type = widget.initial?.type ?? AccountType.cash;
   late bool _includeInTotal = widget.initial?.includeInTotal ?? true;
   bool _saving = false;
@@ -80,7 +93,29 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
   void dispose() {
     _name.dispose();
     _openingBalance.dispose();
+    _creditLimit.dispose();
     super.dispose();
+  }
+
+  bool get _isCard => _type == AccountType.creditCard;
+
+  /// The opening balance in poisha. A credit card's field holds what is owed,
+  /// which is a balance below zero.
+  int get _openingPoisha {
+    final typed = parseTakaToPoisha(_openingBalance.text) ?? 0;
+    return _isCard ? -typed : typed;
+  }
+
+  void _setType(AccountType type) {
+    // The sign of the field flips between a credit card and anything else, so
+    // what was typed keeps meaning the same money.
+    if ((type == AccountType.creditCard) != _isCard) {
+      final typed = parseTakaToPoisha(_openingBalance.text);
+      if (typed != null && typed != 0) {
+        _openingBalance.text = poishaToInput(-typed);
+      }
+    }
+    setState(() => _type = type);
   }
 
   Future<void> _save() async {
@@ -91,7 +126,9 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
     });
 
     final repository = ref.read(accountsRepositoryProvider);
-    final openingBalance = parseTakaToPoisha(_openingBalance.text) ?? 0;
+    final openingBalance = _openingPoisha;
+    final limit = _isCard ? parseTakaToPoisha(_creditLimit.text) : null;
+    final dueDay = _isCard ? _billDueDay : null;
     try {
       if (_isEditing) {
         await repository.updateAccount(
@@ -100,6 +137,8 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
           type: _type,
           openingBalance: openingBalance,
           includeInTotal: _includeInTotal,
+          creditLimit: limit,
+          billDueDay: dueDay,
         );
       } else {
         await repository.createAccount(
@@ -107,8 +146,12 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
           type: _type,
           openingBalance: openingBalance,
           includeInTotal: _includeInTotal,
+          creditLimit: limit,
+          billDueDay: dueDay,
         );
       }
+      // Bill days set the reminders.
+      ref.invalidate(reminderSyncProvider);
       if (mounted) context.pop();
     } on ValidationException catch (e) {
       if (mounted) {
@@ -125,9 +168,11 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
     id: widget.initial?.id ?? 0,
     name: _name.text.trim().isEmpty ? tr('Account name') : _name.text.trim(),
     type: _type,
-    openingBalance: parseTakaToPoisha(_openingBalance.text) ?? 0,
+    openingBalance: _openingPoisha,
     includeInTotal: _includeInTotal,
     isArchived: false,
+    creditLimit: _isCard ? parseTakaToPoisha(_creditLimit.text) : null,
+    billDueDay: _isCard ? _billDueDay : null,
   );
 
   void _useSuggestion(String name) {
@@ -190,7 +235,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                                 child: _TypeTile(
                                   type: type,
                                   selected: _type == type,
-                                  onTap: () => setState(() => _type = type),
+                                  onTap: () => _setType(type),
                                 ),
                               ),
                             ),
@@ -231,15 +276,64 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                   const SizedBox(height: 20),
                   MoneyFormField(
                     controller: _openingBalance,
-                    label: tr('Opening balance'),
+                    label: _isCard
+                        ? tr('Already owed on this card')
+                        : tr('Opening balance'),
                     allowNegative: true,
                     isRequired: false,
                     onChanged: (_) => setState(() {}),
-                    helperText: tr(
-                      'What the account held when you started. '
-                      'Leave empty for 0.',
-                    ),
+                    helperText: _isCard
+                        ? tr(
+                            'What you owe the bank right now. '
+                            'Leave empty for 0.',
+                          )
+                        : tr(
+                            'What the account held when you started. '
+                            'Leave empty for 0.',
+                          ),
                   ),
+                  if (_isCard) ...[
+                    const SizedBox(height: 16),
+                    MoneyFormField(
+                      key: const ValueKey('credit-limit'),
+                      controller: _creditLimit,
+                      label: tr('Credit limit (optional)'),
+                      isRequired: false,
+                      onChanged: (_) => setState(() {}),
+                      helperText: tr(
+                        'The most this card can owe. It shows how much you '
+                        'can still spend.',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    DropdownButtonFormField<int?>(
+                      key: const ValueKey('bill-due-day'),
+                      initialValue: _billDueDay,
+                      isExpanded: true,
+                      decoration: InputDecoration(
+                        labelText: tr('Bill due day (optional)'),
+                        helperText: tr(
+                          'The day of the month the bill is due. You get a '
+                          'reminder the day before and on the day.',
+                        ),
+                        helperMaxLines: 3,
+                      ),
+                      items: [
+                        DropdownMenuItem<int?>(
+                          value: null,
+                          child: Text(tr('Not set')),
+                        ),
+                        for (var day = 1; day <= 31; day++)
+                          DropdownMenuItem<int?>(
+                            value: day,
+                            child: Text(
+                              tr('Day {day} of every month', {'day': day}),
+                            ),
+                          ),
+                      ],
+                      onChanged: (value) => setState(() => _billDueDay = value),
+                    ),
+                  ],
                   const SizedBox(height: 8),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,

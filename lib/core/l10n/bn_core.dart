@@ -23,13 +23,12 @@ const bnCore = <String, String>{
       'একটি ক্যাটাগরি তার নিজের সাব-ক্যাটাগরির ভেতরে যেতে পারে না।',
   'A category named "{name}" already exists here.':
       'এখানে "{name}" নামে একটি ক্যাটাগরি আগেই আছে।',
-  'A column of my file': 'আমার ফাইলের একটি কলাম',
   'A sub-category must have the same type as its parent.':
       'সাব-ক্যাটাগরির ধরন (আয় বা খরচ) তার মূল ক্যাটাগরির মতোই হতে হবে।',
-  'A transaction needs an account, like Cash or bKash.':
+  'Pick an account, like Cash or bKash.':
       'লেনদেনের জন্য একটি অ্যাকাউন্ট লাগে, যেমন নগদ বা বিকাশ।',
   'A transfer has no category.': 'ট্রান্সফারে ক্যাটাগরি থাকে না।',
-  'A transfer moves money from one account to another.':
+  'Move money from one account to another.':
       'ট্রান্সফারে এক অ্যাকাউন্ট থেকে অন্য অ্যাকাউন্টে টাকা সরানো হয়।',
   'A transfer needs a "to account".':
       'ট্রান্সফারের জন্য "যে অ্যাকাউন্টে যাবে" লাগবে।',
@@ -60,8 +59,6 @@ const bnCore = <String, String>{
   'After this': 'এরপর',
   'All': 'সব',
   'All categories': 'সব ক্যাটাগরি',
-  'All rows are expenses': 'সব সারিই খরচ',
-  'All rows are income': 'সব সারিই আয়',
   'Already in the app': 'অ্যাপে আগেই আছে',
   'Already in the app, skipped': 'অ্যাপে আগেই আছে, বাদ দেওয়া হয়েছে',
   'Amount': 'টাকার অঙ্ক',
@@ -97,7 +94,6 @@ const bnCore = <String, String>{
   'Calendar': 'ক্যালেন্ডার',
   'Cancel': 'বাতিল',
   'Cannot be read': 'পড়া যায়নি',
-  'Card': 'কার্ড',
   'Cash': 'নগদ',
   'Categories': 'ক্যাটাগরি',
   'Categories can go {levels} levels deep at most.':
@@ -115,11 +111,10 @@ const bnCore = <String, String>{
       'একটি ফোল্ডার বেছে নিন, যেমন Downloads',
   'Choose account': 'অ্যাকাউন্ট বেছে নিন',
   'Choose an account.': 'একটি অ্যাকাউন্ট বেছে নিন।',
-  'Choose the account the money goes to':
-      'যে অ্যাকাউন্টে টাকা যাবে সেটি বেছে নিন',
+  'Where does the money go?': 'যে অ্যাকাউন্টে টাকা যাবে সেটি বেছে নিন',
   'Choose the account the money goes to.':
       'যে অ্যাকাউন্টে টাকা যাবে সেটি বেছে নিন।',
-  'Choose the account the money leaves':
+  'Where does the money come from?':
       'যে অ্যাকাউন্ট থেকে টাকা যাবে সেটি বেছে নিন',
   'Choose the account these transactions belong to.':
       'এই লেনদেনগুলো কোন অ্যাকাউন্টের, সেটি বেছে নিন।',
@@ -141,7 +136,7 @@ const bnCore = <String, String>{
   'Copied {count} budgets from {month}.':
       '{month} থেকে {count}টি বাজেট কপি করা হয়েছে।',
   'Copy last month\'s budget': 'গত মাসের বাজেট কপি করুন',
-  'Correction, not counted in totals': 'সংশোধন, মোটে ধরা হয়নি',
+  'Balance fix, not in your totals': 'সংশোধন, মোটে ধরা হয়নি',
   'Could not export the backup': 'ব্যাকআপ এক্সপোর্ট করা যায়নি',
   'Could not export the transactions': 'লেনদেন এক্সপোর্ট করা যায়নি',
   'Could not open the file': 'ফাইলটি খোলা যায়নি',
@@ -155,7 +150,6 @@ const bnCore = <String, String>{
   'Date range': 'তারিখের সীমা',
   'Dates': 'তারিখ',
   'Dates are written as': 'তারিখ লেখা আছে এভাবে',
-  'Day/Month/Year': 'দিন/মাস/বছর',
   'Debit card': 'ডেবিট কার্ড',
   'Delete': 'মুছুন',
   'Done': 'হয়েছে',
@@ -216,7 +210,6 @@ const bnCore = <String, String>{
   'Match your columns': 'কলাম মেলান',
   'Mobile banking': 'মোবাইল ব্যাংকিং',
   'Monday': 'সোমবার',
-  'Month/Day/Year': 'মাস/দিন/বছর',
   'Monthly budget': 'মাসের বাজেট',
   'Monthly limit': 'মাসের সীমা',
   'More': 'আরও',
@@ -245,18 +238,17 @@ const bnCore = <String, String>{
   'No monthly budget': 'মাসের কোনো বাজেট নেই',
   'No rows here.': 'এখানে কোনো সারি নেই।',
   'No spending this month yet.': 'এ মাসে এখনও কোনো খরচ হয়নি।',
-  'No transaction fits your search and filters.':
+  'Nothing found. Try a different search or filter.':
       'আপনার খোঁজা ও ফিল্টারের সঙ্গে কোনো লেনদেন মেলেনি।',
-  'No transactions in {month}': '{month}-এ কোনো লেনদেন নেই',
+  'Nothing recorded in {month}': '{month}-এ কোনো লেনদেন নেই',
   'No transactions yet.': 'এখনও কোনো লেনদেন নেই।',
   'None': 'কোনোটিই নয়',
   'Not in my file': 'আমার ফাইলে নেই',
   'Not in total': 'মোটে ধরা হয় না',
   'Note': 'নোট',
-  'Note or description': 'নোট বা বিবরণ',
   'Nothing in either period': 'কোনো সময়েই কিছু নেই',
   'Nothing left': 'কিছু বাকি নেই',
-  'Nothing matches': 'কিছু মেলেনি',
+  'No results': 'কিছু মেলেনি',
   'Nothing new to copy: this month already has those budgets.':
       'কপি করার মতো নতুন কিছু নেই: এ মাসে সেই বাজেটগুলো আগেই আছে।',
   'Nothing was imported. {reason}': 'কিছুই ইমপোর্ট হয়নি। {reason}',
@@ -331,7 +323,7 @@ const bnCore = <String, String>{
   'Spreadsheet (CSV)': 'স্প্রেডশিট (CSV)',
   'Sunday': 'রবিবার',
   'Swap From and To': 'যেখান থেকে ও যেখানে অদলবদল করুন',
-  'Tap + to add your first one.': 'প্রথমটি যোগ করতে + চাপুন।',
+  'Tap + to add one.': 'প্রথমটি যোগ করতে + চাপুন।',
   'Tap to set one': 'ঠিক করতে চাপুন',
   'That is not a valid {what}.': 'এটি সঠিক {what} নয়।',
   'The account "{name}" is archived.': '"{name}" অ্যাকাউন্টটি আর্কাইভ করা আছে।',
@@ -361,7 +353,6 @@ const bnCore = <String, String>{
   'The note must be {max} characters or fewer.':
       'নোট {max} অক্ষরের মধ্যে হতে হবে।',
   'The parent category is archived.': 'মূল ক্যাটাগরিটি আর্কাইভ করা আছে।',
-  'The sign of the amount': 'টাকার অঙ্কের চিহ্ন (+/−)',
   'The type is empty.': 'ধরন ফাঁকা।',
   'The type of an existing category cannot be changed.':
       'আগে থেকে থাকা ক্যাটাগরির ধরন বদলানো যায় না।',
@@ -383,9 +374,8 @@ const bnCore = <String, String>{
   'This file is not a Hishab backup.': 'এই ফাইলটি হিসাব-এর ব্যাকআপ নয়।',
   'This file is not a readable CSV.': 'এই ফাইলটি পড়ার মতো CSV নয়।',
   'This month · {month}': 'এ মাস · {month}',
-  'This transaction no longer exists.': 'এই লেনদেনটি আর নেই।',
+  'This transaction was already deleted.': 'এই লেনদেনটি আর নেই।',
   'To': 'যেখানে',
-  'To account (transfers)': 'যে অ্যাকাউন্টে যাবে (ট্রান্সফারের জন্য)',
   'To import': 'ইমপোর্ট হবে',
   'Today': 'আজ',
   'Top expenses': 'সবচেয়ে বড় খরচ',
@@ -403,7 +393,6 @@ const bnCore = <String, String>{
   'Turn off for money you do not want counted, like savings.':
       'যে টাকা ধরতে চান না, যেমন সঞ্চয়, তার জন্য বন্ধ করুন।',
   'Type': 'ধরন',
-  'Type (income, expense, transfer)': 'ধরন (আয়, খরচ, ট্রান্সফার)',
   'Type the amount with': 'টাকার অঙ্ক লিখুন',
   'Type with the keyboard': 'কিবোর্ড দিয়ে লিখুন',
   'Undo': 'ফিরিয়ে নিন',
@@ -415,15 +404,11 @@ const bnCore = <String, String>{
       'শুরুতে অ্যাকাউন্টে যা ছিল। 0 হলে ফাঁকা রাখুন।',
   'Which column is which?': 'কোন কলাম কোনটি?',
   'Will also be created': 'এগুলোও তৈরি হবে',
-  'Year-Month-Day': 'বছর-মাস-দিন',
   'Yesterday': 'গতকাল',
   'You have no accounts yet. Choose an Account column above and the accounts in your file will be created.': 'আপনার এখনও কোনো অ্যাকাউন্ট নেই। ওপরে একটি অ্যাকাউন্ট কলাম বেছে নিন, তাহলে আপনার ফাইলের অ্যাকাউন্টগুলো তৈরি হবে।',
   'You need two accounts': 'দুটি অ্যাকাউন্ট লাগবে',
-  'account': 'অ্যাকাউন্ট',
   'already in\nthe app': 'অ্যাপে\nআগেই আছে',
   'cannot be\nread': 'পড়া\nযায়নি',
-  'category': 'ক্যাটাগরি',
-  'transaction': 'লেনদেন',
   'will be\nimported': 'ইমপোর্ট\nহবে',
   '{amount} left': '{amount} বাকি',
   '{amount} per day · 1 day left': 'দিনে {amount} · 1 দিন বাকি',
@@ -443,4 +428,17 @@ const bnCore = <String, String>{
   '{rows} rows, {columns} columns': '{rows}টি সারি, {columns}টি কলাম',
   '{rows} skipped, already in the app': '{rows} বাদ গেছে, অ্যাপে আগেই আছে',
   '{rows} skipped, could not be read': '{rows} বাদ গেছে, পড়া যায়নি',
+  'A column of my file': 'আমার ফাইলের একটি কলাম',
+  'All rows are expenses': 'সব সারিই খরচ',
+  'All rows are income': 'সব সারিই আয়',
+  'Day/Month/Year': 'দিন/মাস/বছর',
+  'Month/Day/Year': 'মাস/দিন/বছর',
+  'Note or description': 'নোট বা বিবরণ',
+  'The sign of the amount': 'টাকার অঙ্কের চিহ্ন (+/−)',
+  'To account (transfers)': 'যে অ্যাকাউন্টে যাবে (ট্রান্সফারের জন্য)',
+  'Type (income, expense, transfer)': 'ধরন (আয়, খরচ, ট্রান্সফার)',
+  'Year-Month-Day': 'বছর-মাস-দিন',
+  'account': 'অ্যাকাউন্ট',
+  'category': 'ক্যাটাগরি',
+  'transaction': 'লেনদেন',
 };

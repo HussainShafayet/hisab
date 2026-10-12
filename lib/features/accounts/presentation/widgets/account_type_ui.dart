@@ -7,7 +7,8 @@ extension AccountTypeUi on AccountType {
     AccountType.cash => tr('Cash'),
     AccountType.mobileBanking => tr('Mobile banking'),
     AccountType.bank => tr('Bank'),
-    AccountType.card => tr('Card'),
+    AccountType.card => tr('Debit card'),
+    AccountType.creditCard => tr('Credit card'),
   };
 
   /// The color of the account's card. Dark enough for white text on it.
@@ -16,12 +17,14 @@ extension AccountTypeUi on AccountType {
     AccountType.mobileBanking => const Color(0xFFAD1457),
     AccountType.bank => const Color(0xFF1565C0),
     AccountType.card => const Color(0xFF5E35B1),
+    AccountType.creditCard => const Color(0xFFD84315),
   };
 
   IconData get icon => switch (this) {
     AccountType.cash => Icons.payments_outlined,
     AccountType.mobileBanking => Icons.smartphone,
     AccountType.bank => Icons.account_balance_outlined,
-    AccountType.card => Icons.credit_card,
+    AccountType.card => Icons.payment,
+    AccountType.creditCard => Icons.credit_card,
   };
 }

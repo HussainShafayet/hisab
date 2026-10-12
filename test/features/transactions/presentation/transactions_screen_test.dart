@@ -253,7 +253,7 @@ void main() {
       await openTab(tester);
 
       expect(
-        find.text('Cash · Correction, not counted in totals'),
+        find.text('Cash · Balance fix, not in your totals'),
         findsOneWidget,
       );
       // The row is there, in the neutral color with its sign.
@@ -317,11 +317,11 @@ void main() {
       await tester.enterText(find.byType(TextField), 'zzz');
       await settle(tester);
 
-      expect(find.text('Nothing matches'), findsOneWidget);
+      expect(find.text('No results'), findsOneWidget);
 
       await tapText(tester, 'Clear filters');
 
-      expect(find.text('Nothing matches'), findsNothing);
+      expect(find.text('No results'), findsNothing);
       expect(find.text('Cash · Lunch with Rahim'), findsOneWidget);
       expect(
         tester.widget<TextField>(find.byType(TextField)).controller!.text,

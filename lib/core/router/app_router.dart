@@ -17,6 +17,7 @@ import 'package:hishab/features/dashboard/presentation/screens/dashboard_screen.
 import 'package:hishab/features/debts/presentation/screens/debt_detail_screen.dart';
 import 'package:hishab/features/debts/presentation/screens/debt_form_screen.dart';
 import 'package:hishab/features/debts/presentation/screens/debts_screen.dart';
+import 'package:hishab/features/debts/presentation/screens/person_debts_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_form_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_screen.dart';
 import 'package:hishab/features/reports/presentation/screens/reports_screen.dart';
@@ -153,7 +154,17 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'new',
                         parentNavigatorKey: _rootNavigatorKey,
-                        builder: (context, state) => const DebtFormScreen(),
+                        builder: (context, state) => DebtFormScreen(
+                          initialPerson: state.uri.queryParameters['person'],
+                        ),
+                      ),
+                      // Before ':id', which would take "person" for an id.
+                      GoRoute(
+                        path: 'person',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => PersonDebtsScreen(
+                          name: state.uri.queryParameters['name'] ?? '',
+                        ),
                       ),
                       GoRoute(
                         path: ':id',
@@ -238,6 +249,8 @@ final routerProvider = Provider<GoRouter>((ref) {
           duplicateId: int.tryParse(
             state.uri.queryParameters['duplicate'] ?? '',
           ),
+          payCardId: int.tryParse(state.uri.queryParameters['payCard'] ?? ''),
+          payAmount: int.tryParse(state.uri.queryParameters['amount'] ?? ''),
         ),
       ),
       GoRoute(
