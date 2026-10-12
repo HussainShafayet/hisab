@@ -1,5 +1,6 @@
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/features/reports/domain/account_total.dart';
 import 'package:hishab/features/reports/domain/category_total.dart';
 import 'package:hishab/features/reports/domain/period_totals.dart';
 import 'package:hishab/features/reports/domain/report_data.dart';
@@ -44,6 +45,37 @@ class ReportsRepository {
 
   /// Income and expense of the [count] months that end with [endMonth],
   /// oldest first.
+  Future<List<CategoryTotal>> incomeByCategory(DateRange range) async {
+    final rows = await _db.reportsDao.incomeByCategory(range.start, range.end);
+    return [
+      for (final row in rows)
+        CategoryTotal(
+          categoryId: row.categoryId,
+          name: row.name,
+          icon: row.icon,
+          color: row.color,
+          total: row.total,
+        ),
+    ];
+  }
+
+  /// Income and expense of each account in [range].
+  Future<List<AccountTotal>> accountTotals(DateRange range) async {
+    final rows = await _db.reportsDao.incomeExpenseByAccount(
+      range.start,
+      range.end,
+    );
+    return [
+      for (final row in rows)
+        AccountTotal(
+          accountId: row.accountId,
+          name: row.name,
+          income: row.income,
+          expense: row.expense,
+        ),
+    ];
+  }
+
   Future<List<MonthTotals>> monthlyTotals(
     DateTime endMonth, {
     int count = chartMonths,
@@ -86,6 +118,8 @@ class ReportsRepository {
       previousRange: previous,
       previousTotals: await totals(previous),
       categories: await expenseByCategory(range),
+      incomeCategories: await incomeByCategory(range),
+      accounts: await accountTotals(range),
       months: await monthlyTotals(lastDay),
       topExpenses: await topExpenses(range),
     );

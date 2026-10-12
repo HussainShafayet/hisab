@@ -39,8 +39,8 @@ class AppShell extends StatelessWidget {
             label: tr('Transactions'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.savings_outlined),
-            selectedIcon: Icon(Icons.savings),
+            icon: Icon(Icons.pie_chart_outline),
+            selectedIcon: Icon(Icons.pie_chart),
             label: tr('Budget'),
           ),
           NavigationDestination(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
@@ -58,6 +59,12 @@ class OverallBudgetCard extends StatelessWidget {
     final progress = item.progress;
     final color = budgetLevelColor(context, progress.level);
     final perDay = budgetPerDayText(progress, month: month, today: today);
+    final pace = budgetPace(
+      limit: progress.limit,
+      spent: progress.spent,
+      month: month,
+      today: today,
+    );
 
     return Card(
       key: const ValueKey('overall-budget'),
@@ -72,6 +79,12 @@ class OverallBudgetCard extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  Icon(
+                    Icons.pie_chart,
+                    size: 20,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       tr('Monthly budget'),
@@ -119,6 +132,26 @@ class OverallBudgetCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (pace != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  switch (pace) {
+                    BudgetPace.onTrack => tr('On track for the month'),
+                    BudgetPace.fast => tr(
+                      'Spending faster than the month goes',
+                    ),
+                    BudgetPace.slow => tr(
+                      'Spending slower than the month goes',
+                    ),
+                  },
+                  key: const ValueKey('overall-pace'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: pace == BudgetPace.fast
+                        ? context.financeColors.warning
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               if (perDay != null) ...[
                 const SizedBox(height: 4),
                 Text(

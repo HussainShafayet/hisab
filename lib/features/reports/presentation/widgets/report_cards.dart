@@ -6,6 +6,7 @@ import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/percent.dart';
+import 'package:hishab/features/reports/domain/account_total.dart';
 import 'package:hishab/features/reports/domain/category_total.dart';
 import 'package:hishab/features/reports/domain/comparison.dart';
 import 'package:hishab/features/reports/domain/period_totals.dart';
@@ -33,8 +34,12 @@ class ReportSummaryCard extends StatelessWidget {
     required this.totals,
     required this.previousTotals,
     required this.previousLabel,
+    this.days = 0,
     super.key,
   });
+
+  /// How many days the period has, for the daily average. 0 leaves it out.
+  final int days;
 
   final PeriodTotals totals;
   final PeriodTotals previousTotals;
@@ -96,6 +101,36 @@ class ReportSummaryCard extends StatelessWidget {
               ),
               higherIsBetter: false,
             ),
+            if (totals.income > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                (totals.income - totals.expense) >= 0
+                    ? tr('Kept {percent}% of income', {
+                        'percent':
+                            (totals.income - totals.expense) *
+                            100 ~/
+                            totals.income,
+                      })
+                    : tr('Spent {percent}% more than income', {
+                        'percent':
+                            (totals.expense - totals.income) *
+                            100 ~/
+                            totals.income,
+                      }),
+                key: const ValueKey('savings-rate'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+            if (days > 0 && totals.expense > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                tr('Average spending {amount} a day', {
+                  'amount': formatPoisha(totals.expense ~/ days),
+                }),
+                key: const ValueKey('daily-average'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
             const SizedBox(height: 4),
             Text(
               tr('Transfers and balance corrections are not counted.'),
@@ -210,16 +245,32 @@ class ComparisonLine extends StatelessWidget {
 }
 
 /// A donut chart of spending by category, with a legend.
-class CategoryPieCard extends StatelessWidget {
-  const CategoryPieCard({required this.categories, super.key});
+class CategoryPieCard extends StatefulWidget {
+  const CategoryPieCard({
+    required this.categories,
+    this.incomeCategories = const [],
+    super.key,
+  });
 
-  /// Biggest first.
+  /// Spending by category, biggest first.
   final List<CategoryTotal> categories;
+
+  /// Income by category, biggest first.
+  final List<CategoryTotal> incomeCategories;
+
+  @override
+  State<CategoryPieCard> createState() => _CategoryPieCardState();
+}
+
+class _CategoryPieCardState extends State<CategoryPieCard> {
+  bool _income = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final slices = buildPieSlices(categories);
+    final slices = buildPieSlices(
+      _income ? widget.incomeCategories : widget.categories,
+    );
     final total = slices.fold(0, (sum, s) => sum + s.amount);
 
     return Card(
@@ -230,11 +281,35 @@ class CategoryPieCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardTitle(tr('Spending by category')),
+            _CardTitle(
+              _income ? tr('Income by category') : tr('Spending by category'),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  key: const ValueKey('pie-expense'),
+                  showCheckmark: false,
+                  label: Text(tr('Expense')),
+                  selected: !_income,
+                  onSelected: (_) => setState(() => _income = false),
+                ),
+                ChoiceChip(
+                  key: const ValueKey('pie-income'),
+                  showCheckmark: false,
+                  label: Text(tr('Income')),
+                  selected: _income,
+                  onSelected: (_) => setState(() => _income = true),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             if (slices.isEmpty)
               Text(
-                tr('No expenses in this period.'),
+                _income
+                    ? tr('No income in this period.')
+                    : tr('No expenses in this period.'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -266,7 +341,10 @@ class CategoryPieCard extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(tr('Spent'), style: theme.textTheme.labelSmall),
+                          Text(
+                            _income ? tr('Earned') : tr('Spent'),
+                            style: theme.textTheme.labelSmall,
+                          ),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
@@ -523,6 +601,85 @@ class TopExpensesCard extends StatelessWidget {
                 onTap: () => context.push(AppRoutes.editTransaction(item.id)),
               ),
         ],
+      ),
+    );
+  }
+}
+
+/// Income and expense of each account in the period.
+class AccountBreakdownCard extends StatelessWidget {
+  const AccountBreakdownCard({required this.accounts, super.key});
+
+  /// The busiest first.
+  final List<AccountTotal> accounts;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = context.financeColors;
+
+    return Card(
+      key: const ValueKey('account-breakdown'),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _CardTitle(tr('By account')),
+            const SizedBox(height: 8),
+            if (accounts.isEmpty)
+              Text(
+                tr('No income or expense in this period.'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            for (final account in accounts)
+              Padding(
+                key: ValueKey('account-total-${account.accountId}'),
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        account.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (account.income > 0)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '+${formatPoisha(account.income)}',
+                                style: theme.textTheme.bodySmall?.tabular
+                                    .copyWith(color: colors.income),
+                              ),
+                            ),
+                          if (account.expense > 0)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                formatPoisha(-account.expense),
+                                style: theme.textTheme.bodySmall?.tabular
+                                    .copyWith(color: colors.expense),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

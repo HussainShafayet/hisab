@@ -58,3 +58,36 @@ int? remainingPerDay({
   if (days == null) return null;
   return remaining <= 0 ? 0 : remaining ~/ days;
 }
+
+/// How the spending compares with how far through the month it is.
+enum BudgetPace {
+  /// Spending about as fast as the days pass.
+  onTrack,
+
+  /// Spending faster than the days pass: the budget may run out early.
+  fast,
+
+  /// Spending slower than the days pass.
+  slow,
+}
+
+/// The pace of a budget in [month] as of [today], or null when it does not
+/// apply: another month than the current one, no limit, or the first days of
+/// the month (which say little). It is [BudgetPace.fast] when the share of
+/// the budget used is more than 10 percentage points ahead of the share of
+/// the month gone, and [BudgetPace.slow] when it is more than 10 behind.
+BudgetPace? budgetPace({
+  required int limit,
+  required int spent,
+  required DateTime month,
+  required DateTime today,
+}) {
+  if (limit <= 0) return null;
+  if (monthStart(month) != monthStart(today)) return null;
+  if (today.day < 3) return null;
+  final used = spent / limit;
+  final gone = today.day / daysInMonth(today);
+  if (used > gone + 0.1) return BudgetPace.fast;
+  if (used < gone - 0.1) return BudgetPace.slow;
+  return BudgetPace.onTrack;
+}
