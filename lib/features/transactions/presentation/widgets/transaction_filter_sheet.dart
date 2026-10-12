@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
@@ -76,24 +77,24 @@ class _TransactionFilterSheetState
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Filter', style: theme.textTheme.titleLarge),
+                    Text(tr('Filter'), style: theme.textTheme.titleLarge),
                     const SizedBox(height: 16),
-                    Text('Type', style: theme.textTheme.labelLarge),
+                    Text(tr('Type'), style: theme.textTheme.labelLarge),
                     const SizedBox(height: 8),
                     Wrap(
                       spacing: 8,
                       children: [
                         ChoiceChip(
-                          label: const Text('All'),
+                          label: Text(tr('All')),
                           selected: _type == null,
                           onSelected: (_) => setState(() => _type = null),
                         ),
                         for (final type in TransactionType.values)
                           ChoiceChip(
                             label: Text(switch (type) {
-                              TransactionType.expense => 'Expense',
-                              TransactionType.income => 'Income',
-                              TransactionType.transfer => 'Transfer',
+                              TransactionType.expense => tr('Expense'),
+                              TransactionType.income => tr('Income'),
+                              TransactionType.transfer => tr('Transfer'),
                             }),
                             selected: _type == type,
                             onSelected: (_) => setState(() => _type = type),
@@ -104,11 +105,11 @@ class _TransactionFilterSheetState
                     DropdownButtonFormField<int?>(
                       initialValue: _categoryId,
                       isExpanded: true,
-                      decoration: const InputDecoration(labelText: 'Category'),
+                      decoration: InputDecoration(labelText: tr('Category')),
                       items: [
-                        const DropdownMenuItem<int?>(
+                        DropdownMenuItem<int?>(
                           value: null,
-                          child: Text('Any category'),
+                          child: Text(tr('Any category')),
                         ),
                         for (final choice in _categoryChoices(
                           categories.requireValue,
@@ -124,11 +125,11 @@ class _TransactionFilterSheetState
                     DropdownButtonFormField<int?>(
                       initialValue: _accountId,
                       isExpanded: true,
-                      decoration: const InputDecoration(labelText: 'Account'),
+                      decoration: InputDecoration(labelText: tr('Account')),
                       items: [
-                        const DropdownMenuItem<int?>(
+                        DropdownMenuItem<int?>(
                           value: null,
-                          child: Text('Any account'),
+                          child: Text(tr('Any account')),
                         ),
                         for (final item in accounts.requireValue)
                           DropdownMenuItem<int?>(
@@ -139,7 +140,7 @@ class _TransactionFilterSheetState
                       onChanged: (value) => setState(() => _accountId = value),
                     ),
                     const SizedBox(height: 16),
-                    Text('Date range', style: theme.textTheme.labelLarge),
+                    Text(tr('Date range'), style: theme.textTheme.labelLarge),
                     const SizedBox(height: 8),
                     Row(
                       children: [
@@ -148,13 +149,15 @@ class _TransactionFilterSheetState
                             icon: const Icon(Icons.date_range),
                             onPressed: _pickRange,
                             label: Text(
-                              _range == null ? 'Any date' : rangeLabel(_range!),
+                              _range == null
+                                  ? tr('Any date')
+                                  : rangeLabel(_range!),
                             ),
                           ),
                         ),
                         if (_range != null)
                           IconButton(
-                            tooltip: 'Clear date range',
+                            tooltip: tr('Clear date range'),
                             icon: const Icon(Icons.close),
                             onPressed: () => setState(() => _range = null),
                           ),
@@ -167,7 +170,7 @@ class _TransactionFilterSheetState
                           onPressed: () =>
                               Navigator.of(context)
                                   .pop(widget.initial.withoutSheetOptions()),
-                          child: const Text('Clear all'),
+                          child: Text(tr('Clear all')),
                         ),
                         const Spacer(),
                         FilledButton(
@@ -186,7 +189,7 @@ class _TransactionFilterSheetState
                               range: _range,
                             ),
                           ),
-                          child: const Text('Apply'),
+                          child: Text(tr('Apply')),
                         ),
                       ],
                     ),

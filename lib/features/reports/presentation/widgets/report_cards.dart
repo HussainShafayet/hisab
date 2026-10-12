@@ -1,10 +1,12 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/percent.dart';
+import 'package:hishab/features/reports/domain/account_total.dart';
 import 'package:hishab/features/reports/domain/category_total.dart';
 import 'package:hishab/features/reports/domain/comparison.dart';
 import 'package:hishab/features/reports/domain/period_totals.dart';
@@ -32,8 +34,12 @@ class ReportSummaryCard extends StatelessWidget {
     required this.totals,
     required this.previousTotals,
     required this.previousLabel,
+    this.days = 0,
     super.key,
   });
+
+  /// How many days the period has, for the daily average. 0 leaves it out.
+  final int days;
 
   final PeriodTotals totals;
   final PeriodTotals previousTotals;
@@ -57,28 +63,28 @@ class ReportSummaryCard extends StatelessWidget {
             Row(
               children: [
                 _Figure(
-                  label: 'Income',
+                  label: tr('Income'),
                   amount: totals.income,
                   color: colors.income,
                 ),
                 _Figure(
-                  label: 'Expense',
+                  label: tr('Expense'),
                   amount: totals.expense,
                   color: colors.expense,
                 ),
                 _Figure(
-                  label: 'Balance',
+                  label: tr('Balance'),
                   amount: totals.net,
                   color: totals.net < 0 ? colors.expense : null,
                 ),
               ],
             ),
             const Divider(height: 28),
-            _CardTitle('Compared with $previousLabel'),
+            _CardTitle(tr('Compared with {period}', {'period': previousLabel})),
             const SizedBox(height: 8),
             ComparisonLine(
               key: const ValueKey('compare-income'),
-              label: 'Income',
+              label: tr('Income'),
               comparison: Comparison(
                 current: totals.income,
                 previous: previousTotals.income,
@@ -88,16 +94,46 @@ class ReportSummaryCard extends StatelessWidget {
             const SizedBox(height: 4),
             ComparisonLine(
               key: const ValueKey('compare-expense'),
-              label: 'Expense',
+              label: tr('Expense'),
               comparison: Comparison(
                 current: totals.expense,
                 previous: previousTotals.expense,
               ),
               higherIsBetter: false,
             ),
+            if (totals.income > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                (totals.income - totals.expense) >= 0
+                    ? tr('Kept {percent}% of income', {
+                        'percent':
+                            (totals.income - totals.expense) *
+                            100 ~/
+                            totals.income,
+                      })
+                    : tr('Spent {percent}% more than income', {
+                        'percent':
+                            (totals.expense - totals.income) *
+                            100 ~/
+                            totals.income,
+                      }),
+                key: const ValueKey('savings-rate'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
+            if (days > 0 && totals.expense > 0) ...[
+              const SizedBox(height: 4),
+              Text(
+                tr('Average spending {amount} a day', {
+                  'amount': formatPoisha(totals.expense ~/ days),
+                }),
+                key: const ValueKey('daily-average'),
+                style: theme.textTheme.bodyMedium,
+              ),
+            ],
             const SizedBox(height: 4),
             Text(
-              'Transfers and balance corrections are not counted.',
+              tr('Transfers and balance corrections are not counted.'),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -180,14 +216,15 @@ class ComparisonLine extends StatelessWidget {
 
     final String text;
     if (direction == ChangeDirection.none) {
-      text = 'Nothing in either period';
+      text = tr('Nothing in either period');
     } else if (direction == ChangeDirection.same) {
-      text = 'No change';
+      text = tr('No change');
     } else if (comparison.previous == 0) {
-      text = 'New, nothing before';
+      text = tr('New, nothing before');
     } else {
       text =
-          '${comparison.percent!.abs()}% · ${formatPoisha(comparison.difference.abs())}';
+          '${localizeDigits('${comparison.percent!.abs()}%')} · '
+          '${formatPoisha(comparison.difference.abs())}';
     }
 
     return Row(
@@ -208,16 +245,32 @@ class ComparisonLine extends StatelessWidget {
 }
 
 /// A donut chart of spending by category, with a legend.
-class CategoryPieCard extends StatelessWidget {
-  const CategoryPieCard({required this.categories, super.key});
+class CategoryPieCard extends StatefulWidget {
+  const CategoryPieCard({
+    required this.categories,
+    this.incomeCategories = const [],
+    super.key,
+  });
 
-  /// Biggest first.
+  /// Spending by category, biggest first.
   final List<CategoryTotal> categories;
+
+  /// Income by category, biggest first.
+  final List<CategoryTotal> incomeCategories;
+
+  @override
+  State<CategoryPieCard> createState() => _CategoryPieCardState();
+}
+
+class _CategoryPieCardState extends State<CategoryPieCard> {
+  bool _income = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final slices = buildPieSlices(categories);
+    final slices = buildPieSlices(
+      _income ? widget.incomeCategories : widget.categories,
+    );
     final total = slices.fold(0, (sum, s) => sum + s.amount);
 
     return Card(
@@ -228,11 +281,35 @@ class CategoryPieCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _CardTitle('Spending by category'),
+            _CardTitle(
+              _income ? tr('Income by category') : tr('Spending by category'),
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  key: const ValueKey('pie-expense'),
+                  showCheckmark: false,
+                  label: Text(tr('Expense')),
+                  selected: !_income,
+                  onSelected: (_) => setState(() => _income = false),
+                ),
+                ChoiceChip(
+                  key: const ValueKey('pie-income'),
+                  showCheckmark: false,
+                  label: Text(tr('Income')),
+                  selected: _income,
+                  onSelected: (_) => setState(() => _income = true),
+                ),
+              ],
+            ),
             const SizedBox(height: 12),
             if (slices.isEmpty)
               Text(
-                'No expenses in this period.',
+                _income
+                    ? tr('No income in this period.')
+                    : tr('No expenses in this period.'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -264,7 +341,10 @@ class CategoryPieCard extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Spent', style: theme.textTheme.labelSmall),
+                          Text(
+                            _income ? tr('Earned') : tr('Spent'),
+                            style: theme.textTheme.labelSmall,
+                          ),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
@@ -375,11 +455,11 @@ class IncomeExpenseBarCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _CardTitle('Income vs expense'),
+            _CardTitle(tr('Income vs expense')),
             const SizedBox(height: 12),
             if (!hasData)
               Text(
-                'No income or expense in these months.',
+                tr('No income or expense in these months.'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -416,7 +496,7 @@ class IncomeExpenseBarCard extends StatelessWidget {
                           final totals = months[groupIndex].totals;
                           final isIncome = rodIndex == 0;
                           return BarTooltipItem(
-                            '${isIncome ? 'Income' : 'Expense'}\n'
+                            '${isIncome ? tr('Income') : tr('Expense')}\n'
                             '${formatPoisha(isIncome ? totals.income : totals.expense)}',
                             TextStyle(
                               color: isIncome ? colors.income : colors.expense,
@@ -444,9 +524,9 @@ class IncomeExpenseBarCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _LegendDot(color: colors.income, label: 'Income'),
+                  _LegendDot(color: colors.income, label: tr('Income')),
                   const SizedBox(width: 16),
-                  _LegendDot(color: colors.expense, label: 'Expense'),
+                  _LegendDot(color: colors.expense, label: tr('Expense')),
                 ],
               ),
             ],
@@ -498,15 +578,15 @@ class TopExpensesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: _CardTitle('Top expenses'),
+            child: _CardTitle(tr('Top expenses')),
           ),
           if (items.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Text(
-                'No expenses in this period.',
+                tr('No expenses in this period.'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -521,6 +601,85 @@ class TopExpensesCard extends StatelessWidget {
                 onTap: () => context.push(AppRoutes.editTransaction(item.id)),
               ),
         ],
+      ),
+    );
+  }
+}
+
+/// Income and expense of each account in the period.
+class AccountBreakdownCard extends StatelessWidget {
+  const AccountBreakdownCard({required this.accounts, super.key});
+
+  /// The busiest first.
+  final List<AccountTotal> accounts;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = context.financeColors;
+
+    return Card(
+      key: const ValueKey('account-breakdown'),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _CardTitle(tr('By account')),
+            const SizedBox(height: 8),
+            if (accounts.isEmpty)
+              Text(
+                tr('No income or expense in this period.'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            for (final account in accounts)
+              Padding(
+                key: ValueKey('account-total-${account.accountId}'),
+                padding: const EdgeInsets.symmetric(vertical: 6),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        account.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Flexible(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          if (account.income > 0)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                '+${formatPoisha(account.income)}',
+                                style: theme.textTheme.bodySmall?.tabular
+                                    .copyWith(color: colors.income),
+                              ),
+                            ),
+                          if (account.expense > 0)
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              child: Text(
+                                formatPoisha(-account.expense),
+                                style: theme.textTheme.bodySmall?.tabular
+                                    .copyWith(color: colors.expense),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }

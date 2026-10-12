@@ -4,6 +4,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
+import 'package:hishab/core/l10n/app_language.dart';
+import 'package:hishab/features/debts/data/debts_repository.dart';
+import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/settings/data/settings_repository.dart';
+import 'package:hishab/features/settings/domain/app_preferences.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 
@@ -250,6 +257,116 @@ void main() {
       await openFromMore(tester, 'Categories');
 
       expect(tester.takeException(), isNull);
+    });
+  }
+
+  for (final scale in [1.0, 1.5]) {
+    testWithDatabase(
+      'the main screens fit a small phone in Bangla (text x$scale)',
+      (tester, db) async {
+        useSmallPhone(tester, textScale: scale);
+        final b = await seedBasics(db);
+        await addTransaction(
+          db,
+          type: TransactionType.expense,
+          amount: 123456789,
+          accountId: b.cash,
+          categoryId: b.food,
+          date: DateTime(2026, 10, 11, 9),
+          note: 'A long note that has to fit on a small phone',
+        );
+        const bangla = AppPreferences(language: AppLanguage.bangla);
+        await tester.runAsync(() => initializeDateFormatting('bn'));
+        await SettingsRepository(db).save(bangla);
+        await pumpAppWithDatabase(
+          tester,
+          db,
+          overrides: [initialPreferencesProvider.overrideWithValue(bangla)],
+        );
+        expect(tester.takeException(), isNull);
+
+        Finder tab(String label) => find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text(label),
+        );
+        // Home, Transactions, Budget, Reports and More, in Bangla.
+        for (final label in ['হোম', 'লেনদেন', 'বাজেট', 'রিপোর্ট', 'আরও']) {
+          await tester.tap(tab(label));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: label);
+        }
+
+        // The screens behind More.
+        for (final title in [
+          'অ্যাকাউন্ট',
+          'ক্যাটাগরি',
+          'ব্যাকআপ ও এক্সপোর্ট',
+          'সেটিংস',
+        ]) {
+          await tester.tap(listRow(title));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull, reason: title);
+          await tester.tap(find.byType(BackButton));
+          await tester.pumpAndSettle();
+        }
+
+        // The form for a new transaction.
+        await tester.tap(tab('হোম'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(FloatingActionButton));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
+  }
+
+  for (final scale in [1.0, 1.5]) {
+    testWithDatabase('the loan screens fit a small phone (text x$scale)', (
+      tester,
+      db,
+    ) async {
+      useSmallPhone(tester, textScale: scale);
+      final repo = DebtsRepository(db);
+      final id = await repo.createDebt(
+        person: 'A person with a rather long name indeed, Mr Rahim Uddin',
+        direction: DebtDirection.lent,
+        amount: 99999999999,
+        openedOn: DateTime(2026, 9, 1),
+        dueOn: DateTime(2026, 10, 1),
+        note: 'A long note about why this money was lent to this person',
+      );
+      await repo.addPayment(id, amount: 12345678, paidOn: DateTime(2026, 9, 5));
+      await repo.createDebt(
+        person: 'Karim',
+        direction: DebtDirection.borrowed,
+        amount: 5000,
+        openedOn: DateTime(2026, 10, 1),
+      );
+      await pumpAppWithDatabase(tester, db);
+
+      await openFromMore(tester, 'Loans');
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.byKey(ValueKey('debt-$id')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(find.byKey(const ValueKey('add-payment')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      // The button stays on screen below the form.
+      expect(
+        tester.getRect(find.widgetWithText(FilledButton, 'Add loan')).bottom,
+        lessThanOrEqualTo(tester.view.physicalSize.height),
+      );
     });
   }
 

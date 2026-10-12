@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
 
 extension AccountTypeUi on AccountType {
   String get label => switch (this) {
-    AccountType.cash => 'Cash',
-    AccountType.mobileBanking => 'Mobile banking',
-    AccountType.bank => 'Bank',
-    AccountType.card => 'Card',
+    AccountType.cash => tr('Cash'),
+    AccountType.mobileBanking => tr('Mobile banking'),
+    AccountType.bank => tr('Bank'),
+    AccountType.card => tr('Card'),
   };
 
   /// The color of the account's card. Dark enough for white text on it.

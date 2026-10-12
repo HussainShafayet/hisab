@@ -12,3 +12,8 @@ const transferFeeCategoryName = 'Fees & charges';
 
 /// Note saved on the expense that records a transfer fee.
 const transferFeeNote = 'Transfer fee';
+
+/// The category of the transactions that move an account's balance for a loan
+/// (money lent, borrowed or paid back). They are corrections as far as income
+/// and expense go: lending is not spending.
+const loanCategoryName = 'Loans';

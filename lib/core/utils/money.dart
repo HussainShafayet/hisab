@@ -1,3 +1,4 @@
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:intl/intl.dart';
 
 /// Money is always an `int` number of poisha (1 BDT = 100 poisha), never a
@@ -17,7 +18,7 @@ String formatPoisha(int poisha, {bool symbol = true}) {
   final taka = _takaGrouping.format(absolute ~/ poishaPerTaka);
   final paisa = (absolute % poishaPerTaka).toString().padLeft(2, '0');
   final sign = poisha < 0 ? '-' : '';
-  return '$sign${symbol ? '৳' : ''}$taka.$paisa';
+  return localizeDigits('$sign${symbol ? '৳' : ''}$taka.$paisa');
 }
 
 /// `123456` -> `1234.56` and `123400` -> `1234`. For filling a text field

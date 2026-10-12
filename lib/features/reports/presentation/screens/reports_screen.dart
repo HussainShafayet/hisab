@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
@@ -45,10 +46,10 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Reports'),
+        title: Text(tr('Reports')),
         actions: [
           IconButton(
-            tooltip: 'Custom date range',
+            tooltip: tr('Custom date range'),
             icon: const Icon(Icons.date_range),
             onPressed: _pickRange,
           ),
@@ -103,8 +104,13 @@ class _ReportContent extends StatelessWidget {
           previousLabel: isCustom
               ? rangeLabel(data.previousRange)
               : monthLabel(data.previousRange.start),
+          days: daysBetween(data.range.start, data.range.end),
         ),
-        CategoryPieCard(categories: data.categories),
+        CategoryPieCard(
+          categories: data.categories,
+          incomeCategories: data.incomeCategories,
+        ),
+        AccountBreakdownCard(accounts: data.accounts),
         IncomeExpenseBarCard(months: data.months),
         TopExpensesCard(items: data.topExpenses),
       ],

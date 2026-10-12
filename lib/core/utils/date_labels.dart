@@ -1,3 +1,4 @@
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:intl/intl.dart';
 
@@ -11,9 +12,9 @@ String shortMonthLabel(DateTime month) => DateFormat('MMM').format(month);
 /// is not the current year). [now] decides what today is.
 String dayLabel(DateTime day, DateTime now) {
   final today = dateOnly(now);
-  if (isSameDay(day, today)) return 'Today';
+  if (isSameDay(day, today)) return tr('Today');
   if (isSameDay(day, DateTime(today.year, today.month, today.day - 1))) {
-    return 'Yesterday';
+    return tr('Yesterday');
   }
   return DateFormat(day.year == today.year ? 'EEE, d MMM' : 'EEE, d MMM yyyy')
       .format(day);

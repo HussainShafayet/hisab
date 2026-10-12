@@ -1,10 +1,12 @@
+import 'package:hishab/core/l10n/translator.dart';
+
 /// `part` out of `whole` as a whole percent, rounded half up: `25%`. Anything
 /// above zero but under half a percent shows as `<1%` so it is not mistaken
 /// for nothing. A zero `whole` gives `0%`.
 String formatPercent(int part, int whole) {
-  if (whole <= 0 || part <= 0) return '0%';
+  if (whole <= 0 || part <= 0) return localizeDigits('0%');
   final percent = (part * 100 + whole ~/ 2) ~/ whole;
-  return percent == 0 ? '<1%' : '$percent%';
+  return localizeDigits(percent == 0 ? '<1%' : '$percent%');
 }
 
 /// The change from [previous] to [current] in whole percent, rounded half

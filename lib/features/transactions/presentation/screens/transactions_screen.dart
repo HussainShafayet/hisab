@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
@@ -86,9 +87,9 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     messenger.showSnackBar(
       SnackBar(
-        content: const Text('Transaction deleted'),
+        content: Text(tr('Transaction deleted')),
         action: SnackBarAction(
-          label: 'Undo',
+          label: tr('Undo'),
           onPressed: () async {
             await repository.restoreTransaction(deleted ?? item);
             if (mounted) setState(() => _hiddenIds.remove(item.id));
@@ -108,7 +109,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.edit_outlined),
-              title: const Text('Edit'),
+              title: Text(tr('Edit')),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 _edit(item);
@@ -116,7 +117,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.copy_outlined),
-              title: const Text('Duplicate'),
+              title: Text(tr('Duplicate')),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 context.push(AppRoutes.duplicateTransaction(item.id));
@@ -124,7 +125,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
             ),
             ListTile(
               leading: const Icon(Icons.delete_outline),
-              title: const Text('Delete'),
+              title: Text(tr('Delete')),
               onTap: () {
                 Navigator.of(sheetContext).pop();
                 _delete(item);
@@ -150,25 +151,25 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                 controller: _search,
                 autofocus: true,
                 textInputAction: TextInputAction.search,
-                decoration: const InputDecoration(
-                  hintText: 'Search note, category or amount',
+                decoration: InputDecoration(
+                  hintText: tr('Search note, category or amount'),
                   border: InputBorder.none,
                 ),
                 onChanged: (text) =>
                     setState(() => _filter = _filter.withQuery(text)),
               )
-            : const Text('Transactions'),
+            : Text(tr('Transactions')),
         actions: [
           IconButton(
-            tooltip: _searching ? 'Close search' : 'Search',
+            tooltip: _searching ? tr('Close search') : tr('Search'),
             icon: Icon(_searching ? Icons.close : Icons.search),
             onPressed: _toggleSearch,
           ),
           IconButton(
-            tooltip: 'Filter',
+            tooltip: tr('Filter'),
             icon: Badge(
               isLabelVisible: optionCount > 0,
-              label: Text('$optionCount'),
+              label: Text(localizeDigits('$optionCount')),
               child: const Icon(Icons.filter_list),
             ),
             onPressed: _openFilterSheet,
@@ -217,21 +218,21 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       if (_filter.isActive) {
         return EmptyState(
           icon: Icons.search_off,
-          title: 'Nothing matches',
-          message: 'No transaction fits your search and filters.',
+          title: tr('Nothing matches'),
+          message: tr('No transaction fits your search and filters.'),
           action: FilledButton(
             onPressed: _clearFilters,
-            child: const Text('Clear filters'),
+            child: Text(tr('Clear filters')),
           ),
         );
       }
       return EmptyState(
         icon: Icons.receipt_long_outlined,
-        title: 'No transactions in ${monthLabel(_month)}',
-        message: 'Tap + to add your first one.',
+        title: tr('No transactions in {month}', {'month': monthLabel(_month)}),
+        message: tr('Tap + to add your first one.'),
         action: FilledButton(
           onPressed: () => context.push(AppRoutes.addTransaction),
-          child: const Text('Add transaction'),
+          child: Text(tr('Add transaction')),
         ),
       );
     }

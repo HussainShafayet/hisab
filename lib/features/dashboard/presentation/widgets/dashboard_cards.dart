@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/percent.dart';
+import 'package:hishab/features/accounts/domain/account.dart';
+import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
 import 'package:hishab/features/budget/presentation/widgets/budget_cards.dart';
 import 'package:hishab/features/budget/presentation/widgets/budget_progress_bar.dart';
@@ -23,42 +28,59 @@ class TotalBalanceCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    return Card(
+    final primary = theme.colorScheme.primary;
+
+    return Container(
       key: const ValueKey('total-balance'),
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: () => context.push(AppRoutes.accounts),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Total balance', style: theme.textTheme.labelLarge),
-                    const SizedBox(height: 4),
-                    FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        formatPoisha(balance),
-                        style: theme.textTheme.headlineMedium?.tabular.copyWith(
-                          fontWeight: FontWeight.w600,
-                          color: balance < 0
-                              ? context.financeColors.expense
-                              : null,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [primary, Color.lerp(primary, Colors.black, 0.45)!],
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(24),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: () => context.push(AppRoutes.accounts),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(20, 18, 12, 18),
+            child: Row(
+              children: [
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tr('Total balance'),
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: const Color(0xCCFFFFFF),
                         ),
                       ),
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          formatPoisha(balance),
+                          style: theme.textTheme.displaySmall?.tabular.copyWith(
+                            fontWeight: FontWeight.w700,
+                            color: balance < 0
+                                ? const Color(0xFFFFE082)
+                                : Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              Icon(
-                Icons.chevron_right,
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ],
+                const Icon(Icons.chevron_right, color: Color(0xCCFFFFFF)),
+              ],
+            ),
           ),
         ),
       ),
@@ -130,11 +152,11 @@ class BudgetRingCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'No monthly budget',
+                            tr('No monthly budget'),
                             style: theme.textTheme.titleMedium,
                           ),
                           Text(
-                            'Tap to set one',
+                            tr('Tap to set one'),
                             style: theme.textTheme.bodySmall,
                           ),
                         ],
@@ -185,7 +207,7 @@ class _RingContent extends StatelessWidget {
                 ),
               ),
               Text(
-                '${progress.percent}%',
+                localizeDigits('${progress.percent}%'),
                 key: const ValueKey('ring-percent'),
                 style: theme.textTheme.titleMedium?.tabular.copyWith(
                   color: color,
@@ -200,7 +222,7 @@ class _RingContent extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Monthly budget', style: theme.textTheme.labelLarge),
+              Text(tr('Monthly budget'), style: theme.textTheme.labelLarge),
               const SizedBox(height: 2),
               FittedBox(
                 fit: BoxFit.scaleDown,
@@ -216,8 +238,10 @@ class _RingContent extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Spent ${formatPoisha(progress.spent)} of '
-                '${formatPoisha(progress.limit)}',
+                tr('Spent {spent} of {limit}', {
+                  'spent': formatPoisha(progress.spent),
+                  'limit': formatPoisha(progress.limit),
+                }),
                 style: theme.textTheme.bodySmall,
               ),
               if (perDay != null)
@@ -251,7 +275,7 @@ class SpendingTiles extends StatelessWidget {
           Expanded(
             child: _SpendTile(
               key: const ValueKey('spent-today'),
-              label: 'Spent today',
+              label: tr('Spent today'),
               amount: today,
             ),
           ),
@@ -259,7 +283,7 @@ class SpendingTiles extends StatelessWidget {
           Expanded(
             child: _SpendTile(
               key: const ValueKey('spent-week'),
-              label: 'Spent this week',
+              label: tr('Spent this week'),
               amount: week,
             ),
           ),
@@ -335,7 +359,7 @@ class TopCategoriesCard extends StatelessWidget {
             ? Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'No spending this month yet.',
+                  tr('No spending this month yet.'),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -447,7 +471,7 @@ class RecentTransactionsCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'No transactions yet.',
+                    tr('No transactions yet.'),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -455,7 +479,7 @@ class RecentTransactionsCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   FilledButton.tonal(
                     onPressed: () => context.push(AppRoutes.addTransaction),
-                    child: const Text('Add transaction'),
+                    child: Text(tr('Add transaction')),
                   ),
                 ],
               ),
@@ -471,6 +495,43 @@ class RecentTransactionsCard extends StatelessWidget {
                   ),
               ],
             ),
+    );
+  }
+}
+
+/// The accounts as a row of wallet cards that scrolls sideways, under the
+/// total. Nothing when there are no accounts.
+class WalletStrip extends ConsumerWidget {
+  const WalletStrip({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final accounts =
+        ref.watch(accountsProvider(false)).value ??
+        const <AccountWithBalance>[];
+    if (accounts.isEmpty) return const SizedBox.shrink();
+
+    // Taller when the text is larger, so a card never overflows.
+    final scale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
+
+    return SizedBox(
+      key: const ValueKey('wallet-strip'),
+      height: 72 * scale,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+        itemCount: accounts.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 10),
+        itemBuilder: (context, index) => SizedBox(
+          width: 250,
+          child: AccountCard(
+            account: accounts[index].account,
+            balance: accounts[index].balance,
+            onTap: () =>
+                context.push(AppRoutes.editAccount(accounts[index].account.id)),
+          ),
+        ),
+      ),
     );
   }
 }

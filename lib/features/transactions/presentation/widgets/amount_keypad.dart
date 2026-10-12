@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 
 /// Calculator keypad. Reports the pressed key as a string for `applyKey`:
@@ -40,9 +41,9 @@ class AmountKeypad extends StatelessWidget {
                           onPressed: () => onKey(key),
                           onLongPress: key == '⌫' ? () => onKey('C') : null,
                           child: switch (key) {
-                            '⌫' => const Icon(
+                            '⌫' => Icon(
                               Icons.backspace_outlined,
-                              semanticLabel: 'Backspace',
+                              semanticLabel: tr('Backspace'),
                             ),
                             '-' => Text('−', style: textStyle),
                             _ => Text(key, style: textStyle),

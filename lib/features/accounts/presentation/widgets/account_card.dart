@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
@@ -54,8 +55,8 @@ class AccountCard extends StatelessWidget {
     final notes = [
       if (account.name.trim().toLowerCase() != account.type.label.toLowerCase())
         account.type.label,
-      if (account.isArchived) 'Archived',
-      if (!account.includeInTotal) 'Not in total',
+      if (account.isArchived) tr('Archived'),
+      if (!account.includeInTotal) tr('Not in total'),
     ];
 
     return Semantics(
@@ -130,7 +131,7 @@ class AccountCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                'Balance',
+                                tr('Balance'),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: _whiteSoft,
                                 ),
@@ -162,7 +163,7 @@ class AccountCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          'After this',
+                          tr('After this'),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: _whiteSoft,
                           ),

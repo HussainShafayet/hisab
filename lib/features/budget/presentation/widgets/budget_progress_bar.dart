@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/features/budget/domain/budget_progress.dart';
 
@@ -21,7 +22,7 @@ class BudgetProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Semantics(
-      label: '${progress.percent}% of the budget used',
+      label: tr('{percent}% of the budget used', {'percent': progress.percent}),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(4),
         child: LinearProgressIndicator(

@@ -1,6 +1,7 @@
 import 'package:csv/csv.dart';
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/backup/domain/backup_data.dart';
@@ -22,6 +23,9 @@ class BackupRepository {
     final categories = await _db.categoriesDao.getAll(includeArchived: true);
     final transactions = await _db.transactionsDao.getAll();
     final budgets = await _db.budgetsDao.getAll();
+    final debts = await _db.debtsDao.getAllDebts();
+    final debtPayments = await _db.debtsDao.getAllPayments();
+    final recurringRules = await _db.recurringDao.getAll();
     return BackupData(
       exportedAt: now.toUtc(),
       accounts: [
@@ -74,6 +78,53 @@ class BackupRepository {
             amount: b.amount,
           ),
       ],
+      debts: [
+        for (final d in debts)
+          BackupDebt(
+            id: d.id,
+            person: d.person,
+            direction: d.direction,
+            amount: d.amount,
+            openedOn: d.openedOn.toUtc(),
+            dueOn: d.dueOn?.toUtc(),
+            note: d.note,
+            accountId: d.accountId,
+            transactionId: d.transactionId,
+            createdAt: d.createdAt.toUtc(),
+          ),
+      ],
+      debtPayments: [
+        for (final p in debtPayments)
+          BackupDebtPayment(
+            id: p.id,
+            debtId: p.debtId,
+            amount: p.amount,
+            paidOn: p.paidOn.toUtc(),
+            note: p.note,
+            accountId: p.accountId,
+            transactionId: p.transactionId,
+            createdAt: p.createdAt.toUtc(),
+          ),
+      ],
+      recurringRules: [
+        for (final r in recurringRules)
+          BackupRecurringRule(
+            id: r.id,
+            title: r.title,
+            type: r.type,
+            amount: r.amount,
+            accountId: r.accountId,
+            categoryId: r.categoryId,
+            frequency: r.frequency,
+            startDate: r.startDate.toUtc(),
+            nextDue: r.nextDue.toUtc(),
+            endDate: r.endDate?.toUtc(),
+            autoAdd: r.autoAdd,
+            remind: r.remind,
+            isPaused: r.isPaused,
+            createdAt: r.createdAt.toUtc(),
+          ),
+      ],
     );
   }
 
@@ -111,6 +162,25 @@ class BackupRepository {
                 sortOrder: Value(c.sortOrder),
               ),
           ]);
+          batch.insertAll(_db.recurringRules, [
+            for (final r in data.recurringRules)
+              RecurringRulesCompanion.insert(
+                id: Value(r.id),
+                title: r.title,
+                type: r.type,
+                amount: r.amount,
+                accountId: r.accountId,
+                categoryId: r.categoryId,
+                frequency: r.frequency,
+                startDate: r.startDate,
+                nextDue: r.nextDue,
+                endDate: Value(r.endDate),
+                autoAdd: Value(r.autoAdd),
+                remind: Value(r.remind),
+                isPaused: Value(r.isPaused),
+                createdAt: Value(r.createdAt),
+              ),
+          ]);
           batch.insertAll(_db.transactions, [
             for (final t in data.transactions)
               TransactionsCompanion.insert(
@@ -125,6 +195,34 @@ class BackupRepository {
                 isAdjustment: Value(t.isAdjustment),
                 createdAt: Value(t.createdAt),
                 updatedAt: Value(t.updatedAt),
+              ),
+          ]);
+          batch.insertAll(_db.debts, [
+            for (final d in data.debts)
+              DebtsCompanion.insert(
+                id: Value(d.id),
+                person: d.person,
+                direction: d.direction,
+                amount: d.amount,
+                openedOn: d.openedOn,
+                dueOn: Value(d.dueOn),
+                note: Value(d.note),
+                accountId: Value(d.accountId),
+                transactionId: Value(d.transactionId),
+                createdAt: Value(d.createdAt),
+              ),
+          ]);
+          batch.insertAll(_db.debtPayments, [
+            for (final p in data.debtPayments)
+              DebtPaymentsCompanion.insert(
+                id: Value(p.id),
+                debtId: p.debtId,
+                amount: p.amount,
+                paidOn: p.paidOn,
+                note: Value(p.note),
+                accountId: Value(p.accountId),
+                transactionId: Value(p.transactionId),
+                createdAt: Value(p.createdAt),
               ),
           ]);
           batch.insertAll(_db.budgets, [
@@ -142,7 +240,11 @@ class BackupRepository {
       rethrow;
     } on Object catch (error) {
       throw ValidationException(
-        'The backup could not be restored, and nothing was changed. $error',
+        tr(
+          'The backup could not be restored, and nothing was changed. '
+          '{error}',
+          {'error': error},
+        ),
       );
     }
   }
@@ -150,6 +252,9 @@ class BackupRepository {
   /// Rows that others point at go last: transactions and budgets first, then
   /// categories from the innermost out, then accounts.
   Future<void> _deleteEverything() async {
+    await _db.delete(_db.recurringRules).go();
+    await _db.delete(_db.debtPayments).go();
+    await _db.delete(_db.debts).go();
     await _db.delete(_db.budgets).go();
     await _db.delete(_db.transactions).go();
     // A category that has others inside it cannot go before them, so remove
@@ -178,7 +283,7 @@ class BackupRepository {
     final categories = await _db.categoriesDao.getAll(includeArchived: true);
     final byId = {for (final c in categories) c.id: c.toDomain()};
     final rows = await _db.transactionsDao.getAllWithDetails();
-    final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
+    final dateFormat = DateFormat('yyyy-MM-dd HH:mm', 'en');
 
     String categoryPath(CategoryRow? category) {
       final domain = category == null ? null : byId[category.id];

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/files/file_gateway.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
@@ -38,7 +39,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(),
-            child: const Text('OK'),
+            child: Text(tr('OK')),
           ),
         ],
       ),
@@ -78,15 +79,15 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             ListTile(
               key: const ValueKey('deliver-save'),
               leading: const Icon(Icons.download_outlined),
-              title: const Text('Save to this phone'),
-              subtitle: const Text('Choose a folder, for example Downloads'),
+              title: Text(tr('Save to this phone')),
+              subtitle: Text(tr('Choose a folder, for example Downloads')),
               onTap: () => Navigator.of(context).pop(_Delivery.save),
             ),
             ListTile(
               key: const ValueKey('deliver-share'),
               leading: const Icon(Icons.share_outlined),
-              title: const Text('Share'),
-              subtitle: const Text('Send it to Google Drive, email, ...'),
+              title: Text(tr('Share')),
+              subtitle: Text(tr('Send it to Google Drive, email, ...')),
               onTap: () => Navigator.of(context).pop(_Delivery.share),
             ),
           ],
@@ -109,7 +110,8 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     }
   }
 
-  String _today() => DateFormat('yyyy-MM-dd').format(ref.read(clockProvider)());
+  String _today() =>
+      DateFormat('yyyy-MM-dd', 'en').format(ref.read(clockProvider)());
 
   /// Makes the file with the progress bar showing, then (with the bar gone,
   /// because now it is the user's turn) asks where to put it.
@@ -146,7 +148,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   }
 
   Future<void> _exportBackup() => _export(
-    failureTitle: 'Could not export the backup',
+    failureTitle: tr('Could not export the backup'),
     makeText: () async =>
         (await ref
                 .read(backupRepositoryProvider)
@@ -154,18 +156,16 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
             .encode(),
     fileName: 'hishab-backup-${_today()}.json',
     mimeType: 'application/json',
-    doneMessage: 'Backup saved.',
+    doneMessage: tr('Backup saved.'),
   );
 
   Future<void> _exportCsv() => _export(
-    failureTitle: 'Could not export the transactions',
+    failureTitle: tr('Could not export the transactions'),
     makeText: () => ref.read(backupRepositoryProvider).exportTransactionsCsv(),
     fileName: 'hishab-transactions-${_today()}.csv',
     mimeType: 'text/csv',
-    doneMessage: 'Transactions saved.',
+    doneMessage: tr('Transactions saved.'),
   );
-
-  String _count(int n, String noun) => '$n $noun${n == 1 ? '' : 's'}';
 
   Future<bool> _confirmRestore(BackupData data) async {
     final made = DateFormat('d MMM yyyy, HH:mm')
@@ -173,20 +173,39 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Restore this backup?'),
+        title: Text(tr('Restore this backup?')),
         content: Text(
-          'Made on $made. It holds '
-          '${_count(data.accounts.length, 'account')}, '
-          '${_count(data.categories.length, 'category').replaceFirst('categorys', 'categories')}, '
-          '${_count(data.transactions.length, 'transaction')} and '
-          '${_count(data.budgets.length, 'budget')}.\n\n'
-          'Everything on this phone now will be replaced by it. This cannot '
-          'be undone. Export a backup first if you want to keep what you have.',
+          tr(
+            'Made on {date}. It holds {accounts}, {categories}, '
+            '{transactions} and {budgets}.\n\n'
+            'Everything on this phone now will be replaced by it. This cannot '
+            'be undone. Export a backup first if you want to keep what you '
+            'have.',
+            {
+              'date': made,
+              'accounts': plural(
+                data.accounts.length,
+                '1 account',
+                '{n} accounts',
+              ),
+              'categories': plural(
+                data.categories.length,
+                '1 category',
+                '{n} categories',
+              ),
+              'transactions': plural(
+                data.transactions.length,
+                '1 transaction',
+                '{n} transactions',
+              ),
+              'budgets': plural(data.budgets.length, '1 budget', '{n} budgets'),
+            },
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(tr('Cancel')),
           ),
           FilledButton(
             style: FilledButton.styleFrom(
@@ -194,7 +213,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               foregroundColor: Theme.of(context).colorScheme.onError,
             ),
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Replace everything'),
+            child: Text(tr('Replace everything')),
           ),
         ],
       ),
@@ -207,7 +226,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     try {
       picked = await ref.read(fileGatewayProvider).pick(extensions: ['json']);
     } on Object catch (error) {
-      await _problem('Could not open the file', describeError(error));
+      await _problem(tr('Could not open the file'), describeError(error));
       return;
     }
     if (picked == null || !mounted) return;
@@ -216,22 +235,28 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     try {
       data = BackupData.decode(utf8.decode(picked.bytes));
     } on ValidationException catch (e) {
-      await _problem('This backup cannot be restored', e.message);
+      await _problem(tr('This backup cannot be restored'), e.message);
       return;
     } on FormatException {
       await _problem(
-        'This backup cannot be restored',
-        'This file is not a Hishab backup.',
+        tr('This backup cannot be restored'),
+        tr('This file is not a Hishab backup.'),
       );
       return;
     }
     if (!mounted || !await _confirmRestore(data)) return;
 
-    await _run('Could not restore the backup', () async {
+    await _run(tr('Could not restore the backup'), () async {
       await ref.read(backupRepositoryProvider).restore(data);
       if (mounted) {
         _message(
-          'Backup restored: ${_count(data.transactions.length, 'transaction')}.',
+          tr('Backup restored: {transactions}.', {
+            'transactions': plural(
+              data.transactions.length,
+              '1 transaction',
+              '{n} transactions',
+            ),
+          }),
         );
       }
     });
@@ -247,19 +272,21 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Backup & export')),
+      appBar: AppBar(title: Text(tr('Backup & export'))),
       body: Stack(
         children: [
           ListView(
             children: [
-              heading('Backup'),
+              heading(tr('Backup')),
               ListTile(
                 key: const ValueKey('export-backup'),
                 leading: const Icon(Icons.save_alt),
-                title: const Text('Export backup'),
-                subtitle: const Text(
-                  'Everything in one file: accounts, categories, '
-                  'transactions and budgets.',
+                title: Text(tr('Export backup')),
+                subtitle: Text(
+                  tr(
+                    'Everything in one file: accounts, categories, '
+                    'transactions and budgets.',
+                  ),
                 ),
                 enabled: !_busy,
                 onTap: _exportBackup,
@@ -267,29 +294,31 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               ListTile(
                 key: const ValueKey('restore-backup'),
                 leading: const Icon(Icons.restore),
-                title: const Text('Restore from backup'),
-                subtitle: const Text(
-                  'Replaces everything on this phone with a backup file.',
+                title: Text(tr('Restore from backup')),
+                subtitle: Text(
+                  tr('Replaces everything on this phone with a backup file.'),
                 ),
                 enabled: !_busy,
                 onTap: _restore,
               ),
-              heading('Spreadsheet (CSV)'),
+              heading(tr('Spreadsheet (CSV)')),
               ListTile(
                 key: const ValueKey('export-csv'),
                 leading: const Icon(Icons.table_view_outlined),
-                title: const Text('Export transactions'),
-                subtitle: const Text('Open them in Google Sheets or Excel.'),
+                title: Text(tr('Export transactions')),
+                subtitle: Text(tr('Open them in Google Sheets or Excel.')),
                 enabled: !_busy,
                 onTap: _exportCsv,
               ),
               ListTile(
                 key: const ValueKey('import-csv'),
                 leading: const Icon(Icons.upload_file_outlined),
-                title: const Text('Import from CSV'),
-                subtitle: const Text(
-                  'Bring in transactions from your sheet. You say which '
-                  'column is which.',
+                title: Text(tr('Import from CSV')),
+                subtitle: Text(
+                  tr(
+                    'Bring in transactions from your sheet. You say which '
+                    'column is which.',
+                  ),
                 ),
                 enabled: !_busy,
                 onTap: () => context.push(AppRoutes.importCsv),
@@ -297,9 +326,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'Hishab never sends your data anywhere. Keep a backup '
-                  'somewhere safe, like Google Drive, in case you lose or '
-                  'change your phone.',
+                  tr(
+                    'Hishab never sends your data anywhere. Keep a backup '
+                    'somewhere safe, like Google Drive, in case you lose or '
+                    'change your phone.',
+                  ),
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),

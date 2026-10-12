@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 
 /// A chip that turns "show archived" on and off. Archived accounts and
 /// categories are hidden, not deleted, so old transactions keep their names;
@@ -20,7 +21,7 @@ class ShowArchivedChip extends StatelessWidget {
       child: FilterChip(
         key: const ValueKey('show-archived'),
         avatar: const Icon(Icons.inventory_2_outlined, size: 18),
-        label: const Text('Show archived'),
+        label: Text(tr('Show archived')),
         selected: value,
         onSelected: onChanged,
       ),

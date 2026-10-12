@@ -5,6 +5,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/app.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/database/database_provider.dart';
+import 'package:hishab/core/l10n/app_language.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/clock.dart';
 
 import 'test_database.dart';
@@ -23,6 +25,8 @@ void testWithDatabase(
   bool skip = false,
 }) {
   testWidgets(description, skip: skip, (tester) async {
+    // The language is global state, so every test starts and ends in English.
+    setAppLanguage(AppLanguage.english);
     final db = createTestDatabase(seedDefaults: seedDefaults);
     try {
       await body(tester, db);
@@ -30,6 +34,7 @@ void testWithDatabase(
       await tester.pumpWidget(const SizedBox());
       await tester.pump(Duration.zero);
       await db.close();
+      setAppLanguage(AppLanguage.english);
     }
   });
 }

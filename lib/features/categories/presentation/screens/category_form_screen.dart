@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/categories/data/categories_repository.dart';
@@ -32,7 +33,7 @@ class CategoryFormScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final title = Text(_isEditing ? 'Edit category' : 'New category');
+    final title = Text(_isEditing ? tr('Edit category') : tr('New category'));
 
     // Archived categories are included so we can tell whether a category has
     // sub-categories and find a parent that was archived later.
@@ -62,9 +63,7 @@ class CategoryFormScreen extends ConsumerWidget {
             if (_isEditing && initial == null) {
               return Scaffold(
                 appBar: AppBar(title: title),
-                body: const ErrorView(
-                  message: 'This category no longer exists.',
-                ),
+                body: ErrorView(message: tr('This category no longer exists.')),
               );
             }
             return _CategoryForm(
@@ -194,10 +193,10 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
   Future<void> _chooseParent() async {
     final pick = await showCategoryPicker(
       context,
-      title: 'Put it inside',
+      title: tr('Put it inside'),
       categories: _parentOptions,
       selectedId: _parentId,
-      topLevelLabel: 'Top level (not inside another)',
+      topLevelLabel: tr('Top level (not inside another)'),
       allowAdd: false,
     );
     if (!mounted) return;
@@ -213,9 +212,9 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
 
   String get _parentLabel {
     final parent = _byId[_parentId];
-    if (parent == null) return 'Top level';
+    if (parent == null) return tr('Top level');
     final path = categoryPathLabel(parent, _byId);
-    return parent.isArchived ? '$path (archived)' : path;
+    return parent.isArchived ? tr('{name} (archived)', {'name': path}) : path;
   }
 
   @override
@@ -225,7 +224,7 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
 
     return Scaffold(
       appBar: AppBar(
-        title: Text(_isEditing ? 'Edit category' : 'New category'),
+        title: Text(_isEditing ? tr('Edit category') : tr('New category')),
       ),
       body: Column(
         children: [
@@ -254,7 +253,9 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                typedName.isEmpty ? 'Category name' : typedName,
+                                typedName.isEmpty
+                                    ? tr('Category name')
+                                    : typedName,
                                 key: const ValueKey('preview-name'),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
@@ -266,8 +267,12 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                               ),
                               Text(
                                 _parentId == null
-                                    ? '${_type == CategoryType.income ? 'Income' : 'Expense'} · top level'
-                                    : 'Inside $_parentLabel',
+                                    ? (_type == CategoryType.income
+                                          ? tr('Income · top level')
+                                          : tr('Expense · top level'))
+                                    : tr('Inside {place}', {
+                                        'place': _parentLabel,
+                                      }),
                                 maxLines: 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: theme.textTheme.bodySmall?.copyWith(
@@ -292,21 +297,22 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                         CategoriesRepository.maxNameLength,
                       ),
                     ],
-                    decoration: const InputDecoration(labelText: 'Name'),
-                    validator: (value) =>
-                        (value?.trim().isEmpty ?? true) ? 'Enter a name' : null,
+                    decoration: InputDecoration(labelText: tr('Name')),
+                    validator: (value) => (value?.trim().isEmpty ?? true)
+                        ? tr('Enter a name')
+                        : null,
                   ),
                   const SizedBox(height: 20),
                   SegmentedButton<CategoryType>(
                     showSelectedIcon: false,
-                    segments: const [
+                    segments: [
                       ButtonSegment(
                         value: CategoryType.expense,
-                        label: Text('Expense'),
+                        label: Text(tr('Expense')),
                       ),
                       ButtonSegment(
                         value: CategoryType.income,
-                        label: Text('Income'),
+                        label: Text(tr('Income')),
                       ),
                     ],
                     selected: {_type},
@@ -323,7 +329,9 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                     Padding(
                       padding: const EdgeInsets.only(top: 4),
                       child: Text(
-                        'The type of an existing category cannot be changed.',
+                        tr(
+                          'The type of an existing category cannot be changed.',
+                        ),
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
                         ),
@@ -335,8 +343,8 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                     onTap: _chooseParent,
                     borderRadius: BorderRadius.circular(12),
                     child: InputDecorator(
-                      decoration: const InputDecoration(
-                        labelText: 'Inside',
+                      decoration: InputDecoration(
+                        labelText: tr('Inside'),
                         suffixIcon: Icon(Icons.unfold_more),
                       ),
                       child: Text(
@@ -348,7 +356,7 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                     ),
                   ),
                   const SizedBox(height: 24),
-                  Text('Icon', style: theme.textTheme.titleSmall),
+                  Text(tr('Icon'), style: theme.textTheme.titleSmall),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -365,7 +373,7 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                     ],
                   ),
                   const SizedBox(height: 24),
-                  Text('Color', style: theme.textTheme.titleSmall),
+                  Text(tr('Color'), style: theme.textTheme.titleSmall),
                   const SizedBox(height: 8),
                   Wrap(
                     spacing: 8,
@@ -410,7 +418,9 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _saving ? null : _save,
-                  child: Text(_isEditing ? 'Save changes' : 'Add category'),
+                  child: Text(
+                    _isEditing ? tr('Save changes') : tr('Add category'),
+                  ),
                 ),
               ),
             ),

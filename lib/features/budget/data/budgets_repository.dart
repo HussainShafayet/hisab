@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
@@ -47,7 +48,7 @@ class BudgetsRepository {
   }) {
     return _db.transaction(() async {
       if (amount <= 0) {
-        throw const ValidationException('The budget must be above zero.');
+        throw ValidationException(tr('The budget must be above zero.'));
       }
       final key = monthKey(month);
       final existing = await _db.budgetsDao.getByMonthAndCategory(
@@ -82,7 +83,9 @@ class BudgetsRepository {
       final source = await _db.budgetsDao.getForMonth(monthKey(previous));
       if (source.isEmpty) {
         throw ValidationException(
-          'There is no budget in ${monthLabel(previous)} to copy.',
+          tr('There is no budget in {month} to copy.', {
+            'month': monthLabel(previous),
+          }),
         );
       }
 
@@ -113,15 +116,17 @@ class BudgetsRepository {
   Future<void> _requireBudgetCategory(int categoryId) async {
     final category = await _db.categoriesDao.getById(categoryId);
     if (category == null) {
-      throw const ValidationException('Category not found.');
+      throw ValidationException(tr('Category not found.'));
     }
     if (category.type != CategoryType.expense) {
-      throw const ValidationException(
-        'Only an expense category can have a budget.',
+      throw ValidationException(
+        tr('Only an expense category can have a budget.'),
       );
     }
     if (category.isArchived) {
-      throw ValidationException('The category "${category.name}" is archived.');
+      throw ValidationException(
+        tr('The category "{name}" is archived.', {'name': category.name}),
+      );
     }
   }
 

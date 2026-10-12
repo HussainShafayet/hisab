@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
@@ -9,9 +11,11 @@ import 'package:hishab/features/categories/presentation/widgets/category_avatar.
 /// "৳2,500.00 left", "Nothing left" or "Over by ৳500.00".
 String budgetRemainingText(BudgetProgress progress) {
   final remaining = progress.remaining;
-  if (remaining > 0) return '${formatPoisha(remaining)} left';
-  if (remaining == 0) return 'Nothing left';
-  return 'Over by ${formatPoisha(-remaining)}';
+  if (remaining > 0) {
+    return tr('{amount} left', {'amount': formatPoisha(remaining)});
+  }
+  if (remaining == 0) return tr('Nothing left');
+  return tr('Over by {amount}', {'amount': formatPoisha(-remaining)});
 }
 
 /// "৳120.00 per day · 21 days left", or null when it does not apply (the
@@ -28,7 +32,10 @@ String? budgetPerDayText(
     today: today,
   );
   if (days == null || perDay == null || perDay == 0) return null;
-  return '${formatPoisha(perDay)} per day · $days ${days == 1 ? 'day' : 'days'} left';
+  final args = {'amount': formatPoisha(perDay), 'days': days};
+  return days == 1
+      ? tr('{amount} per day · 1 day left', args)
+      : tr('{amount} per day · {days} days left', args);
 }
 
 /// The overall budget of the month, big, at the top of the screen.
@@ -52,6 +59,12 @@ class OverallBudgetCard extends StatelessWidget {
     final progress = item.progress;
     final color = budgetLevelColor(context, progress.level);
     final perDay = budgetPerDayText(progress, month: month, today: today);
+    final pace = budgetPace(
+      limit: progress.limit,
+      spent: progress.spent,
+      month: month,
+      today: today,
+    );
 
     return Card(
       key: const ValueKey('overall-budget'),
@@ -66,9 +79,15 @@ class OverallBudgetCard extends StatelessWidget {
             children: [
               Row(
                 children: [
+                  Icon(
+                    Icons.pie_chart,
+                    size: 20,
+                    color: theme.colorScheme.primary,
+                  ),
+                  const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Monthly budget',
+                      tr('Monthly budget'),
                       style: theme.textTheme.labelLarge,
                     ),
                   ),
@@ -98,19 +117,41 @@ class OverallBudgetCard extends StatelessWidget {
                 children: [
                   Expanded(
                     child: Text(
-                      'Spent ${formatPoisha(progress.spent)} of '
-                      '${formatPoisha(progress.limit)}',
+                      tr('Spent {spent} of {limit}', {
+                        'spent': formatPoisha(progress.spent),
+                        'limit': formatPoisha(progress.limit),
+                      }),
                       style: theme.textTheme.bodySmall,
                     ),
                   ),
                   Text(
-                    '${progress.percent}%',
+                    localizeDigits('${progress.percent}%'),
                     style: theme.textTheme.labelLarge?.tabular.copyWith(
                       color: color,
                     ),
                   ),
                 ],
               ),
+              if (pace != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  switch (pace) {
+                    BudgetPace.onTrack => tr('On track for the month'),
+                    BudgetPace.fast => tr(
+                      'Spending faster than the month goes',
+                    ),
+                    BudgetPace.slow => tr(
+                      'Spending slower than the month goes',
+                    ),
+                  },
+                  key: const ValueKey('overall-pace'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: pace == BudgetPace.fast
+                        ? context.financeColors.warning
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               if (perDay != null) ...[
                 const SizedBox(height: 4),
                 Text(
@@ -172,7 +213,7 @@ class CategoryBudgetTile extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          item.categoryName ?? 'Category',
+                          item.categoryName ?? tr('Category'),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: theme.textTheme.titleMedium,
@@ -180,7 +221,7 @@ class CategoryBudgetTile extends StatelessWidget {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        '${progress.percent}%',
+                        localizeDigits('${progress.percent}%'),
                         style: theme.textTheme.labelLarge?.tabular.copyWith(
                           color: color,
                         ),
@@ -189,8 +230,10 @@ class CategoryBudgetTile extends StatelessWidget {
                   ),
                   const SizedBox(height: 2),
                   Text(
-                    'Spent ${formatPoisha(progress.spent)} of '
-                    '${formatPoisha(progress.limit)}',
+                    tr('Spent {spent} of {limit}', {
+                      'spent': formatPoisha(progress.spent),
+                      'limit': formatPoisha(progress.limit),
+                    }),
                     style: theme.textTheme.bodySmall,
                   ),
                   const SizedBox(height: 6),

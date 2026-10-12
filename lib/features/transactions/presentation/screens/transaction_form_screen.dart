@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
@@ -18,6 +19,8 @@ import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
+import 'package:hishab/features/settings/domain/app_preferences.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 import 'package:hishab/features/transactions/domain/amount_calculator.dart';
 import 'package:hishab/features/transactions/domain/balance_preview.dart';
 import 'package:hishab/features/transactions/domain/transaction_input.dart';
@@ -38,7 +41,9 @@ class TransactionFormScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final args = (editId: editId, duplicateId: duplicateId);
-    final title = Text(editId == null ? 'Add transaction' : 'Edit transaction');
+    final title = Text(
+      editId == null ? tr('Add transaction') : tr('Edit transaction'),
+    );
 
     return ref
         .watch(transactionFormDataProvider(args))
@@ -109,6 +114,10 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     final now = ref.read(clockProvider)();
 
     _type = source?.type ?? TransactionType.expense;
+    // A new transaction starts with the calculator when Settings say so.
+    _calculator =
+        _isAdding &&
+        ref.read(preferencesProvider).amountEntry == AmountEntry.calculator;
     _amount.text = source == null ? '' : poishaToInput(source.amount);
     _note.text = source?.note ?? '';
     _day = dateOnly(_isEditing ? source!.date : now);
@@ -179,7 +188,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       if (expressionHasOperator(text)) {
         final result = evaluateAmount(text);
         if (result == null) {
-          setState(() => _error = 'Check the calculation first.');
+          setState(() => _error = tr('Check the calculation first.'));
           return;
         }
         _setAmountText(result > 0 ? poishaToInput(result) : '');
@@ -223,12 +232,12 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   Future<bool> _save() async {
     final amount = evaluateAmount(_amount.text);
     if (amount == null || amount <= 0) {
-      setState(() => _error = 'Enter an amount.');
+      setState(() => _error = tr('Enter an amount.'));
       return false;
     }
     final accountId = _accountId;
     if (accountId == null) {
-      setState(() => _error = 'Choose an account.');
+      setState(() => _error = tr('Choose an account.'));
       return false;
     }
     var fee = 0;
@@ -237,7 +246,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         _fee.text.trim().isNotEmpty) {
       final parsed = parseTakaToPoisha(_fee.text);
       if (parsed == null) {
-        setState(() => _error = 'Enter a valid fee, like 15 or 15.50.');
+        setState(() => _error = tr('Enter a valid fee, like 15 or 15.50.'));
         return false;
       }
       fee = parsed;
@@ -292,7 +301,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       _setAmountText('');
       _categoryId = null;
       _saving = false;
-      _notice = 'Saved $saved. Add the next one.';
+      _notice = tr('Saved {amount}. Add the next one.', {'amount': saved});
       _note.clear();
       _fee.clear();
     });
@@ -334,8 +343,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     final pick = await showCategoryPicker(
       context,
       title: _type == TransactionType.income
-          ? 'Income category'
-          : 'Expense category',
+          ? tr('Income category')
+          : tr('Expense category'),
       categories: options.categoriesFor(_type),
       frequentIds: options.frequentIdsFor(_type),
       selectedId: _categoryId,
@@ -466,18 +475,20 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   @override
   Widget build(BuildContext context) {
     final options = _data.options;
-    final title = Text(_isEditing ? 'Edit transaction' : 'Add transaction');
+    final title = Text(
+      _isEditing ? tr('Edit transaction') : tr('Add transaction'),
+    );
 
     if (options.accounts.isEmpty) {
       return Scaffold(
         appBar: AppBar(title: title),
         body: EmptyState(
           icon: Icons.account_balance_wallet_outlined,
-          title: 'Add an account first',
-          message: 'A transaction needs an account, like Cash or bKash.',
+          title: tr('Add an account first'),
+          message: tr('A transaction needs an account, like Cash or bKash.'),
           action: FilledButton(
             onPressed: _addAccountFirst,
-            child: const Text('Add account'),
+            child: Text(tr('Add account')),
           ),
         ),
       );
@@ -501,15 +512,18 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: SegmentedButton<TransactionType>(
           showSelectedIcon: false,
-          segments: const [
+          segments: [
             ButtonSegment(
               value: TransactionType.expense,
-              label: Text('Expense'),
+              label: Text(tr('Expense')),
             ),
-            ButtonSegment(value: TransactionType.income, label: Text('Income')),
+            ButtonSegment(
+              value: TransactionType.income,
+              label: Text(tr('Income')),
+            ),
             ButtonSegment(
               value: TransactionType.transfer,
-              label: Text('Transfer'),
+              label: Text(tr('Transfer')),
             ),
           ],
           selected: {_type},
@@ -521,7 +535,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         focusNode: _amountFocus,
         color: amountColor,
         calculator: _calculator,
-        autofocus: _isAdding,
+        autofocus: _isAdding && !_calculator,
         onToggleCalculator: _toggleCalculator,
         onChanged: _onAmountChanged,
         onSubmitted: _onAmountSubmitted,
@@ -573,24 +587,24 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           key: const ValueKey('account-field'),
           accountId: _accountId,
           caption: null,
-          placeholder: 'Choose account',
+          placeholder: tr('Choose account'),
           balances: balances,
           onTap: () => _chooseAccount(
-            title: 'Account',
+            title: tr('Account'),
             selected: _accountId,
             onChosen: (id) => _accountId = id,
           ),
         ),
       ],
       const SizedBox(height: 16),
-      const _SectionLabel('Date'),
+      _SectionLabel(tr('Date')),
       _dateChips(context),
       const SizedBox(height: 16),
       TextField(
         controller: _note,
         focusNode: _noteFocus,
         textCapitalization: TextCapitalization.sentences,
-        decoration: const InputDecoration(labelText: 'Note'),
+        decoration: InputDecoration(labelText: tr('Note')),
       ),
     ];
 
@@ -607,7 +621,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _saving ? null : _saveAndClose,
-                  child: const Text('Save changes'),
+                  child: Text(tr('Save changes')),
                 ),
               )
             : Row(
@@ -617,7 +631,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     child: OutlinedButton(
                       key: const ValueKey('save-and-new'),
                       onPressed: _saving ? null : _saveAndAddAnother,
-                      child: const Text('Save & new'),
+                      child: Text(tr('Save & new')),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -625,7 +639,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     flex: 2,
                     child: FilledButton(
                       onPressed: _saving ? null : _saveAndClose,
-                      child: const Text('Save'),
+                      child: Text(tr('Save')),
                     ),
                   ),
                 ],
@@ -689,11 +703,11 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       return [
         EmptyState(
           icon: Icons.swap_horiz,
-          title: 'You need two accounts',
-          message: 'A transfer moves money from one account to another.',
+          title: tr('You need two accounts'),
+          message: tr('A transfer moves money from one account to another.'),
           action: FilledButton(
             onPressed: _addAccountFirst,
-            child: const Text('Add account'),
+            child: Text(tr('Add account')),
           ),
         ),
       ];
@@ -703,11 +717,11 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       _accountCard(
         key: const ValueKey('from-field'),
         accountId: _accountId,
-        caption: 'From',
-        placeholder: 'Choose the account the money leaves',
+        caption: tr('From'),
+        placeholder: tr('Choose the account the money leaves'),
         balances: balances,
         onTap: () => _chooseAccount(
-          title: 'Move money from',
+          title: tr('Move money from'),
           selected: _accountId,
           disabled: _toAccountId,
           onChosen: (id) => _accountId = id,
@@ -716,7 +730,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       Align(
         child: IconButton(
           key: const ValueKey('swap-accounts'),
-          tooltip: 'Swap From and To',
+          tooltip: tr('Swap From and To'),
           icon: const Icon(Icons.swap_vert),
           onPressed: canSwap
               ? () => setState(() {
@@ -730,11 +744,11 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       _accountCard(
         key: const ValueKey('to-field'),
         accountId: _toAccountId,
-        caption: 'To',
-        placeholder: 'Choose the account the money goes to',
+        caption: tr('To'),
+        placeholder: tr('Choose the account the money goes to'),
         balances: balances,
         onTap: () => _chooseAccount(
-          title: 'Move money to',
+          title: tr('Move money to'),
           selected: _toAccountId,
           disabled: _accountId,
           onChosen: (id) => _toAccountId = id,
@@ -745,10 +759,10 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         MoneyFormField(
           controller: _fee,
           focusNode: _feeFocus,
-          label: 'Fee (optional)',
+          label: tr('Fee (optional)'),
           isRequired: false,
           onChanged: (_) => setState(() {}),
-          helperText: 'Saved as an expense on the "From" account.',
+          helperText: tr('Saved as an expense on the "From" account.'),
         ),
       ],
     ];
@@ -760,8 +774,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     final byId = {for (final c in categories) c.id: c};
     final Category? selected = byId[_categoryId];
     final caption = _type == TransactionType.income
-        ? 'Income category'
-        : 'Expense category';
+        ? tr('Income category')
+        : tr('Expense category');
 
     return Material(
       color: theme.colorScheme.surfaceContainerHigh,
@@ -797,9 +811,11 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                     ),
                     Text(
                       selected == null
-                          ? 'Choose a category'
+                          ? tr('Choose a category')
                           : selected.isArchived
-                          ? '${categoryPathLabel(selected, byId)} (archived)'
+                          ? tr('{name} (archived)', {
+                              'name': categoryPathLabel(selected, byId),
+                            })
                           : categoryPathLabel(selected, byId),
                       key: const ValueKey('category-value'),
                       maxLines: 2,
@@ -817,7 +833,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
               Icon(
                 Icons.search,
                 color: theme.colorScheme.onSurfaceVariant,
-                semanticLabel: 'Search categories',
+                semanticLabel: tr('Search categories'),
               ),
             ],
           ),
@@ -838,14 +854,14 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ChoiceChip(
           key: const ValueKey('date-today'),
           showCheckmark: false,
-          label: const Text('Today'),
+          label: Text(tr('Today')),
           selected: isSameDay(_day, today),
           onSelected: (_) => setState(() => _day = today),
         ),
         ChoiceChip(
           key: const ValueKey('date-yesterday'),
           showCheckmark: false,
-          label: const Text('Yesterday'),
+          label: Text(tr('Yesterday')),
           selected: isSameDay(_day, yesterday),
           onSelected: (_) => setState(() => _day = yesterday),
         ),
@@ -857,7 +873,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             isOther
                 ? DateFormat(_day.year == today.year ? 'd MMM' : 'd MMM yyyy')
                       .format(_day)
-                : 'Pick date',
+                : tr('Pick date'),
           ),
           selected: isOther,
           onSelected: (_) => _pickDate(),
@@ -995,8 +1011,8 @@ class _AmountInput extends StatelessWidget {
                 IconButton(
                   key: const ValueKey('calculator-toggle'),
                   tooltip: calculator
-                      ? 'Type with the keyboard'
-                      : 'Use the calculator',
+                      ? tr('Type with the keyboard')
+                      : tr('Use the calculator'),
                   isSelected: calculator,
                   icon: const Icon(Icons.calculate_outlined),
                   selectedIcon: const Icon(Icons.keyboard_alt_outlined),

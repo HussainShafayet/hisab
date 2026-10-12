@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/money.dart';
 
 /// A text field for an amount in taka. Typed text is read back with
@@ -51,9 +52,9 @@ class MoneyFormField extends StatelessWidget {
       ),
       validator: (value) {
         final text = value?.trim() ?? '';
-        if (text.isEmpty) return isRequired ? 'Enter an amount' : null;
+        if (text.isEmpty) return isRequired ? tr('Enter an amount') : null;
         if (parseTakaToPoisha(text) == null) {
-          return 'Enter a valid amount, like 1500 or 1500.50';
+          return tr('Enter a valid amount, like 1500 or 1500.50');
         }
         return null;
       },

@@ -9,7 +9,15 @@ import 'package:hishab/features/categories/data/categories_dao.dart';
 import 'package:hishab/features/categories/data/categories_table.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
+import 'package:hishab/features/debts/data/debts_dao.dart';
+import 'package:hishab/features/debts/data/debts_table.dart';
+import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/recurring/data/recurring_dao.dart';
+import 'package:hishab/features/recurring/data/recurring_table.dart';
+import 'package:hishab/features/recurring/domain/recurring.dart';
 import 'package:hishab/features/reports/data/reports_dao.dart';
+import 'package:hishab/features/settings/data/app_settings_table.dart';
+import 'package:hishab/features/settings/data/settings_dao.dart';
 import 'package:hishab/features/transactions/data/transactions_dao.dart';
 import 'package:hishab/features/transactions/data/transactions_table.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -26,8 +34,26 @@ final _budgetsMonthCategoryUnique = Index(
 );
 
 @DriftDatabase(
-  tables: [Accounts, Categories, Transactions, Budgets],
-  daos: [AccountsDao, CategoriesDao, TransactionsDao, BudgetsDao, ReportsDao],
+  tables: [
+    Accounts,
+    Categories,
+    Transactions,
+    Budgets,
+    AppSettings,
+    Debts,
+    DebtPayments,
+    RecurringRules,
+  ],
+  daos: [
+    AccountsDao,
+    CategoriesDao,
+    TransactionsDao,
+    BudgetsDao,
+    ReportsDao,
+    SettingsDao,
+    DebtsDao,
+    RecurringDao,
+  ],
 )
 class AppDatabase extends _$AppDatabase {
   /// The real database file on the phone.
@@ -41,8 +67,11 @@ class AppDatabase extends _$AppDatabase {
 
   /// 1: first version.
   /// 2: `transactions.is_adjustment`.
+  /// 3: the `app_settings` table (Settings).
+  /// 4: the `debts` and `debt_payments` tables (dhar / baki).
+  /// 5: the `recurring_rules` table.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 5;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -65,6 +94,16 @@ class AppDatabase extends _$AppDatabase {
           "WHERE name = '$balanceAdjustmentCategoryName' "
           'AND parent_id IS NULL)',
         );
+      }
+      if (from < 3) {
+        await migrator.createTable(appSettings);
+      }
+      if (from < 4) {
+        await migrator.createTable(debts);
+        await migrator.createTable(debtPayments);
+      }
+      if (from < 5) {
+        await migrator.createTable(recurringRules);
       }
     },
     beforeOpen: (details) async {

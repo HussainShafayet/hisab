@@ -49,6 +49,18 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
   Future<List<CategoryTotalRow>> expenseByCategory(
     DateTime start,
     DateTime end,
+  ) => _byCategory(TransactionType.expense, start, end);
+
+  /// Income grouped by top-level category, biggest first.
+  Future<List<CategoryTotalRow>> incomeByCategory(
+    DateTime start,
+    DateTime end,
+  ) => _byCategory(TransactionType.income, start, end);
+
+  Future<List<CategoryTotalRow>> _byCategory(
+    TransactionType type,
+    DateTime start,
+    DateTime end,
   ) async {
     final rows = await customSelect(
       '${categoryTreeCte}SELECT p.id AS category_id, p.name AS name, '
@@ -56,7 +68,7 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
       'FROM transactions t '
       'JOIN category_tree ct ON ct.id = t.category_id '
       'JOIN categories p ON p.id = ct.root_id AND p.parent_id IS NULL '
-      "WHERE t.type = '${TransactionType.expense.name}' "
+      "WHERE t.type = '${type.name}' "
       'AND t.is_adjustment = 0 AND t.date >= ? AND t.date < ? '
       'GROUP BY p.id ORDER BY total DESC, p.id',
       variables: [Variable.withDateTime(start), Variable.withDateTime(end)],
@@ -70,6 +82,33 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
           icon: row.read<String>('icon'),
           color: row.read<int>('color'),
           total: row.read<int>('total'),
+        ),
+    ];
+  }
+
+  /// Income and expense of each account in the range, the busiest first.
+  Future<List<({int accountId, String name, int income, int expense})>>
+  incomeExpenseByAccount(DateTime start, DateTime end) async {
+    final income = TransactionType.income.name;
+    final expense = TransactionType.expense.name;
+    final rows = await customSelect(
+      'SELECT a.id AS account_id, a.name AS name, '
+      "COALESCE(SUM(CASE WHEN t.type = '$income' THEN t.amount END), 0) AS income, "
+      "COALESCE(SUM(CASE WHEN t.type = '$expense' THEN t.amount END), 0) AS expense "
+      'FROM transactions t JOIN accounts a ON a.id = t.account_id '
+      'WHERE t.date >= ? AND t.date < ? AND t.is_adjustment = 0 '
+      "AND t.type IN ('$income', '$expense') "
+      'GROUP BY a.id ORDER BY (income + expense) DESC, a.id',
+      variables: [Variable.withDateTime(start), Variable.withDateTime(end)],
+      readsFrom: {transactions, attachedDatabase.accounts},
+    ).get();
+    return [
+      for (final row in rows)
+        (
+          accountId: row.read<int>('account_id'),
+          name: row.read<String>('name'),
+          income: row.read<int>('income'),
+          expense: row.read<int>('expense'),
         ),
     ];
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/money_form_field.dart';
@@ -29,11 +30,11 @@ class AccountFormScreen extends ConsumerWidget {
         .watch(accountProvider(id))
         .when(
           loading: () => Scaffold(
-            appBar: AppBar(title: const Text('Edit account')),
+            appBar: AppBar(title: Text(tr('Edit account'))),
             body: const LoadingView(),
           ),
           error: (error, _) => Scaffold(
-            appBar: AppBar(title: const Text('Edit account')),
+            appBar: AppBar(title: Text(tr('Edit account'))),
             body: ErrorView(
               message: '$error',
               onRetry: () => ref.invalidate(accountProvider(id)),
@@ -41,9 +42,9 @@ class AccountFormScreen extends ConsumerWidget {
           ),
           data: (account) => account == null
               ? Scaffold(
-                  appBar: AppBar(title: const Text('Edit account')),
-                  body: const ErrorView(
-                    message: 'This account no longer exists.',
+                  appBar: AppBar(title: Text(tr('Edit account'))),
+                  body: ErrorView(
+                    message: tr('This account no longer exists.'),
                   ),
                 )
               : _AccountForm(initial: account),
@@ -122,7 +123,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
   /// The account as it will look, for the card at the top.
   Account get _preview => Account(
     id: widget.initial?.id ?? 0,
-    name: _name.text.trim().isEmpty ? 'Account name' : _name.text.trim(),
+    name: _name.text.trim().isEmpty ? tr('Account name') : _name.text.trim(),
     type: _type,
     openingBalance: parseTakaToPoisha(_openingBalance.text) ?? 0,
     includeInTotal: _includeInTotal,
@@ -148,7 +149,9 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
     ];
 
     return Scaffold(
-      appBar: AppBar(title: Text(_isEditing ? 'Edit account' : 'New account')),
+      appBar: AppBar(
+        title: Text(_isEditing ? tr('Edit account') : tr('New account')),
+      ),
       body: Column(
         children: [
           Expanded(
@@ -167,7 +170,10 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                     balance: _isEditing ? null : _preview.openingBalance,
                   ),
                   const SizedBox(height: 24),
-                  Text('Kind of account', style: theme.textTheme.labelLarge),
+                  Text(
+                    tr('Kind of account'),
+                    style: theme.textTheme.labelLarge,
+                  ),
                   const SizedBox(height: 8),
                   for (var i = 0; i < AccountType.values.length; i += 2)
                     Padding(
@@ -202,9 +208,10 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                         AccountsRepository.maxNameLength,
                       ),
                     ],
-                    decoration: const InputDecoration(labelText: 'Name'),
-                    validator: (value) =>
-                        (value?.trim().isEmpty ?? true) ? 'Enter a name' : null,
+                    decoration: InputDecoration(labelText: tr('Name')),
+                    validator: (value) => (value?.trim().isEmpty ?? true)
+                        ? tr('Enter a name')
+                        : null,
                   ),
                   if (!_isEditing && suggestions.isNotEmpty) ...[
                     const SizedBox(height: 8),
@@ -224,21 +231,24 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                   const SizedBox(height: 20),
                   MoneyFormField(
                     controller: _openingBalance,
-                    label: 'Opening balance',
+                    label: tr('Opening balance'),
                     allowNegative: true,
                     isRequired: false,
                     onChanged: (_) => setState(() {}),
-                    helperText:
-                        'What the account held when you started. '
-                        'Leave empty for 0.',
+                    helperText: tr(
+                      'What the account held when you started. '
+                      'Leave empty for 0.',
+                    ),
                   ),
                   const SizedBox(height: 8),
                   SwitchListTile(
                     contentPadding: EdgeInsets.zero,
-                    title: const Text('Include in total balance'),
-                    subtitle: const Text(
-                      'Turn off for money you do not want counted, like '
-                      'savings.',
+                    title: Text(tr('Include in total balance')),
+                    subtitle: Text(
+                      tr(
+                        'Turn off for money you do not want counted, like '
+                        'savings.',
+                      ),
                     ),
                     value: _includeInTotal,
                     onChanged: (value) =>
@@ -266,7 +276,9 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                 width: double.infinity,
                 child: FilledButton(
                   onPressed: _saving ? null : _save,
-                  child: Text(_isEditing ? 'Save changes' : 'Add account'),
+                  child: Text(
+                    _isEditing ? tr('Save changes') : tr('Add account'),
+                  ),
                 ),
               ),
             ),

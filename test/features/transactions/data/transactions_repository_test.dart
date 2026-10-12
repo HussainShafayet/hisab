@@ -568,6 +568,44 @@ void main() {
       expect(options.defaultAccountId, bkash);
     });
 
+    test(
+      'start with the account chosen in Settings, over the last used',
+      () async {
+        await repo.addTransaction(expense(accountId: cash));
+
+        final options = await repo.loadAddOptions(
+          now: _now,
+          preferredAccountId: bkash,
+        );
+
+        expect(options.defaultAccountId, bkash);
+      },
+    );
+
+    test('ignore a chosen account that is archived', () async {
+      await repo.addTransaction(expense(accountId: cash));
+      await db.accountsDao.setArchived(bkash, archived: true);
+
+      final options = await repo.loadAddOptions(
+        now: _now,
+        preferredAccountId: bkash,
+      );
+
+      expect(options.defaultAccountId, cash);
+    });
+
+    test('ignore a chosen account that no longer exists', () async {
+      await repo.addTransaction(expense(accountId: bkash));
+
+      final options = await repo.loadAddOptions(
+        now: _now,
+        preferredAccountId: 9999,
+      );
+
+      // The one used last.
+      expect(options.defaultAccountId, bkash);
+    });
+
     test('default to the first account when nothing was saved yet', () async {
       expect((await repo.loadAddOptions(now: _now)).defaultAccountId, cash);
     });

@@ -178,6 +178,45 @@ void main() {
     expect(data.weekExpense, 1110);
   });
 
+  group('the first day of the week', () {
+    // Saturday 10 and Sunday 11 October (today), then Monday 12.
+    setUp(() async {
+      await expense(food, 1, DateTime(2026, 10, 9, 12)); // Friday
+      await expense(food, 10, DateTime(2026, 10, 10, 12)); // Saturday
+      await expense(food, 100, DateTime(2026, 10, 11, 12)); // Sunday, today
+      await expense(food, 1000, DateTime(2026, 10, 12, 12)); // Monday
+    });
+
+    test('is Sunday unless said otherwise', () async {
+      final data = await repo.load(now);
+
+      // Sunday 11 to Saturday 17.
+      expect(data.weekExpense, 1100);
+    });
+
+    test('can be Saturday', () async {
+      final data = await repo.load(now, firstWeekday: DateTime.saturday);
+
+      // Saturday 10 to Friday 16.
+      expect(data.weekExpense, 1110);
+    });
+
+    test('can be Monday', () async {
+      final data = await repo.load(now, firstWeekday: DateTime.monday);
+
+      // Monday 5 to Sunday 11: today is the last day of the week.
+      expect(data.weekExpense, 111);
+    });
+
+    test('does not change what today or the month show', () async {
+      final sunday = await repo.load(now);
+      final monday = await repo.load(now, firstWeekday: DateTime.monday);
+
+      expect(monday.todayExpense, sunday.todayExpense);
+      expect(monday.monthTotals.expense, sunday.monthTotals.expense);
+    });
+  });
+
   test('the week reaches back into the month before', () async {
     final thursday = DateTime(2026, 10, 1, 12);
     await expense(food, 5, DateTime(2026, 9, 27, 9)); // Sunday of that week
