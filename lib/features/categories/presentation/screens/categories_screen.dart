@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/show_archived_chip.dart';
@@ -62,12 +63,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Categories'),
+        title: Text(tr('Categories')),
         actions: [
           if (parents.isNotEmpty)
             IconButton(
               key: const ValueKey('collapse-all'),
-              tooltip: allClosed ? 'Open all' : 'Close all',
+              tooltip: allClosed ? tr('Open all') : tr('Close all'),
               icon: Icon(allClosed ? Icons.unfold_more : Icons.unfold_less),
               onPressed: () => setState(() {
                 if (allClosed) {
@@ -82,7 +83,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.newCategory(type: _type.name)),
         icon: const Icon(Icons.add),
-        label: const Text('Add category'),
+        label: Text(tr('Add category')),
       ),
       body: Column(
         children: [
@@ -90,14 +91,14 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
             child: SegmentedButton<CategoryType>(
               showSelectedIcon: false,
-              segments: const [
+              segments: [
                 ButtonSegment(
                   value: CategoryType.expense,
-                  label: Text('Expense'),
+                  label: Text(tr('Expense')),
                 ),
                 ButtonSegment(
                   value: CategoryType.income,
-                  label: Text('Income'),
+                  label: Text(tr('Income')),
                 ),
               ],
               selected: {_type},
@@ -125,13 +126,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   return EmptyState(
                     icon: Icons.category_outlined,
                     title: _type == CategoryType.expense
-                        ? 'No expense categories'
-                        : 'No income categories',
-                    message: 'Add one to start sorting your transactions.',
+                        ? tr('No expense categories')
+                        : tr('No income categories'),
+                    message: tr('Add one to start sorting your transactions.'),
                     action: FilledButton(
                       onPressed: () =>
                           context.push(AppRoutes.newCategory(type: _type.name)),
-                      child: const Text('Add category'),
+                      child: Text(tr('Add category')),
                     ),
                   );
                 }
@@ -190,8 +191,10 @@ class _CategoryTile extends ConsumerWidget {
     final muted = category.isArchived;
     final notes = [
       if (childCount > 0)
-        childCount == 1 ? '1 sub-category' : '$childCount sub-categories',
-      if (muted) 'Archived',
+        childCount == 1
+            ? tr('1 sub-category')
+            : tr('{count} sub-categories', {'count': childCount}),
+      if (muted) tr('Archived'),
     ];
 
     return ListTile(
@@ -205,7 +208,7 @@ class _CategoryTile extends ConsumerWidget {
                 ? null
                 : IconButton(
                     key: ValueKey('category-toggle-${category.id}'),
-                    tooltip: isClosed ? 'Open' : 'Close',
+                    tooltip: isClosed ? tr('Open') : tr('Close'),
                     icon: Icon(
                       isClosed ? Icons.chevron_right : Icons.expand_more,
                     ),
@@ -230,21 +233,21 @@ class _CategoryTile extends ConsumerWidget {
       trailing: PopupMenuButton<_CategoryAction>(
         onSelected: (action) => _onAction(context, ref, action),
         itemBuilder: (context) => [
-          const PopupMenuItem(value: _CategoryAction.edit, child: Text('Edit')),
+          PopupMenuItem(value: _CategoryAction.edit, child: Text(tr('Edit'))),
           if (canHaveChildren && !category.isArchived)
-            const PopupMenuItem(
+            PopupMenuItem(
               value: _CategoryAction.addSub,
-              child: Text('Add sub-category'),
+              child: Text(tr('Add sub-category')),
             ),
           if (category.isArchived)
-            const PopupMenuItem(
+            PopupMenuItem(
               value: _CategoryAction.restore,
-              child: Text('Restore'),
+              child: Text(tr('Restore')),
             )
           else
-            const PopupMenuItem(
+            PopupMenuItem(
               value: _CategoryAction.archive,
-              child: Text('Archive'),
+              child: Text(tr('Archive')),
             ),
         ],
       ),
@@ -277,23 +280,27 @@ class _CategoryTile extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Archive "${category.name}"?'),
+        title: Text(tr('Archive "{name}"?', {'name': category.name})),
         content: Text(
           isChild
-              ? 'It will be hidden when you add transactions. Existing '
-                    'transactions keep it, and you can restore it any time.'
-              : 'It and everything inside it will be hidden when you add '
-                    'transactions. Existing transactions keep them, and you '
-                    'can restore them any time.',
+              ? tr(
+                  'It will be hidden when you add transactions. Existing '
+                  'transactions keep it, and you can restore it any time.',
+                )
+              : tr(
+                  'It and everything inside it will be hidden when you add '
+                  'transactions. Existing transactions keep them, and you '
+                  'can restore them any time.',
+                ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(tr('Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Archive'),
+            child: Text(tr('Archive')),
           ),
         ],
       ),
@@ -305,9 +312,9 @@ class _CategoryTile extends ConsumerWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${category.name} archived'),
+        content: Text(tr('{name} archived', {'name': category.name})),
         action: SnackBarAction(
-          label: 'Undo',
+          label: tr('Undo'),
           onPressed: () => repository.restoreCategory(category.id),
         ),
       ),

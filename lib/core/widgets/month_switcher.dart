@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 
 /// `‹  October 2026  ›`
@@ -22,7 +23,7 @@ class MonthSwitcher extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
         IconButton(
-          tooltip: 'Previous month',
+          tooltip: tr('Previous month'),
           icon: const Icon(Icons.chevron_left),
           onPressed: onPrevious,
         ),
@@ -35,7 +36,7 @@ class MonthSwitcher extends StatelessWidget {
           ),
         ),
         IconButton(
-          tooltip: 'Next month',
+          tooltip: tr('Next month'),
           icon: const Icon(Icons.chevron_right),
           onPressed: canGoNext ? onNext : null,
         ),

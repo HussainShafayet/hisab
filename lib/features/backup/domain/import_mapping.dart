@@ -1,3 +1,4 @@
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/features/backup/domain/csv_table.dart';
 import 'package:hishab/features/backup/domain/sheet_amount.dart';
 import 'package:hishab/features/backup/domain/sheet_date.dart';
@@ -13,9 +14,13 @@ enum ImportField {
   toAccount('To account (transfers)'),
   note('Note or description');
 
-  const ImportField(this.label, {this.isRequired = false});
+  const ImportField(this._label, {this.isRequired = false});
 
-  final String label;
+  final String _label;
+
+  /// What the field is called for the user.
+  String get label => tr(_label);
+
   final bool isRequired;
 }
 
@@ -33,9 +38,12 @@ enum TypeSource {
   /// Every row is income.
   allIncome('All rows are income');
 
-  const TypeSource(this.label);
+  const TypeSource(this._label);
 
-  final String label;
+  final String _label;
+
+  /// What the choice is called for the user.
+  String get label => tr(_label);
 }
 
 /// How the columns of a CSV file map to the fields of a transaction.
@@ -212,19 +220,21 @@ ImportMapping suggestMapping(
 /// complete. The text is shown to the user.
 String? mappingProblem(ImportMapping mapping) {
   if (mapping.columnOf(ImportField.date) == null) {
-    return 'Choose the column that has the date.';
+    return tr('Choose the column that has the date.');
   }
   if (mapping.columnOf(ImportField.amount) == null) {
-    return 'Choose the column that has the amount.';
+    return tr('Choose the column that has the amount.');
   }
   if (mapping.typeSource == TypeSource.column &&
       mapping.columnOf(ImportField.type) == null) {
-    return 'Choose the column that has the type, or say where the type '
-        'comes from.';
+    return tr(
+      'Choose the column that has the type, or say where the type '
+      'comes from.',
+    );
   }
   if (mapping.columnOf(ImportField.account) == null &&
       mapping.defaultAccountId == null) {
-    return 'Choose the account these transactions belong to.';
+    return tr('Choose the account these transactions belong to.');
   }
   return null;
 }

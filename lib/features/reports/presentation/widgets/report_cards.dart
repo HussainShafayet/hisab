@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/date_labels.dart';
@@ -57,28 +58,28 @@ class ReportSummaryCard extends StatelessWidget {
             Row(
               children: [
                 _Figure(
-                  label: 'Income',
+                  label: tr('Income'),
                   amount: totals.income,
                   color: colors.income,
                 ),
                 _Figure(
-                  label: 'Expense',
+                  label: tr('Expense'),
                   amount: totals.expense,
                   color: colors.expense,
                 ),
                 _Figure(
-                  label: 'Balance',
+                  label: tr('Balance'),
                   amount: totals.net,
                   color: totals.net < 0 ? colors.expense : null,
                 ),
               ],
             ),
             const Divider(height: 28),
-            _CardTitle('Compared with $previousLabel'),
+            _CardTitle(tr('Compared with {period}', {'period': previousLabel})),
             const SizedBox(height: 8),
             ComparisonLine(
               key: const ValueKey('compare-income'),
-              label: 'Income',
+              label: tr('Income'),
               comparison: Comparison(
                 current: totals.income,
                 previous: previousTotals.income,
@@ -88,7 +89,7 @@ class ReportSummaryCard extends StatelessWidget {
             const SizedBox(height: 4),
             ComparisonLine(
               key: const ValueKey('compare-expense'),
-              label: 'Expense',
+              label: tr('Expense'),
               comparison: Comparison(
                 current: totals.expense,
                 previous: previousTotals.expense,
@@ -97,7 +98,7 @@ class ReportSummaryCard extends StatelessWidget {
             ),
             const SizedBox(height: 4),
             Text(
-              'Transfers and balance corrections are not counted.',
+              tr('Transfers and balance corrections are not counted.'),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -180,14 +181,15 @@ class ComparisonLine extends StatelessWidget {
 
     final String text;
     if (direction == ChangeDirection.none) {
-      text = 'Nothing in either period';
+      text = tr('Nothing in either period');
     } else if (direction == ChangeDirection.same) {
-      text = 'No change';
+      text = tr('No change');
     } else if (comparison.previous == 0) {
-      text = 'New, nothing before';
+      text = tr('New, nothing before');
     } else {
       text =
-          '${comparison.percent!.abs()}% · ${formatPoisha(comparison.difference.abs())}';
+          '${localizeDigits('${comparison.percent!.abs()}%')} · '
+          '${formatPoisha(comparison.difference.abs())}';
     }
 
     return Row(
@@ -228,11 +230,11 @@ class CategoryPieCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _CardTitle('Spending by category'),
+            _CardTitle(tr('Spending by category')),
             const SizedBox(height: 12),
             if (slices.isEmpty)
               Text(
-                'No expenses in this period.',
+                tr('No expenses in this period.'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -264,7 +266,7 @@ class CategoryPieCard extends StatelessWidget {
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text('Spent', style: theme.textTheme.labelSmall),
+                          Text(tr('Spent'), style: theme.textTheme.labelSmall),
                           FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
@@ -375,11 +377,11 @@ class IncomeExpenseBarCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const _CardTitle('Income vs expense'),
+            _CardTitle(tr('Income vs expense')),
             const SizedBox(height: 12),
             if (!hasData)
               Text(
-                'No income or expense in these months.',
+                tr('No income or expense in these months.'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),
@@ -416,7 +418,7 @@ class IncomeExpenseBarCard extends StatelessWidget {
                           final totals = months[groupIndex].totals;
                           final isIncome = rodIndex == 0;
                           return BarTooltipItem(
-                            '${isIncome ? 'Income' : 'Expense'}\n'
+                            '${isIncome ? tr('Income') : tr('Expense')}\n'
                             '${formatPoisha(isIncome ? totals.income : totals.expense)}',
                             TextStyle(
                               color: isIncome ? colors.income : colors.expense,
@@ -444,9 +446,9 @@ class IncomeExpenseBarCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _LegendDot(color: colors.income, label: 'Income'),
+                  _LegendDot(color: colors.income, label: tr('Income')),
                   const SizedBox(width: 16),
-                  _LegendDot(color: colors.expense, label: 'Expense'),
+                  _LegendDot(color: colors.expense, label: tr('Expense')),
                 ],
               ),
             ],
@@ -498,15 +500,15 @@ class TopExpensesCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Padding(
+          Padding(
             padding: EdgeInsets.fromLTRB(16, 16, 16, 4),
-            child: _CardTitle('Top expenses'),
+            child: _CardTitle(tr('Top expenses')),
           ),
           if (items.isEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
               child: Text(
-                'No expenses in this period.',
+                tr('No expenses in this period.'),
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

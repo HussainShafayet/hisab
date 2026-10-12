@@ -1,8 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/database/database_provider.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 import 'package:hishab/features/transactions/data/transactions_repository.dart';
 import 'package:hishab/features/transactions/domain/add_transaction_options.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
@@ -40,11 +42,12 @@ final transactionFormDataProvider = FutureProvider.autoDispose
           ? null
           : await repository.getTransaction(sourceId);
       if (sourceId != null && source == null) {
-        throw const ValidationException('This transaction no longer exists.');
+        throw ValidationException(tr('This transaction no longer exists.'));
       }
       final options = await repository.loadAddOptions(
         now: ref.read(clockProvider)(),
         editing: source,
+        preferredAccountId: ref.read(preferencesProvider).defaultAccountId,
       );
       return TransactionFormData(options: options, source: source);
     });

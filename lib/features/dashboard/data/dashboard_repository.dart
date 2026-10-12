@@ -16,12 +16,15 @@ class DashboardRepository {
   final AccountsRepository _accounts;
   final BudgetsRepository _budgets;
 
-  /// The dashboard as of [now]: this month, today, and this week (Sunday to
-  /// Saturday).
-  Future<DashboardData> load(DateTime now) async {
+  /// The dashboard as of [now]: this month, today, and this week, which
+  /// starts on [firstWeekday] (a `DateTime.weekday`, Sunday by default).
+  Future<DashboardData> load(
+    DateTime now, {
+    int firstWeekday = DateTime.sunday,
+  }) async {
     final month = monthRange(now);
     final today = dateOnly(now);
-    final weekStart = startOfWeek(now);
+    final weekStart = startOfWeek(now, firstWeekday: firstWeekday);
 
     DateRange days(DateTime start, int count) => (
       start: start,

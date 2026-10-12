@@ -1,3 +1,4 @@
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/digits.dart';
 
 /// The order of day, month and year in a date column.
@@ -6,9 +7,14 @@ enum SheetDateFormat {
   dayMonthYear('Day/Month/Year', '11/10/2026'),
   monthDayYear('Month/Day/Year', '10/11/2026');
 
-  const SheetDateFormat(this.label, this.example);
+  const SheetDateFormat(this._label, this.example);
 
-  final String label;
+  final String _label;
+
+  /// How the order is named for the user.
+  String get label => tr(_label);
+
+  /// A date written in this order, such as `11/10/2026`.
   final String example;
 }
 

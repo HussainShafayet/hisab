@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
@@ -37,7 +38,10 @@ class TotalBalanceCard extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Text('Total balance', style: theme.textTheme.labelLarge),
+                    Text(
+                      tr('Total balance'),
+                      style: theme.textTheme.labelLarge,
+                    ),
                     const SizedBox(height: 4),
                     FittedBox(
                       fit: BoxFit.scaleDown,
@@ -130,11 +134,11 @@ class BudgetRingCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'No monthly budget',
+                            tr('No monthly budget'),
                             style: theme.textTheme.titleMedium,
                           ),
                           Text(
-                            'Tap to set one',
+                            tr('Tap to set one'),
                             style: theme.textTheme.bodySmall,
                           ),
                         ],
@@ -185,7 +189,7 @@ class _RingContent extends StatelessWidget {
                 ),
               ),
               Text(
-                '${progress.percent}%',
+                localizeDigits('${progress.percent}%'),
                 key: const ValueKey('ring-percent'),
                 style: theme.textTheme.titleMedium?.tabular.copyWith(
                   color: color,
@@ -200,7 +204,7 @@ class _RingContent extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Monthly budget', style: theme.textTheme.labelLarge),
+              Text(tr('Monthly budget'), style: theme.textTheme.labelLarge),
               const SizedBox(height: 2),
               FittedBox(
                 fit: BoxFit.scaleDown,
@@ -216,8 +220,10 @@ class _RingContent extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                'Spent ${formatPoisha(progress.spent)} of '
-                '${formatPoisha(progress.limit)}',
+                tr('Spent {spent} of {limit}', {
+                  'spent': formatPoisha(progress.spent),
+                  'limit': formatPoisha(progress.limit),
+                }),
                 style: theme.textTheme.bodySmall,
               ),
               if (perDay != null)
@@ -251,7 +257,7 @@ class SpendingTiles extends StatelessWidget {
           Expanded(
             child: _SpendTile(
               key: const ValueKey('spent-today'),
-              label: 'Spent today',
+              label: tr('Spent today'),
               amount: today,
             ),
           ),
@@ -259,7 +265,7 @@ class SpendingTiles extends StatelessWidget {
           Expanded(
             child: _SpendTile(
               key: const ValueKey('spent-week'),
-              label: 'Spent this week',
+              label: tr('Spent this week'),
               amount: week,
             ),
           ),
@@ -335,7 +341,7 @@ class TopCategoriesCard extends StatelessWidget {
             ? Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(
-                  'No spending this month yet.',
+                  tr('No spending this month yet.'),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant,
                   ),
@@ -447,7 +453,7 @@ class RecentTransactionsCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'No transactions yet.',
+                    tr('No transactions yet.'),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -455,7 +461,7 @@ class RecentTransactionsCard extends StatelessWidget {
                   const SizedBox(height: 8),
                   FilledButton.tonal(
                     onPressed: () => context.push(AppRoutes.addTransaction),
-                    child: const Text('Add transaction'),
+                    child: Text(tr('Add transaction')),
                   ),
                 ],
               ),

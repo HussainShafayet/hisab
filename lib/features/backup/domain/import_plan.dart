@@ -1,3 +1,4 @@
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/backup/domain/csv_table.dart';
 import 'package:hishab/features/backup/domain/import_mapping.dart';
@@ -289,27 +290,34 @@ ImportPlan buildImportPlan({
 
     final dateText = cell(ImportField.date);
     if (dateText.isEmpty) {
-      rows.add(fail('The date is empty.'));
+      rows.add(fail(tr('The date is empty.')));
       continue;
     }
     final date = parseSheetDate(dateText, mapping.dateFormat);
     if (date == null) {
-      rows.add(fail('"$dateText" is not a ${mapping.dateFormat.label} date.'));
+      rows.add(
+        fail(
+          tr('"{text}" is not a {format} date.', {
+            'text': dateText,
+            'format': mapping.dateFormat.label,
+          }),
+        ),
+      );
       continue;
     }
 
     final amountText = cell(ImportField.amount);
     if (amountText.isEmpty) {
-      rows.add(fail('The amount is empty.'));
+      rows.add(fail(tr('The amount is empty.')));
       continue;
     }
     final signed = parseSheetAmount(amountText);
     if (signed == null) {
-      rows.add(fail('"$amountText" is not an amount.'));
+      rows.add(fail(tr('"{text}" is not an amount.', {'text': amountText})));
       continue;
     }
     if (signed == 0) {
-      rows.add(fail('The amount is zero.'));
+      rows.add(fail(tr('The amount is zero.')));
       continue;
     }
 
@@ -322,8 +330,10 @@ ImportPlan buildImportPlan({
           rows.add(
             fail(
               typeText.isEmpty
-                  ? 'The type is empty.'
-                  : '"$typeText" is not income, expense or transfer.',
+                  ? tr('The type is empty.')
+                  : tr('"{text}" is not income, expense or transfer.', {
+                      'text': typeText,
+                    }),
             ),
           );
           continue;
@@ -343,7 +353,9 @@ ImportPlan buildImportPlan({
         ? accountCell
         : (defaultAccount?.name ?? '');
     if (accountName.isEmpty) {
-      rows.add(fail('There is no account. Choose one for rows without it.'));
+      rows.add(
+        fail(tr('There is no account. Choose one for rows without it.')),
+      );
       continue;
     }
 
@@ -352,11 +364,11 @@ ImportPlan buildImportPlan({
     if (type == TransactionType.transfer) {
       toAccountName = cell(ImportField.toAccount);
       if (toAccountName.isEmpty) {
-        rows.add(fail('A transfer needs a "to account".'));
+        rows.add(fail(tr('A transfer needs a "to account".')));
         continue;
       }
       if (normalizeName(toAccountName) == normalizeName(accountName)) {
-        rows.add(fail('A transfer needs two different accounts.'));
+        rows.add(fail(tr('A transfer needs two different accounts.')));
         continue;
       }
     } else {
@@ -364,7 +376,12 @@ ImportPlan buildImportPlan({
       categoryPath = splitCategoryPath(categoryCell);
       if (categoryPath.length > maxCategoryDepth) {
         rows.add(
-          fail('"$categoryCell" has more than $maxCategoryDepth levels.'),
+          fail(
+            tr('"{text}" has more than {levels} levels.', {
+              'text': categoryCell,
+              'levels': maxCategoryDepth,
+            }),
+          ),
         );
         continue;
       }

@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
 import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
@@ -52,7 +54,9 @@ class TransactionTile extends StatelessWidget {
       // A correction is not real income or spending, so it is drawn in the
       // neutral color and says why the day and month totals skip it.
       if (item.isAdjustment)
-        'Correction, not counted in totals'
+        (item.note.isEmpty || item.note == balanceAdjustmentNote)
+            ? tr('Correction, not counted in totals')
+            : tr('{note} · not counted in totals', {'note': item.note})
       else if (item.note.isNotEmpty)
         item.note,
     ];
@@ -70,7 +74,9 @@ class TransactionTile extends StatelessWidget {
               icon: item.categoryIcon ?? 'category',
               color: item.categoryColor ?? 0xFF9E9E9E,
             ),
-      title: Text(isTransfer ? 'Transfer' : item.categoryName ?? 'No category'),
+      title: Text(
+        isTransfer ? tr('Transfer') : item.categoryName ?? tr('No category'),
+      ),
       subtitle: Text(
         details.join(' · '),
         maxLines: 1,
@@ -184,14 +190,18 @@ class TransactionSummary extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 12),
         child: Row(
           children: [
-            _SummaryCell(label: 'Income', amount: income, color: colors.income),
             _SummaryCell(
-              label: 'Expense',
+              label: tr('Income'),
+              amount: income,
+              color: colors.income,
+            ),
+            _SummaryCell(
+              label: tr('Expense'),
               amount: expense,
               color: colors.expense,
             ),
             _SummaryCell(
-              label: 'Balance',
+              label: tr('Balance'),
               amount: balance,
               color: balance < 0 ? colors.expense : null,
             ),

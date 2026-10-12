@@ -1,4 +1,5 @@
 import 'package:csv/csv.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 
 /// The rows of a CSV file, ready to be mapped to transaction fields.
@@ -35,10 +36,10 @@ CsvTable parseCsvTable(String text, {bool hasHeader = true}) {
         [for (final cell in row) '$cell'.trim()],
     ].where((row) => row.any((cell) => cell.isNotEmpty)).toList();
   } on Object {
-    throw const ValidationException('This file is not a readable CSV.');
+    throw ValidationException(tr('This file is not a readable CSV.'));
   }
   if (rows.isEmpty) {
-    throw const ValidationException('The file has no rows.');
+    throw ValidationException(tr('The file has no rows.'));
   }
 
   final width = rows.fold(

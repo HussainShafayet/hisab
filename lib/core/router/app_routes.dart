@@ -15,6 +15,15 @@ abstract final class AppRoutes {
   static const backup = '/more/backup';
   static const importCsv = '/more/backup/import-csv';
   static const settings = '/more/settings';
+  static const debts = '/more/debts';
+  static const recurring = '/more/recurring';
+
+  static const newRecurring = '/more/recurring/new';
+  static String editRecurring(int id) => '/more/recurring/$id';
+
+  static const newDebt = '/more/debts/new';
+  static String debt(int id) => '/more/debts/$id';
+  static String editDebt(int id) => '/more/debts/$id/edit';
 
   static const newAccount = '/more/accounts/new';
   static String editAccount(int id) => '/more/accounts/$id';

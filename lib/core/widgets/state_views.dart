@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 
 /// Shown when a list or screen has no data yet.
 class EmptyState extends StatelessWidget {
@@ -72,11 +73,11 @@ class ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return EmptyState(
       icon: Icons.error_outline,
-      title: 'Something went wrong',
+      title: tr('Something went wrong'),
       message: message,
       action: onRetry == null
           ? null
-          : FilledButton.tonal(onPressed: onRetry, child: const Text('Retry')),
+          : FilledButton.tonal(onPressed: onRetry, child: Text(tr('Retry'))),
     );
   }
 }

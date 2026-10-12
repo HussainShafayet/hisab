@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
@@ -31,11 +32,11 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     final accounts = ref.watch(accountsProvider(_showArchived));
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Accounts')),
+      appBar: AppBar(title: Text(tr('Accounts'))),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.newAccount),
         icon: const Icon(Icons.add),
-        label: const Text('Add account'),
+        label: Text(tr('Add account')),
       ),
       body: accounts.when(
         loading: () => const LoadingView(),
@@ -58,11 +59,11 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
             if (list.isEmpty)
               EmptyState(
                 icon: Icons.account_balance_wallet_outlined,
-                title: 'No accounts yet',
-                message: 'Add your cash, mobile banking and bank accounts.',
+                title: tr('No accounts yet'),
+                message: tr('Add your cash, mobile banking and bank accounts.'),
                 action: FilledButton(
                   onPressed: () => context.push(AppRoutes.newAccount),
-                  child: const Text('Add account'),
+                  child: Text(tr('Add account')),
                 ),
               )
             else
@@ -113,7 +114,7 @@ class _TotalCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Total balance',
+            tr('Total balance'),
             style: theme.textTheme.labelLarge?.copyWith(color: _whiteSoft),
           ),
           const SizedBox(height: 4),
@@ -131,7 +132,9 @@ class _TotalCard extends StatelessWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            counted == 1 ? '1 account included' : '$counted accounts included',
+            counted == 1
+                ? tr('1 account included')
+                : tr('{count} accounts included', {'count': counted}),
             style: theme.textTheme.bodySmall?.copyWith(color: _whiteSoft),
           ),
           if (byType.length > 1) ...[
@@ -222,20 +225,20 @@ class _AccountCardTile extends ConsumerWidget {
         icon: const Icon(Icons.more_vert, color: Colors.white),
         onSelected: (action) => _onAction(context, ref, action),
         itemBuilder: (context) => [
-          const PopupMenuItem(value: _AccountAction.edit, child: Text('Edit')),
-          const PopupMenuItem(
+          PopupMenuItem(value: _AccountAction.edit, child: Text(tr('Edit'))),
+          PopupMenuItem(
             value: _AccountAction.adjust,
-            child: Text('Adjust balance'),
+            child: Text(tr('Adjust balance')),
           ),
           if (_account.isArchived)
-            const PopupMenuItem(
+            PopupMenuItem(
               value: _AccountAction.restore,
-              child: Text('Restore'),
+              child: Text(tr('Restore')),
             )
           else
-            const PopupMenuItem(
+            PopupMenuItem(
               value: _AccountAction.archive,
-              child: Text('Archive'),
+              child: Text(tr('Archive')),
             ),
         ],
       ),
@@ -265,14 +268,16 @@ class _AccountCardTile extends ConsumerWidget {
       builder: (context) => AdjustBalanceDialog(item: item),
     );
     if (adjustment == null || !context.mounted) return;
-    final kind = adjustment.type == TransactionType.income
-        ? 'income'
-        : 'expense';
+    final args = {
+      'amount': formatPoisha(adjustment.amount),
+      'account': _account.name,
+    };
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Recorded ${formatPoisha(adjustment.amount)} $kind '
-          'on ${_account.name}',
+          adjustment.type == TransactionType.income
+              ? tr('Recorded {amount} income on {account}', args)
+              : tr('Recorded {amount} expense on {account}', args),
         ),
       ),
     );
@@ -282,19 +287,21 @@ class _AccountCardTile extends ConsumerWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Archive "${_account.name}"?'),
-        content: const Text(
-          'It will be hidden from lists and left out of the total balance. '
-          'Its transactions are kept, and you can restore it any time.',
+        title: Text(tr('Archive "{name}"?', {'name': _account.name})),
+        content: Text(
+          tr(
+            'It will be hidden from lists and left out of the total balance. '
+            'Its transactions are kept, and you can restore it any time.',
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('Cancel'),
+            child: Text(tr('Cancel')),
           ),
           FilledButton(
             onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('Archive'),
+            child: Text(tr('Archive')),
           ),
         ],
       ),
@@ -306,9 +313,9 @@ class _AccountCardTile extends ConsumerWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('${_account.name} archived'),
+        content: Text(tr('{name} archived', {'name': _account.name})),
         action: SnackBarAction(
-          label: 'Undo',
+          label: tr('Undo'),
           onPressed: () => repository.restoreAccount(_account.id),
         ),
       ),

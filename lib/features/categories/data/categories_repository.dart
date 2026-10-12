@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/categories/data/category_mapper.dart';
 import 'package:hishab/features/categories/domain/category.dart';
@@ -130,7 +131,9 @@ class CategoriesRepository {
         final parent = all.firstWhere((c) => c.id == target.parentId);
         if (parent.isArchived) {
           throw ValidationException(
-            'Restore "${parent.name}" first, it is this sub-category\'s parent.',
+            tr('Restore "{name}" first, it is this sub-category\'s parent.', {
+              'name': parent.name,
+            }),
           );
         }
       }
@@ -149,15 +152,15 @@ class CategoriesRepository {
     for (final row in all) {
       if (row.id == id) return row;
     }
-    throw const ValidationException('Category not found.');
+    throw ValidationException(tr('Category not found.'));
   }
 
   String _validatedName(String raw) {
     final name = raw.trim();
-    if (name.isEmpty) throw const ValidationException('Name is required.');
+    if (name.isEmpty) throw ValidationException(tr('Name is required.'));
     if (name.length > maxNameLength) {
-      throw const ValidationException(
-        'Name must be $maxNameLength characters or fewer.',
+      throw ValidationException(
+        tr('Name must be {max} characters or fewer.', {'max': maxNameLength}),
       );
     }
     return name;
@@ -192,9 +195,14 @@ class CategoriesRepository {
           other.name.toLowerCase() == name.toLowerCase()) {
         throw ValidationException(
           other.isArchived
-              ? 'An archived category named "${other.name}" exists here. '
-                    'Restore it instead.'
-              : 'A category named "${other.name}" already exists here.',
+              ? tr(
+                  'An archived category named "{name}" exists here. '
+                  'Restore it instead.',
+                  {'name': other.name},
+                )
+              : tr('A category named "{name}" already exists here.', {
+                  'name': other.name,
+                }),
         );
       }
     }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
@@ -30,16 +31,18 @@ class ImportChooseStep extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Import transactions from a CSV file',
+          tr('Import transactions from a CSV file'),
           textAlign: TextAlign.center,
           style: theme.textTheme.titleMedium,
         ),
         const SizedBox(height: 8),
         Text(
-          'In Google Sheets or Excel, save your sheet as CSV (in Sheets: File, '
-          'Download, Comma-separated values). Then choose that file here. '
-          'You will say which column is which, and see a preview before '
-          'anything is added.',
+          tr(
+            'In Google Sheets or Excel, save your sheet as CSV (in Sheets: File, '
+            'Download, Comma-separated values). Then choose that file here. '
+            'You will say which column is which, and see a preview before '
+            'anything is added.',
+          ),
           textAlign: TextAlign.center,
           style: theme.textTheme.bodyMedium?.copyWith(
             color: theme.colorScheme.onSurfaceVariant,
@@ -109,11 +112,14 @@ class ImportMapStep extends StatelessWidget {
       for (final row in table.rows)
         if (row[column].isNotEmpty) row[column],
     ].firstOrNull;
-    if (text == null) return 'The date column is empty.';
+    if (text == null) return tr('The date column is empty.');
     final date = parseSheetDate(text, mapping.dateFormat);
     return date == null
-        ? '"$text" cannot be read in this order.'
-        : '"$text" is ${DateFormat('d MMMM yyyy').format(date)}.';
+        ? tr('"{text}" cannot be read in this order.', {'text': text})
+        : tr('"{text}" is {date}.', {
+            'text': text,
+            'date': DateFormat('d MMMM yyyy').format(date),
+          });
   }
 
   @override
@@ -140,14 +146,17 @@ class ImportMapStep extends StatelessWidget {
                 const SizedBox(height: 8),
                 Text(fileName, style: theme.textTheme.titleSmall),
                 Text(
-                  '${table.rows.length} rows, ${table.columnCount} columns',
+                  tr('{rows} rows, {columns} columns', {
+                    'rows': table.rows.length,
+                    'columns': table.columnCount,
+                  }),
                   key: const ValueKey('file-summary'),
                   style: theme.textTheme.bodySmall,
                 ),
                 SwitchListTile(
                   key: const ValueKey('has-header'),
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('The first row has column names'),
+                  title: Text(tr('The first row has column names')),
                   value: hasHeader,
                   onChanged: onHasHeaderChanged,
                 ),
@@ -155,7 +164,7 @@ class ImportMapStep extends StatelessWidget {
             ),
           ),
         ),
-        heading('Which column is which?'),
+        heading(tr('Which column is which?')),
         for (final field in ImportField.values)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
@@ -170,7 +179,9 @@ class ImportMapStep extends StatelessWidget {
                 DropdownMenuItem<int?>(
                   value: null,
                   child: Text(
-                    field.isRequired ? 'Choose a column' : 'Not in my file',
+                    field.isRequired
+                        ? tr('Choose a column')
+                        : tr('Not in my file'),
                   ),
                 ),
                 for (var i = 0; i < table.columnCount; i++)
@@ -188,13 +199,13 @@ class ImportMapStep extends StatelessWidget {
               onChanged: (column) => onFieldChanged(field, column),
             ),
           ),
-        heading('Dates'),
+        heading(tr('Dates')),
         DropdownButtonFormField<SheetDateFormat>(
           key: ValueKey('date-format-${mapping.dateFormat.name}'),
           initialValue: mapping.dateFormat,
           isExpanded: true,
           decoration: InputDecoration(
-            labelText: 'Dates are written as',
+            labelText: tr('Dates are written as'),
             helperText: _dateExample(),
           ),
           items: [
@@ -208,15 +219,15 @@ class ImportMapStep extends StatelessWidget {
             if (format != null) onDateFormatChanged(format);
           },
         ),
-        heading('Income and expense'),
+        heading(tr('Income and expense')),
         DropdownButtonFormField<TypeSource>(
           key: ValueKey(
             'type-source-${mapping.typeSource.name}-$hasTypeColumn',
           ),
           initialValue: mapping.typeSource,
           isExpanded: true,
-          decoration: const InputDecoration(
-            labelText: 'Income or expense comes from',
+          decoration: InputDecoration(
+            labelText: tr('Income or expense comes from'),
           ),
           items: [
             for (final source in TypeSource.values)
@@ -230,7 +241,7 @@ class ImportMapStep extends StatelessWidget {
             if (source != null) onTypeSourceChanged(source);
           },
         ),
-        heading('Account'),
+        heading(tr('Account')),
         DropdownButtonFormField<int?>(
           key: ValueKey(
             'default-account-${mapping.defaultAccountId}-$hasAccountColumn',
@@ -239,16 +250,18 @@ class ImportMapStep extends StatelessWidget {
           isExpanded: true,
           decoration: InputDecoration(
             labelText: hasAccountColumn
-                ? 'Account for rows that have none'
-                : 'Account for these transactions',
+                ? tr('Account for rows that have none')
+                : tr('Account for these transactions'),
             helperText: accounts.isEmpty
-                ? 'You have no accounts yet. Choose an Account column above and '
-                      'the accounts in your file will be created.'
+                ? tr(
+                    'You have no accounts yet. Choose an Account column above '
+                    'and the accounts in your file will be created.',
+                  )
                 : null,
             helperMaxLines: 3,
           ),
           items: [
-            const DropdownMenuItem<int?>(value: null, child: Text('None')),
+            DropdownMenuItem<int?>(value: null, child: Text(tr('None'))),
             for (final account in accounts)
               DropdownMenuItem<int?>(
                 value: account.id,
@@ -302,7 +315,7 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
       child: Column(
         children: [
           Text(
-            '$value',
+            localizeDigits('$value'),
             key: ValueKey(key),
             style: theme.textTheme.headlineSmall?.copyWith(
               color: color,
@@ -330,19 +343,19 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
                 count(
                   'count-import',
                   plan.importCount,
-                  'will be\nimported',
+                  tr('will be\nimported'),
                   colors.income,
                 ),
                 count(
                   'count-duplicates',
                   plan.duplicateCount,
-                  'already in\nthe app',
+                  tr('already in\nthe app'),
                   null,
                 ),
                 count(
                   'count-errors',
                   plan.errorCount,
-                  'cannot be\nread',
+                  tr('cannot be\nread'),
                   plan.errorCount > 0 ? colors.expense : null,
                 ),
               ],
@@ -359,17 +372,24 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Will also be created',
+                    tr('Will also be created'),
                     style: theme.textTheme.titleSmall,
                   ),
                   if (plan.newAccounts.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text('Accounts: ${plan.newAccounts.join(', ')}'),
+                    Text(
+                      tr('Accounts: {names}', {
+                        'names': plan.newAccounts.join(', '),
+                      }),
+                    ),
                   ],
                   if (plan.newCategories.isNotEmpty) ...[
                     const SizedBox(height: 8),
                     Text(
-                      'Categories: ${[for (final c in plan.newCategories) c.label].join(', ')}',
+                      tr('Categories: {names}', {
+                        'names': [for (final c in plan.newCategories) c.label]
+                            .join(', '),
+                      }),
                     ),
                   ],
                 ],
@@ -381,10 +401,10 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
           spacing: 8,
           children: [
             for (final (filter, label) in [
-              (_RowFilter.all, 'All'),
-              (_RowFilter.toImport, 'To import'),
-              (_RowFilter.duplicates, 'Already in the app'),
-              (_RowFilter.errors, 'Cannot be read'),
+              (_RowFilter.all, tr('All')),
+              (_RowFilter.toImport, tr('To import')),
+              (_RowFilter.duplicates, tr('Already in the app')),
+              (_RowFilter.errors, tr('Cannot be read')),
             ])
               ChoiceChip(
                 label: Text(label),
@@ -398,7 +418,10 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 24),
             child: Center(
-              child: Text('No rows here.', style: theme.textTheme.bodyMedium),
+              child: Text(
+                tr('No rows here.'),
+                style: theme.textTheme.bodyMedium,
+              ),
             ),
           ),
         for (final row in shown) _PlannedRowTile(row: row),
@@ -406,7 +429,10 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 12),
             child: Text(
-              'Showing the first ${shown.length} of ${rows.length} rows.',
+              tr('Showing the first {shown} of {total} rows.', {
+                'shown': shown.length,
+                'total': rows.length,
+              }),
               textAlign: TextAlign.center,
               style: theme.textTheme.bodySmall,
             ),
@@ -439,13 +465,13 @@ class _PlannedRowTile extends StatelessWidget {
     final String title;
     final String subtitle;
     if (parsed == null) {
-      title = 'Row ${row.rowNumber}';
+      title = tr('Row {number}', {'number': row.rowNumber});
       subtitle = row.error ?? '';
     } else {
       final typeLabel = switch (parsed.type) {
-        TransactionType.income => 'Income',
-        TransactionType.expense => 'Expense',
-        TransactionType.transfer => 'Transfer',
+        TransactionType.income => tr('Income'),
+        TransactionType.expense => tr('Expense'),
+        TransactionType.transfer => tr('Transfer'),
       };
       title = '$typeLabel ${formatPoisha(parsed.amount)}';
       final where = parsed.type == TransactionType.transfer
@@ -455,7 +481,8 @@ class _PlannedRowTile extends StatelessWidget {
         DateFormat('d MMM yyyy').format(parsed.date),
         where,
         if (parsed.note.isNotEmpty) parsed.note,
-        if (row.status == RowStatus.duplicate) 'Already in the app, skipped',
+        if (row.status == RowStatus.duplicate)
+          tr('Already in the app, skipped'),
       ].join(' · ');
     }
 
@@ -480,8 +507,6 @@ class ImportDoneStep extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
 
-    String count(int n, String noun) => '$n $noun${n == 1 ? '' : 's'}';
-
     Widget line(String text) => Padding(
       padding: const EdgeInsets.only(top: 4),
       child: Text(text, textAlign: TextAlign.center),
@@ -497,24 +522,50 @@ class ImportDoneStep extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         Text(
-          'Imported ${count(result.imported, 'transaction')}',
+          tr('Imported {transactions}', {
+            'transactions': plural(
+              result.imported,
+              '1 transaction',
+              '{n} transactions',
+            ),
+          }),
           key: const ValueKey('import-result'),
           textAlign: TextAlign.center,
           style: theme.textTheme.titleLarge,
         ),
         const SizedBox(height: 8),
         if (result.accountsCreated > 0)
-          line('Created ${count(result.accountsCreated, 'account')}'),
+          line(
+            tr('Created {accounts}', {
+              'accounts': plural(
+                result.accountsCreated,
+                '1 account',
+                '{n} accounts',
+              ),
+            }),
+          ),
         if (result.categoriesCreated > 0)
           line(
-            'Created ${result.categoriesCreated} ${result.categoriesCreated == 1 ? 'category' : 'categories'}',
+            tr('Created {categories}', {
+              'categories': plural(
+                result.categoriesCreated,
+                '1 category',
+                '{n} categories',
+              ),
+            }),
           ),
         if (result.duplicates > 0)
           line(
-            '${count(result.duplicates, 'row')} skipped, already in the app',
+            tr('{rows} skipped, already in the app', {
+              'rows': plural(result.duplicates, '1 row', '{n} rows'),
+            }),
           ),
         if (result.errors > 0)
-          line('${count(result.errors, 'row')} skipped, could not be read'),
+          line(
+            tr('{rows} skipped, could not be read', {
+              'rows': plural(result.errors, '1 row', '{n} rows'),
+            }),
+          ),
       ],
     );
   }

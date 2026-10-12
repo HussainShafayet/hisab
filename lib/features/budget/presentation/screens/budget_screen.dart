@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
@@ -41,7 +42,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     final result = await showDialog<BudgetDialogResult>(
       context: context,
       builder: (context) => BudgetLimitDialog(
-        title: 'Monthly budget',
+        title: tr('Monthly budget'),
         initialAmount: current?.limit,
         canRemove: current != null,
       ),
@@ -61,7 +62,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     final result = await showDialog<BudgetDialogResult>(
       context: context,
       builder: (context) => BudgetLimitDialog(
-        title: '${item.categoryName} budget',
+        title: tr('{name} budget', {'name': item.categoryName}),
         initialAmount: item.limit,
         canRemove: true,
       ),
@@ -98,14 +99,14 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     ];
     if (!mounted) return;
     if (choices.isEmpty) {
-      _showMessage('Every expense category already has a budget.');
+      _showMessage(tr('Every expense category already has a budget.'));
       return;
     }
 
     final result = await showDialog<BudgetDialogResult>(
       context: context,
       builder: (context) => BudgetLimitDialog(
-        title: 'Add category budget',
+        title: tr('Add category budget'),
         categoryChoices: choices,
       ),
     );
@@ -130,9 +131,15 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       if (!mounted) return;
       _showMessage(
         copied == 0
-            ? 'Nothing new to copy: this month already has those budgets.'
-            : 'Copied $copied ${copied == 1 ? 'budget' : 'budgets'} from '
-                  '${monthLabel(previous)}.',
+            ? tr('Nothing new to copy: this month already has those budgets.')
+            : copied == 1
+            ? tr('Copied 1 budget from {month}.', {
+                'month': monthLabel(previous),
+              })
+            : tr('Copied {count} budgets from {month}.', {
+                'count': copied,
+                'month': monthLabel(previous),
+              }),
       );
     });
   }
@@ -144,13 +151,13 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Budget'),
+        title: Text(tr('Budget')),
         actions: [
           PopupMenuButton<void>(
             itemBuilder: (context) => [
               PopupMenuItem(
                 onTap: _copyLastMonth,
-                child: const Text("Copy last month's budget"),
+                child: Text(tr("Copy last month's budget")),
               ),
             ],
           ),
@@ -184,18 +191,18 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   Widget _buildEmpty() {
     return EmptyState(
       icon: Icons.savings_outlined,
-      title: 'No budget for ${monthLabel(_month)}',
-      message: 'Set how much you want to spend this month.',
+      title: tr('No budget for {month}', {'month': monthLabel(_month)}),
+      message: tr('Set how much you want to spend this month.'),
       action: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           FilledButton(
             onPressed: () => _editOverall(null),
-            child: const Text('Set monthly budget'),
+            child: Text(tr('Set monthly budget')),
           ),
           TextButton(
             onPressed: _copyLastMonth,
-            child: const Text("Copy last month's budget"),
+            child: Text(tr("Copy last month's budget")),
           ),
         ],
       ),
@@ -223,21 +230,21 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             child: ListTile(
               key: const ValueKey('set-overall-budget'),
               leading: const Icon(Icons.savings_outlined),
-              title: const Text('Set a monthly budget'),
-              subtitle: const Text('One limit for all your spending'),
+              title: Text(tr('Set a monthly budget')),
+              subtitle: Text(tr('One limit for all your spending')),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _editOverall(null),
             ),
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
-          child: Text('By category', style: theme.textTheme.titleSmall),
+          child: Text(tr('By category'), style: theme.textTheme.titleSmall),
         ),
         if (data.categories.isEmpty)
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
             child: Text(
-              'No category budgets yet.',
+              tr('No category budgets yet.'),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -258,7 +265,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             child: OutlinedButton.icon(
               onPressed: () => _addCategory(data),
               icon: const Icon(Icons.add),
-              label: const Text('Add category budget'),
+              label: Text(tr('Add category budget')),
             ),
           ),
         ),

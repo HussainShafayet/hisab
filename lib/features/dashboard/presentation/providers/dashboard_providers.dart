@@ -3,6 +3,7 @@ import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/features/dashboard/data/dashboard_repository.dart';
 import 'package:hishab/features/dashboard/domain/dashboard_data.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
 final dashboardRepositoryProvider = Provider<DashboardRepository>(
   (ref) => DashboardRepository(ref.watch(appDatabaseProvider)),
@@ -12,5 +13,11 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>(
 /// the data (a new transaction, a budget edit, ...).
 final dashboardProvider = FutureProvider.autoDispose<DashboardData>((ref) {
   ref.watch(dataChangesProvider);
-  return ref.watch(dashboardRepositoryProvider).load(ref.read(clockProvider)());
+  // "This week" starts on the day chosen in Settings.
+  final weekStart = ref.watch(
+    preferencesProvider.select((preferences) => preferences.weekStart.weekday),
+  );
+  return ref
+      .watch(dashboardRepositoryProvider)
+      .load(ref.read(clockProvider)(), firstWeekday: weekStart);
 });

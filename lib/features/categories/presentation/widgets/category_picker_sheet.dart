@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
@@ -146,8 +147,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
     return rows;
   }
 
-  String _label(Category category) =>
-      category.isArchived ? '${category.name} (archived)' : category.name;
+  String _label(Category category) => category.isArchived
+      ? tr('{name} (archived)', {'name': category.name})
+      : category.name;
 
   @override
   Widget build(BuildContext context) {
@@ -175,12 +177,12 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
             textInputAction: TextInputAction.search,
             onChanged: (_) => setState(() {}),
             decoration: InputDecoration(
-              hintText: 'Search categories',
+              hintText: tr('Search categories'),
               prefixIcon: const Icon(Icons.search),
               suffixIcon: query.isEmpty
                   ? null
                   : IconButton(
-                      tooltip: 'Clear search',
+                      tooltip: tr('Clear search'),
                       icon: const Icon(Icons.close),
                       onPressed: () => setState(_search.clear),
                     ),
@@ -191,7 +193,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
         Expanded(
           child: widget.categories.isEmpty && widget.topLevelLabel == null
               ? _Empty(
-                  message: 'There are no categories yet.',
+                  message: tr('There are no categories yet.'),
                   onAdd: widget.allowAdd ? _requestAdd : null,
                 )
               : query.isNotEmpty
@@ -205,7 +207,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
             child: ListTile(
               key: const ValueKey('category-add'),
               leading: const Icon(Icons.add_circle_outline),
-              title: const Text('New category'),
+              title: Text(tr('New category')),
               onTap: _requestAdd,
             ),
           ),
@@ -218,7 +220,9 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
   Widget _results(BuildContext context, List<Category> matches) {
     if (matches.isEmpty) {
       return _Empty(
-        message: 'No category matches "${_search.text.trim()}".',
+        message: tr('No category matches "{text}".', {
+          'text': _search.text.trim(),
+        }),
         onAdd: widget.allowAdd ? _requestAdd : null,
       );
     }
@@ -273,7 +277,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'There is no other category to put it inside yet.',
+              tr('There is no other category to put it inside yet.'),
               style: theme.textTheme.bodyMedium?.copyWith(
                 color: theme.colorScheme.onSurfaceVariant,
               ),
@@ -282,7 +286,10 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
         if (frequent.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
-            child: Text('Frequently used', style: theme.textTheme.labelLarge),
+            child: Text(
+              tr('Frequently used'),
+              style: theme.textTheme.labelLarge,
+            ),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
@@ -311,7 +318,10 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
           const Divider(height: 1),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
-            child: Text('All categories', style: theme.textTheme.labelLarge),
+            child: Text(
+              tr('All categories'),
+              style: theme.textTheme.labelLarge,
+            ),
           ),
         ],
         for (final row in _visibleRows())
@@ -372,7 +382,7 @@ class _CategoryRow extends StatelessWidget {
               child: hasChildren
                   ? IconButton(
                       key: ValueKey('category-expand-${category.id}'),
-                      tooltip: expanded ? 'Close' : 'Open',
+                      tooltip: expanded ? tr('Close') : tr('Open'),
                       icon: Icon(
                         expanded ? Icons.expand_more : Icons.chevron_right,
                       ),
@@ -442,7 +452,7 @@ class _Empty extends StatelessWidget {
                 key: const ValueKey('category-empty-add'),
                 onPressed: onAdd,
                 icon: const Icon(Icons.add),
-                label: const Text('Add category'),
+                label: Text(tr('Add category')),
               ),
             ],
           ],

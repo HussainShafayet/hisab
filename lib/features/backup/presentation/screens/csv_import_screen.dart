@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/files/file_gateway.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
@@ -42,10 +43,10 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
   ImportResult? _result;
 
   String get _title => switch (_step) {
-    _Step.choose => 'Import from CSV',
-    _Step.map => 'Match your columns',
-    _Step.preview => 'Preview',
-    _Step.done => 'Import finished',
+    _Step.choose => tr('Import from CSV'),
+    _Step.map => tr('Match your columns'),
+    _Step.preview => tr('Preview'),
+    _Step.done => tr('Import finished'),
   };
 
   Future<void> _chooseFile() async {
@@ -61,9 +62,10 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
       try {
         _text = utf8.decode(picked.bytes);
       } on FormatException {
-        _error =
-            'This file is not UTF-8 text. In Excel or Sheets, save it as '
-            '"CSV UTF-8" and try again.';
+        _error = tr(
+          'This file is not UTF-8 text. In Excel or Sheets, save it as '
+          '"CSV UTF-8" and try again.',
+        );
         return;
       }
       _fileName = picked.name;
@@ -87,7 +89,7 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
       return;
     }
     if (table.rows.isEmpty) {
-      _error = 'The file has column names but no rows.';
+      _error = tr('The file has column names but no rows.');
       _step = _Step.choose;
       return;
     }
@@ -163,7 +165,11 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Nothing was imported. ${describeError(error)}'),
+            content: Text(
+              tr('Nothing was imported. {reason}', {
+                'reason': describeError(error),
+              }),
+            ),
           ),
         );
       }
@@ -220,7 +226,7 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
             child: FilledButton.icon(
               onPressed: _busy ? null : _chooseFile,
               icon: const Icon(Icons.folder_open),
-              label: const Text('Choose CSV file'),
+              label: Text(tr('Choose CSV file')),
             ),
           ),
         ]);
@@ -250,7 +256,7 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
                         onPressed: problem == null && !_busy
                             ? _showPreview
                             : null,
-                        child: const Text('Preview'),
+                        child: Text(tr('Preview')),
                       ),
                     ),
                   ],
@@ -265,7 +271,7 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
           Expanded(
             child: OutlinedButton(
               onPressed: _busy ? null : _back,
-              child: const Text('Back'),
+              child: Text(tr('Back')),
             ),
           ),
           const SizedBox(width: 12),
@@ -275,8 +281,8 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
               onPressed: count == 0 || _busy ? null : _import,
               child: Text(
                 count == 1
-                    ? 'Import 1 transaction'
-                    : 'Import $count transactions',
+                    ? tr('Import 1 transaction')
+                    : tr('Import {count} transactions', {'count': count}),
               ),
             ),
           ),
@@ -286,14 +292,14 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
           Expanded(
             child: OutlinedButton(
               onPressed: () => context.go(AppRoutes.transactions),
-              child: const Text('See transactions'),
+              child: Text(tr('See transactions')),
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: FilledButton(
               onPressed: () => context.pop(),
-              child: const Text('Done'),
+              child: Text(tr('Done')),
             ),
           ),
         ]);

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/money_form_field.dart';
@@ -76,15 +77,19 @@ class _AdjustBalanceDialogState extends ConsumerState<AdjustBalanceDialog> {
     if (target == null) {
       previewText = null;
     } else if (adjustment == null) {
-      previewText = 'The balance already matches.';
+      previewText = tr('The balance already matches.');
     } else if (adjustment.type == TransactionType.income) {
-      previewText = 'Records ${formatPoisha(adjustment.amount)} as income.';
+      previewText = tr('Records {amount} as income.', {
+        'amount': formatPoisha(adjustment.amount),
+      });
     } else {
-      previewText = 'Records ${formatPoisha(adjustment.amount)} as an expense.';
+      previewText = tr('Records {amount} as an expense.', {
+        'amount': formatPoisha(adjustment.amount),
+      });
     }
 
     return AlertDialog(
-      title: const Text('Adjust balance'),
+      title: Text(tr('Adjust balance')),
       content: Form(
         key: _formKey,
         child: Column(
@@ -92,13 +97,15 @@ class _AdjustBalanceDialogState extends ConsumerState<AdjustBalanceDialog> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              '${widget.item.account.name} currently shows '
-              '${formatPoisha(widget.item.balance)}.',
+              tr('{name} currently shows {balance}.', {
+                'name': widget.item.account.name,
+                'balance': formatPoisha(widget.item.balance),
+              }),
             ),
             const SizedBox(height: 16),
             MoneyFormField(
               controller: _controller,
-              label: 'Actual balance',
+              label: tr('Actual balance'),
               allowNegative: true,
               autofocus: true,
               onChanged: (_) => setState(() {}),
@@ -122,11 +129,11 @@ class _AdjustBalanceDialogState extends ConsumerState<AdjustBalanceDialog> {
       actions: [
         TextButton(
           onPressed: _saving ? null : () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(tr('Cancel')),
         ),
         FilledButton(
           onPressed: _saving || adjustment == null ? null : _adjust,
-          child: const Text('Adjust'),
+          child: Text(tr('Adjust')),
         ),
       ],
     );

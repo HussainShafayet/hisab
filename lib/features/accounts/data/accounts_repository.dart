@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/accounts/data/account_mapper.dart';
 import 'package:hishab/features/accounts/data/accounts_dao.dart';
@@ -104,7 +105,7 @@ class AccountsRepository {
   }) {
     return _db.transaction(() async {
       final row = await _db.accountsDao.getWithFlows(accountId);
-      if (row == null) throw const ValidationException('Account not found.');
+      if (row == null) throw ValidationException(tr('Account not found.'));
 
       final adjustment = calculateBalanceAdjustment(
         current: _balanceOf(row),
@@ -138,17 +139,17 @@ class AccountsRepository {
 
   Future<AccountRow> _requireRow(int id) async {
     final row = await _db.accountsDao.getById(id);
-    if (row == null) throw const ValidationException('Account not found.');
+    if (row == null) throw ValidationException(tr('Account not found.'));
     return row;
   }
 
   /// Trims [raw] and checks it is a usable, unused name.
   Future<String> _validatedName(String raw, {int? excludeId}) async {
     final name = raw.trim();
-    if (name.isEmpty) throw const ValidationException('Name is required.');
+    if (name.isEmpty) throw ValidationException(tr('Name is required.'));
     if (name.length > maxNameLength) {
-      throw const ValidationException(
-        'Name must be $maxNameLength characters or fewer.',
+      throw ValidationException(
+        tr('Name must be {max} characters or fewer.', {'max': maxNameLength}),
       );
     }
     final all = await _db.accountsDao.getAll(includeArchived: true);
@@ -157,9 +158,14 @@ class AccountsRepository {
           other.name.toLowerCase() == name.toLowerCase()) {
         throw ValidationException(
           other.isArchived
-              ? 'An archived account named "${other.name}" exists. '
-                    'Restore it instead.'
-              : 'An account named "${other.name}" already exists.',
+              ? tr(
+                  'An archived account named "{name}" exists. '
+                  'Restore it instead.',
+                  {'name': other.name},
+                )
+              : tr('An account named "{name}" already exists.', {
+                  'name': other.name,
+                }),
         );
       }
     }

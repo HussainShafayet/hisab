@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/widgets/money_form_field.dart';
 
@@ -55,7 +56,7 @@ class _BudgetLimitDialogState extends State<BudgetLimitDialog> {
     if (!_formKey.currentState!.validate()) return;
     final amount = parseTakaToPoisha(_amount.text)!;
     if (amount <= 0) {
-      setState(() => _error = 'The budget must be above zero.');
+      setState(() => _error = tr('The budget must be above zero.'));
       return;
     }
     Navigator.of(context)
@@ -79,7 +80,7 @@ class _BudgetLimitDialogState extends State<BudgetLimitDialog> {
               DropdownButtonFormField<int>(
                 initialValue: _categoryId,
                 isExpanded: true,
-                decoration: const InputDecoration(labelText: 'Category'),
+                decoration: InputDecoration(labelText: tr('Category')),
                 items: [
                   for (final choice in choices)
                     DropdownMenuItem(
@@ -88,14 +89,14 @@ class _BudgetLimitDialogState extends State<BudgetLimitDialog> {
                     ),
                 ],
                 validator: (value) =>
-                    value == null ? 'Choose a category' : null,
+                    value == null ? tr('Choose a category') : null,
                 onChanged: (value) => setState(() => _categoryId = value),
               ),
               const SizedBox(height: 16),
             ],
             MoneyFormField(
               controller: _amount,
-              label: 'Monthly limit',
+              label: tr('Monthly limit'),
               autofocus: choices == null,
               onChanged: (_) {
                 if (_error != null) setState(() => _error = null);
@@ -122,13 +123,13 @@ class _BudgetLimitDialogState extends State<BudgetLimitDialog> {
             onPressed: () =>
                 Navigator.of(context)
                     .pop(const BudgetDialogResult(remove: true)),
-            child: const Text('Remove'),
+            child: Text(tr('Remove')),
           ),
         TextButton(
           onPressed: () => Navigator.of(context).pop(),
-          child: const Text('Cancel'),
+          child: Text(tr('Cancel')),
         ),
-        FilledButton(onPressed: _save, child: const Text('Save')),
+        FilledButton(onPressed: _save, child: Text(tr('Save'))),
       ],
     );
   }

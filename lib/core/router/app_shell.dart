@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 
 /// Frame around the five main tabs: bottom navigation plus the global
@@ -16,7 +17,7 @@ class AppShell extends StatelessWidget {
       body: navigationShell,
       floatingActionButton: FloatingActionButton(
         onPressed: () => context.push(AppRoutes.addTransaction),
-        tooltip: 'Add transaction',
+        tooltip: tr('Add transaction'),
         child: const Icon(Icons.add),
       ),
       bottomNavigationBar: NavigationBar(
@@ -26,28 +27,31 @@ class AppShell extends StatelessWidget {
           // Tapping the active tab again returns to that tab's root screen.
           initialLocation: index == navigationShell.currentIndex,
         ),
-        destinations: const [
+        destinations: [
           NavigationDestination(
             icon: Icon(Icons.home_outlined),
             selectedIcon: Icon(Icons.home),
-            label: 'Home',
+            label: tr('Home'),
           ),
           NavigationDestination(
             icon: Icon(Icons.receipt_long_outlined),
             selectedIcon: Icon(Icons.receipt_long),
-            label: 'Transactions',
+            label: tr('Transactions'),
           ),
           NavigationDestination(
             icon: Icon(Icons.savings_outlined),
             selectedIcon: Icon(Icons.savings),
-            label: 'Budget',
+            label: tr('Budget'),
           ),
           NavigationDestination(
             icon: Icon(Icons.bar_chart_outlined),
             selectedIcon: Icon(Icons.bar_chart),
-            label: 'Reports',
+            label: tr('Reports'),
           ),
-          NavigationDestination(icon: Icon(Icons.more_horiz), label: 'More'),
+          NavigationDestination(
+            icon: Icon(Icons.more_horiz),
+            label: tr('More'),
+          ),
         ],
       ),
     );

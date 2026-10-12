@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/router/app_shell.dart';
 import 'package:hishab/core/widgets/state_views.dart';
@@ -13,6 +14,11 @@ import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/screens/categories_screen.dart';
 import 'package:hishab/features/categories/presentation/screens/category_form_screen.dart';
 import 'package:hishab/features/dashboard/presentation/screens/dashboard_screen.dart';
+import 'package:hishab/features/debts/presentation/screens/debt_detail_screen.dart';
+import 'package:hishab/features/debts/presentation/screens/debt_form_screen.dart';
+import 'package:hishab/features/debts/presentation/screens/debts_screen.dart';
+import 'package:hishab/features/recurring/presentation/screens/recurring_form_screen.dart';
+import 'package:hishab/features/recurring/presentation/screens/recurring_screen.dart';
 import 'package:hishab/features/reports/presentation/screens/reports_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/more_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/settings_screen.dart';
@@ -33,7 +39,9 @@ class _InvalidIdScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(),
-      body: ErrorView(message: 'That is not a valid $what.'),
+      body: ErrorView(
+        message: tr('That is not a valid {what}.', {'what': tr(what)}),
+      ),
     );
   }
 }
@@ -111,6 +119,63 @@ final routerProvider = Provider<GoRouter>((ref) {
                               ? const _InvalidIdScreen('account')
                               : AccountFormScreen(accountId: id);
                         },
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'recurring',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const RecurringScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'new',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) =>
+                            const RecurringFormScreen(),
+                      ),
+                      GoRoute(
+                        path: ':id',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) {
+                          final id = _idOf(state);
+                          return id == null
+                              ? const _InvalidIdScreen('recurring item')
+                              : RecurringFormScreen(ruleId: id);
+                        },
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'debts',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const DebtsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'new',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => const DebtFormScreen(),
+                      ),
+                      GoRoute(
+                        path: ':id',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) {
+                          final id = _idOf(state);
+                          return id == null
+                              ? const _InvalidIdScreen('loan')
+                              : DebtDetailScreen(debtId: id);
+                        },
+                        routes: [
+                          GoRoute(
+                            path: 'edit',
+                            parentNavigatorKey: _rootNavigatorKey,
+                            builder: (context, state) {
+                              final id = _idOf(state);
+                              return id == null
+                                  ? const _InvalidIdScreen('loan')
+                                  : DebtFormScreen(debtId: id);
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),

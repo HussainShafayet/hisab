@@ -1,3 +1,4 @@
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/features/reports/domain/category_total.dart';
 
 /// One slice of the category pie chart.
@@ -47,7 +48,7 @@ List<PieSlice> buildPieSlices(
   return [
     ...spent.take(maxSlices).map(slice),
     PieSlice(
-      label: 'Others',
+      label: tr('Others'),
       amount: rest.fold(0, (sum, c) => sum + c.total),
       color: othersColor,
       icon: 'more_horiz',

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 
 /// The "More" tab: entry points to everything that is not a main tab.
@@ -9,27 +10,37 @@ class MoreScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('More')),
+      appBar: AppBar(title: Text(tr('More'))),
       body: ListView(
-        children: const [
+        children: [
           _MoreTile(
             icon: Icons.account_balance_wallet_outlined,
-            title: 'Accounts',
+            title: tr('Accounts'),
             route: AppRoutes.accounts,
           ),
           _MoreTile(
+            icon: Icons.repeat,
+            title: tr('Recurring'),
+            route: AppRoutes.recurring,
+          ),
+          _MoreTile(
+            icon: Icons.handshake_outlined,
+            title: tr('Loans'),
+            route: AppRoutes.debts,
+          ),
+          _MoreTile(
             icon: Icons.category_outlined,
-            title: 'Categories',
+            title: tr('Categories'),
             route: AppRoutes.categories,
           ),
           _MoreTile(
             icon: Icons.backup_outlined,
-            title: 'Backup & export',
+            title: tr('Backup & export'),
             route: AppRoutes.backup,
           ),
           _MoreTile(
             icon: Icons.settings_outlined,
-            title: 'Settings',
+            title: tr('Settings'),
             route: AppRoutes.settings,
           ),
         ],

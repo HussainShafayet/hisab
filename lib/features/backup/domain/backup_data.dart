@@ -1,20 +1,29 @@
 import 'dart:convert';
 
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart'
     show maxCategoryDepth;
 import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/recurring/domain/recurring.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// The version of the backup file format. Raise it when the format changes in
 /// a way an older app could not read.
-const backupFormatVersion = 1;
+///
+/// 1: accounts, categories, transactions, budgets.
+/// 2: also loans (`debts`) and their payments (`debtPayments`).
+/// 3: also recurring items (`recurringRules`). An older file has none of what
+/// came after it, and is read as having none.
+const backupFormatVersion = 3;
 
 const _appId = 'hishab';
 
-Never _damaged(String message) =>
-    throw ValidationException('The backup is damaged: $message');
+Never _damaged(String message) => throw ValidationException(
+  tr('The backup is damaged: {detail}', {'detail': message}),
+);
 
 Map<String, Object?> _object(Object? value, String where) {
   if (value is Map<String, Object?>) return value;
@@ -57,6 +66,13 @@ bool _bool(
   if (value == null && orElse != null) return orElse;
   _damaged('$where has no true/false "$key".');
 }
+
+/// A list that may be missing, which is read as empty.
+List<Object?> _optionalList(Map<String, Object?> json, String key) =>
+    json[key] == null ? const [] : _list(json, key);
+
+DateTime? _dateOrNull(Map<String, Object?> json, String key, String where) =>
+    json[key] == null ? null : _date(json, key, where);
 
 DateTime _date(Map<String, Object?> json, String key, String where) {
   final value = json[key];
@@ -266,6 +282,179 @@ class BackupBudget {
   };
 }
 
+class BackupDebt {
+  const BackupDebt({
+    required this.id,
+    required this.person,
+    required this.direction,
+    required this.amount,
+    required this.openedOn,
+    required this.dueOn,
+    required this.note,
+    required this.accountId,
+    required this.transactionId,
+    required this.createdAt,
+  });
+
+  factory BackupDebt.fromJson(Map<String, Object?> json) {
+    const where = 'A loan';
+    return BackupDebt(
+      id: _int(json, 'id', where),
+      person: _string(json, 'person', where),
+      direction: _enum(DebtDirection.values, json, 'direction', where),
+      amount: _int(json, 'amount', where),
+      openedOn: _date(json, 'openedOn', where),
+      dueOn: _dateOrNull(json, 'dueOn', where),
+      note: _string(json, 'note', where),
+      accountId: _intOrNull(json, 'accountId', where),
+      transactionId: _intOrNull(json, 'transactionId', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final String person;
+  final DebtDirection direction;
+  final int amount;
+  final DateTime openedOn;
+  final DateTime? dueOn;
+  final String note;
+  final int? accountId;
+  final int? transactionId;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'person': person,
+    'direction': direction.name,
+    'amount': amount,
+    'openedOn': _iso(openedOn),
+    'dueOn': dueOn == null ? null : _iso(dueOn!),
+    'note': note,
+    'accountId': accountId,
+    'transactionId': transactionId,
+    'createdAt': _iso(createdAt),
+  };
+}
+
+class BackupRecurringRule {
+  const BackupRecurringRule({
+    required this.id,
+    required this.title,
+    required this.type,
+    required this.amount,
+    required this.accountId,
+    required this.categoryId,
+    required this.frequency,
+    required this.startDate,
+    required this.nextDue,
+    required this.endDate,
+    required this.autoAdd,
+    required this.remind,
+    required this.isPaused,
+    required this.createdAt,
+  });
+
+  factory BackupRecurringRule.fromJson(Map<String, Object?> json) {
+    const where = 'A recurring item';
+    return BackupRecurringRule(
+      id: _int(json, 'id', where),
+      title: _string(json, 'title', where),
+      type: _enum(TransactionType.values, json, 'type', where),
+      amount: _int(json, 'amount', where),
+      accountId: _int(json, 'accountId', where),
+      categoryId: _int(json, 'categoryId', where),
+      frequency: _enum(RecurrenceFrequency.values, json, 'frequency', where),
+      startDate: _date(json, 'startDate', where),
+      nextDue: _date(json, 'nextDue', where),
+      endDate: _dateOrNull(json, 'endDate', where),
+      autoAdd: _bool(json, 'autoAdd', where),
+      remind: _bool(json, 'remind', where),
+      isPaused: _bool(json, 'isPaused', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final String title;
+  final TransactionType type;
+  final int amount;
+  final int accountId;
+  final int categoryId;
+  final RecurrenceFrequency frequency;
+  final DateTime startDate;
+  final DateTime nextDue;
+  final DateTime? endDate;
+  final bool autoAdd;
+  final bool remind;
+  final bool isPaused;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'title': title,
+    'type': type.name,
+    'amount': amount,
+    'accountId': accountId,
+    'categoryId': categoryId,
+    'frequency': frequency.name,
+    'startDate': _iso(startDate),
+    'nextDue': _iso(nextDue),
+    'endDate': endDate == null ? null : _iso(endDate!),
+    'autoAdd': autoAdd,
+    'remind': remind,
+    'isPaused': isPaused,
+    'createdAt': _iso(createdAt),
+  };
+}
+
+class BackupDebtPayment {
+  const BackupDebtPayment({
+    required this.id,
+    required this.debtId,
+    required this.amount,
+    required this.paidOn,
+    required this.note,
+    required this.accountId,
+    required this.transactionId,
+    required this.createdAt,
+  });
+
+  factory BackupDebtPayment.fromJson(Map<String, Object?> json) {
+    const where = 'A loan payment';
+    return BackupDebtPayment(
+      id: _int(json, 'id', where),
+      debtId: _int(json, 'debtId', where),
+      amount: _int(json, 'amount', where),
+      paidOn: _date(json, 'paidOn', where),
+      note: _string(json, 'note', where),
+      accountId: _intOrNull(json, 'accountId', where),
+      transactionId: _intOrNull(json, 'transactionId', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final int debtId;
+  final int amount;
+  final DateTime paidOn;
+  final String note;
+  final int? accountId;
+  final int? transactionId;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'debtId': debtId,
+    'amount': amount,
+    'paidOn': _iso(paidOn),
+    'note': note,
+    'accountId': accountId,
+    'transactionId': transactionId,
+    'createdAt': _iso(createdAt),
+  };
+}
+
 /// Everything in the app, as it is written to and read from a backup file.
 /// Money is whole poisha, dates are UTC, and every row keeps its id, so the
 /// links between accounts, categories and transactions survive a restore.
@@ -276,6 +465,9 @@ class BackupData {
     required this.categories,
     required this.transactions,
     required this.budgets,
+    this.debts = const [],
+    this.debtPayments = const [],
+    this.recurringRules = const [],
   });
 
   /// Reads and checks backup text. Throws a [ValidationException] that says
@@ -287,23 +479,25 @@ class BackupData {
     try {
       json = jsonDecode(text);
     } on FormatException {
-      throw const ValidationException('This file is not a Hishab backup.');
+      throw ValidationException(tr('This file is not a Hishab backup.'));
     }
     return BackupData.fromJson(json);
   }
 
   factory BackupData.fromJson(Object? json) {
     if (json is! Map<String, Object?> || json['app'] != _appId) {
-      throw const ValidationException('This file is not a Hishab backup.');
+      throw ValidationException(tr('This file is not a Hishab backup.'));
     }
     final version = json['formatVersion'];
     if (version is! int || version < 1) {
       _damaged('it has no format version.');
     }
     if (version > backupFormatVersion) {
-      throw const ValidationException(
-        'This backup was made by a newer version of Hishab. Update the app '
-        'to restore it.',
+      throw ValidationException(
+        tr(
+          'This backup was made by a newer version of Hishab. Update the app '
+          'to restore it.',
+        ),
       );
     }
 
@@ -325,6 +519,18 @@ class BackupData {
         for (final item in _list(json, 'budgets'))
           BackupBudget.fromJson(_object(item, 'A budget')),
       ],
+      debts: [
+        for (final item in _optionalList(json, 'debts'))
+          BackupDebt.fromJson(_object(item, 'A loan')),
+      ],
+      debtPayments: [
+        for (final item in _optionalList(json, 'debtPayments'))
+          BackupDebtPayment.fromJson(_object(item, 'A loan payment')),
+      ],
+      recurringRules: [
+        for (final item in _optionalList(json, 'recurringRules'))
+          BackupRecurringRule.fromJson(_object(item, 'A recurring item')),
+      ],
     );
     data._checkLinks();
     return data;
@@ -335,6 +541,9 @@ class BackupData {
   final List<BackupCategory> categories;
   final List<BackupTransaction> transactions;
   final List<BackupBudget> budgets;
+  final List<BackupDebt> debts;
+  final List<BackupDebtPayment> debtPayments;
+  final List<BackupRecurringRule> recurringRules;
 
   Map<String, Object?> toJson() => {
     'app': _appId,
@@ -344,6 +553,9 @@ class BackupData {
     'categories': [for (final c in categories) c.toJson()],
     'transactions': [for (final t in transactions) t.toJson()],
     'budgets': [for (final b in budgets) b.toJson()],
+    'debts': [for (final d in debts) d.toJson()],
+    'debtPayments': [for (final p in debtPayments) p.toJson()],
+    'recurringRules': [for (final r in recurringRules) r.toJson()],
   };
 
   /// The categories with every category after the one it is inside, so they
@@ -385,6 +597,42 @@ class BackupData {
     final categoryIds = uniqueIds(categories.map((c) => c.id), 'categories');
     uniqueIds(transactions.map((t) => t.id), 'transactions');
     uniqueIds(budgets.map((b) => b.id), 'budgets');
+    final debtIds = uniqueIds(debts.map((d) => d.id), 'loans');
+    uniqueIds(debtPayments.map((p) => p.id), 'loan payments');
+    final transactionIds = {for (final t in transactions) t.id};
+    void checkLoanLinks(String what, int id, int? account, int? transaction) {
+      if (account != null && !accountIds.contains(account)) {
+        _damaged('$what $id points to an account that is not in the file.');
+      }
+      if (transaction != null && !transactionIds.contains(transaction)) {
+        _damaged('$what $id points to a transaction that is not in the file.');
+      }
+    }
+
+    uniqueIds(recurringRules.map((r) => r.id), 'recurring items');
+    for (final r in recurringRules) {
+      if (!accountIds.contains(r.accountId)) {
+        _damaged(
+          'recurring item ${r.id} points to an account that is not in the file.',
+        );
+      }
+      if (!categoryIds.contains(r.categoryId)) {
+        _damaged(
+          'recurring item ${r.id} points to a category that is not in the file.',
+        );
+      }
+    }
+    for (final d in debts) {
+      checkLoanLinks('loan', d.id, d.accountId, d.transactionId);
+    }
+    for (final p in debtPayments) {
+      if (!debtIds.contains(p.debtId)) {
+        _damaged(
+          'loan payment ${p.id} points to a loan that is not in the file.',
+        );
+      }
+      checkLoanLinks('loan payment', p.id, p.accountId, p.transactionId);
+    }
 
     final parents = {for (final c in categories) c.id: c.parentId};
     for (final category in categories) {

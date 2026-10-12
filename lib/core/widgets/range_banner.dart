@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
 
@@ -25,7 +26,7 @@ class RangeBanner extends StatelessWidget {
             ),
           ),
           IconButton(
-            tooltip: 'Clear date range',
+            tooltip: tr('Clear date range'),
             icon: const Icon(Icons.close),
             onPressed: onClear,
           ),

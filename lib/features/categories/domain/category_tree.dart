@@ -1,3 +1,4 @@
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 
@@ -177,21 +178,23 @@ String? categoryParentProblem({
   final list = all.toList();
   final byId = {for (final c in list) c.id: c};
   final parent = byId[parentId];
-  if (parent == null) return 'Category not found.';
+  if (parent == null) return tr('Category not found.');
   if (categoryId != null &&
       categoryAndDescendantIds(categoryId, list).contains(parentId)) {
     return categoryId == parentId
-        ? 'A category cannot be its own parent.'
-        : 'A category cannot go inside one of its own sub-categories.';
+        ? tr('A category cannot be its own parent.')
+        : tr('A category cannot go inside one of its own sub-categories.');
   }
   if (parent.type != type) {
-    return 'A sub-category must have the same type as its parent.';
+    return tr('A sub-category must have the same type as its parent.');
   }
-  if (parent.isArchived) return 'The parent category is archived.';
+  if (parent.isArchived) return tr('The parent category is archived.');
 
   final inside = categoryId == null ? 1 : categoryHeight(categoryId, list);
   if (categoryLevel(parentId, byId) + inside > maxCategoryDepth) {
-    return 'Categories can go $maxCategoryDepth levels deep at most.';
+    return tr('Categories can go {levels} levels deep at most.', {
+      'levels': maxCategoryDepth,
+    });
   }
   return null;
 }

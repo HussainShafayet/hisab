@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/accounts/data/account_mapper.dart';
 import 'package:hishab/features/categories/data/category_mapper.dart';
@@ -47,10 +48,10 @@ class TransactionsRepository {
   Future<int> addTransaction(TransactionInput input, {int fee = 0}) {
     return _db.transaction(() async {
       if (fee < 0) {
-        throw const ValidationException('The fee cannot be negative.');
+        throw ValidationException(tr('The fee cannot be negative.'));
       }
       if (fee > 0 && input.type != TransactionType.transfer) {
-        throw const ValidationException('Only a transfer can have a fee.');
+        throw ValidationException(tr('Only a transfer can have a fee.'));
       }
       await _validate(input);
       final id = await _db.transactionsDao.insertTransaction(
@@ -87,7 +88,7 @@ class TransactionsRepository {
     return _db.transaction(() async {
       final existing = await _db.transactionsDao.getById(id);
       if (existing == null) {
-        throw const ValidationException('Transaction not found.');
+        throw ValidationException(tr('Transaction not found.'));
       }
       await _validate(input, existing: existing);
       await _db.transactionsDao.updateTransaction(
@@ -133,9 +134,12 @@ class TransactionsRepository {
 
   /// What the add/edit form can choose from. When [editing] is given, its
   /// account and category are included even if they have been archived.
+  /// [preferredAccountId] is the account chosen in Settings for new
+  /// transactions.
   Future<AddTransactionOptions> loadAddOptions({
     required DateTime now,
     TransactionItem? editing,
+    int? preferredAccountId,
   }) async {
     final accountRows = await _db.accountsDao.getAll();
     final accounts = [for (final row in accountRows) row.toDomain()];
@@ -171,9 +175,14 @@ class TransactionsRepository {
       return (tree: tree, frequent: frequent);
     }
 
+    // The account chosen in Settings, else the one used last, else the first.
+    // An account that is gone or archived is skipped.
     final lastUsed = await _db.transactionsDao.lastUsedAccountId();
-    final defaultAccountId =
-        accounts.any((a) => a.id == lastUsed && !a.isArchived)
+    bool usable(int? id) =>
+        id != null && accounts.any((a) => a.id == id && !a.isArchived);
+    final defaultAccountId = usable(preferredAccountId)
+        ? preferredAccountId
+        : usable(lastUsed)
         ? lastUsed
         : accounts.where((a) => !a.isArchived).firstOrNull?.id;
 
@@ -194,11 +203,13 @@ class TransactionsRepository {
     TransactionRow? existing,
   }) async {
     if (input.amount <= 0) {
-      throw const ValidationException('The amount must be above zero.');
+      throw ValidationException(tr('The amount must be above zero.'));
     }
     if (input.note.trim().length > maxNoteLength) {
-      throw const ValidationException(
-        'The note must be $maxNoteLength characters or fewer.',
+      throw ValidationException(
+        tr('The note must be {max} characters or fewer.', {
+          'max': maxNoteLength,
+        }),
       );
     }
 
@@ -210,38 +221,41 @@ class TransactionsRepository {
     if (input.type == TransactionType.transfer) {
       final toId = input.toAccountId;
       if (toId == null) {
-        throw const ValidationException(
-          'Choose the account the money goes to.',
-        );
+        throw ValidationException(tr('Choose the account the money goes to.'));
       }
       if (toId == input.accountId) {
-        throw const ValidationException('Choose two different accounts.');
+        throw ValidationException(tr('Choose two different accounts.'));
       }
       if (input.categoryId != null) {
-        throw const ValidationException('A transfer has no category.');
+        throw ValidationException(tr('A transfer has no category.'));
       }
       await _requireUsableAccount(toId, unchanged: existing?.toAccountId);
       return;
     }
 
     if (input.toAccountId != null) {
-      throw const ValidationException('Only a transfer has a second account.');
+      throw ValidationException(tr('Only a transfer has a second account.'));
     }
     final categoryId = input.categoryId;
     if (categoryId == null) {
-      throw const ValidationException('Choose a category.');
+      throw ValidationException(tr('Choose a category.'));
     }
     final category = await _db.categoriesDao.getById(categoryId);
     if (category == null) {
-      throw const ValidationException('Category not found.');
+      throw ValidationException(tr('Category not found.'));
     }
     if (category.type != input.type.categoryType) {
+      final args = {'name': category.name};
       throw ValidationException(
-        'The category "${category.name}" is not an ${input.type.name} category.',
+        input.type == TransactionType.income
+            ? tr('The category "{name}" is not an income category.', args)
+            : tr('The category "{name}" is not an expense category.', args),
       );
     }
     if (category.isArchived && category.id != existing?.categoryId) {
-      throw ValidationException('The category "${category.name}" is archived.');
+      throw ValidationException(
+        tr('The category "{name}" is archived.', {'name': category.name}),
+      );
     }
   }
 
@@ -249,9 +263,11 @@ class TransactionsRepository {
   /// account is fine if it is still that one.
   Future<void> _requireUsableAccount(int id, {int? unchanged}) async {
     final account = await _db.accountsDao.getById(id);
-    if (account == null) throw const ValidationException('Account not found.');
+    if (account == null) throw ValidationException(tr('Account not found.'));
     if (account.isArchived && id != unchanged) {
-      throw ValidationException('The account "${account.name}" is archived.');
+      throw ValidationException(
+        tr('The account "{name}" is archived.', {'name': account.name}),
+      );
     }
   }
 
