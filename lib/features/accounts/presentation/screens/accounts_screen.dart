@@ -2,18 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/router/app_routes.dart';
-import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/show_archived_chip.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/domain/account_balance.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_type_ui.dart';
 import 'package:hishab/features/accounts/presentation/widgets/adjust_balance_dialog.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
+/// Every wallet as a card, with the total on top.
 class AccountsScreen extends ConsumerStatefulWidget {
   const AccountsScreen({super.key});
 
@@ -29,18 +31,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     final accounts = ref.watch(accountsProvider(_showArchived));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Accounts'),
-        actions: [
-          IconButton(
-            tooltip: _showArchived ? 'Hide archived' : 'Show archived',
-            icon: Icon(
-              _showArchived ? Icons.visibility : Icons.visibility_off_outlined,
-            ),
-            onPressed: () => setState(() => _showArchived = !_showArchived),
-          ),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Accounts')),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.newAccount),
         icon: const Icon(Icons.add),
@@ -52,8 +43,20 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
           message: '$error',
           onRetry: () => ref.invalidate(accountsProvider(_showArchived)),
         ),
-        data: (list) => list.isEmpty
-            ? EmptyState(
+        data: (list) => ListView(
+          // Room below the last card so the add button never covers it.
+          padding: const EdgeInsets.only(bottom: 96),
+          children: [
+            if (list.isNotEmpty) _TotalCard(accounts: list),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
+              child: ShowArchivedChip(
+                value: _showArchived,
+                onChanged: (value) => setState(() => _showArchived = value),
+              ),
+            ),
+            if (list.isEmpty)
+              EmptyState(
                 icon: Icons.account_balance_wallet_outlined,
                 title: 'No accounts yet',
                 message: 'Add your cash, mobile banking and bank accounts.',
@@ -62,68 +65,12 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                   child: const Text('Add account'),
                 ),
               )
-            : _AccountsList(accounts: list),
-      ),
-    );
-  }
-}
-
-class _AccountsList extends StatelessWidget {
-  const _AccountsList({required this.accounts});
-
-  final List<AccountWithBalance> accounts;
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      // Room below the last row so the add button never covers it.
-      padding: const EdgeInsets.only(bottom: 96),
-      children: [
-        _TotalCard(accounts: accounts),
-        for (final item in accounts) _AccountTile(item: item),
-      ],
-    );
-  }
-}
-
-class _TotalCard extends StatelessWidget {
-  const _TotalCard({required this.accounts});
-
-  final List<AccountWithBalance> accounts;
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final total = calculateTotalBalance(accounts);
-    final counted = accounts
-        .where((a) => a.account.includeInTotal && !a.account.isArchived)
-        .length;
-
-    return Card(
-      margin: const EdgeInsets.all(16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Total balance', style: theme.textTheme.labelLarge),
-            const SizedBox(height: 4),
-            Text(
-              formatPoisha(total),
-              style: theme.textTheme.headlineMedium?.tabular.copyWith(
-                fontWeight: FontWeight.w600,
-                color: total < 0 ? context.financeColors.expense : null,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              counted == 1
-                  ? '1 account included'
-                  : '$counted accounts included',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+            else
+              for (final item in list)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                  child: _AccountCardTile(item: item),
+                ),
           ],
         ),
       ),
@@ -131,10 +78,134 @@ class _TotalCard extends StatelessWidget {
   }
 }
 
+/// The total balance, big, with how much of it is in each kind of account.
+class _TotalCard extends StatelessWidget {
+  const _TotalCard({required this.accounts});
+
+  final List<AccountWithBalance> accounts;
+
+  static const _white = Colors.white;
+  static const _whiteSoft = Color(0xCCFFFFFF);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final total = calculateTotalBalance(accounts);
+    final byType = totalByAccountType(accounts);
+    final counted = accounts
+        .where((a) => a.account.includeInTotal && !a.account.isArchived)
+        .length;
+    final primary = theme.colorScheme.primary;
+
+    return Container(
+      key: const ValueKey('total-card'),
+      margin: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(24),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [primary, Color.lerp(primary, Colors.black, 0.45)!],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Total balance',
+            style: theme.textTheme.labelLarge?.copyWith(color: _whiteSoft),
+          ),
+          const SizedBox(height: 4),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              formatPoisha(total),
+              key: const ValueKey('total-balance'),
+              style: theme.textTheme.displaySmall?.tabular.copyWith(
+                fontWeight: FontWeight.w700,
+                color: total < 0 ? const Color(0xFFFFE082) : _white,
+              ),
+            ),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            counted == 1 ? '1 account included' : '$counted accounts included',
+            style: theme.textTheme.bodySmall?.copyWith(color: _whiteSoft),
+          ),
+          if (byType.length > 1) ...[
+            const SizedBox(height: 12),
+            const Divider(height: 1, color: Color(0x44FFFFFF)),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 20,
+              runSpacing: 8,
+              children: [
+                for (final entry in byType.entries)
+                  _TypeStat(
+                    key: ValueKey('type-total-${entry.key.name}'),
+                    icon: entry.key.icon,
+                    label: entry.key.label,
+                    amount: entry.value,
+                  ),
+              ],
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _TypeStat extends StatelessWidget {
+  const _TypeStat({
+    required this.icon,
+    required this.label,
+    required this.amount,
+    super.key,
+  });
+
+  final IconData icon;
+  final String label;
+  final int amount;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Icon(icon, size: 18, color: const Color(0xCCFFFFFF)),
+        const SizedBox(width: 6),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              label,
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: const Color(0xCCFFFFFF),
+              ),
+            ),
+            Text(
+              formatPoisha(amount),
+              style: theme.textTheme.titleSmall?.tabular.copyWith(
+                color: Colors.white,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
 enum _AccountAction { edit, adjust, archive, restore }
 
-class _AccountTile extends ConsumerWidget {
-  const _AccountTile({required this.item});
+/// One wallet card, with its menu: edit, adjust the balance, archive.
+class _AccountCardTile extends ConsumerWidget {
+  const _AccountCardTile({required this.item});
 
   final AccountWithBalance item;
 
@@ -142,77 +213,31 @@ class _AccountTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context);
-    final muted = _account.isArchived;
-    final notes = [
-      _account.type.label,
-      if (!_account.includeInTotal) 'Not in total',
-      if (_account.isArchived) 'Archived',
-    ];
-
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: theme.colorScheme.secondaryContainer,
-        foregroundColor: theme.colorScheme.onSecondaryContainer,
-        child: Icon(_account.type.icon),
-      ),
-      title: Text(
-        _account.name,
-        style: muted
-            ? TextStyle(color: theme.colorScheme.onSurfaceVariant)
-            : null,
-      ),
-      subtitle: Text(notes.join(' · ')),
+    return AccountCard(
+      key: ValueKey('account-card-${_account.id}'),
+      account: _account,
+      balance: item.balance,
       onTap: () => context.push(AppRoutes.editAccount(_account.id)),
-      // Limited in width, like the amount in a transaction row, so a big
-      // balance in large text cannot fill the whole tile.
-      trailing: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: MediaQuery.sizeOf(context).width * 0.6,
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Flexible(
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  formatPoisha(item.balance),
-                  style: theme.textTheme.titleMedium?.tabular.copyWith(
-                    color: item.balance < 0
-                        ? context.financeColors.expense
-                        : muted
-                        ? theme.colorScheme.onSurfaceVariant
-                        : null,
-                  ),
-                ),
-              ),
+      trailing: PopupMenuButton<_AccountAction>(
+        icon: const Icon(Icons.more_vert, color: Colors.white),
+        onSelected: (action) => _onAction(context, ref, action),
+        itemBuilder: (context) => [
+          const PopupMenuItem(value: _AccountAction.edit, child: Text('Edit')),
+          const PopupMenuItem(
+            value: _AccountAction.adjust,
+            child: Text('Adjust balance'),
+          ),
+          if (_account.isArchived)
+            const PopupMenuItem(
+              value: _AccountAction.restore,
+              child: Text('Restore'),
+            )
+          else
+            const PopupMenuItem(
+              value: _AccountAction.archive,
+              child: Text('Archive'),
             ),
-            PopupMenuButton<_AccountAction>(
-              onSelected: (action) => _onAction(context, ref, action),
-              itemBuilder: (context) => [
-                const PopupMenuItem(
-                  value: _AccountAction.edit,
-                  child: Text('Edit'),
-                ),
-                const PopupMenuItem(
-                  value: _AccountAction.adjust,
-                  child: Text('Adjust balance'),
-                ),
-                if (_account.isArchived)
-                  const PopupMenuItem(
-                    value: _AccountAction.restore,
-                    child: Text('Restore'),
-                  )
-                else
-                  const PopupMenuItem(
-                    value: _AccountAction.archive,
-                    child: Text('Archive'),
-                  ),
-              ],
-            ),
-          ],
-        ),
+        ],
       ),
     );
   }

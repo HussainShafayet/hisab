@@ -727,7 +727,7 @@ void main() {
         await tester.tap(row(d.lunch));
         await settle(tester);
 
-        expect(find.text('Cash · Archived'), findsOneWidget);
+        expect(find.text('Archived'), findsOneWidget);
         expect(find.text('Food (archived)'), findsOneWidget);
         await tapText(tester, 'Save changes');
         expect(appBarTitle('Transactions'), findsOneWidget);

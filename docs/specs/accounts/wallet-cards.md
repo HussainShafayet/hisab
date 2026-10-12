@@ -20,6 +20,10 @@ and how much will be left.
   account on the other side is shown but cannot be chosen. Archived accounts
   are not offered (except the one already used by the transaction).
 - Balances are live: after "Save & new" the card shows the new balance.
+- The kind ("Cash", "Bank") is written under the name unless the name already
+  says it, so an account called "Cash" does not read "Cash / Cash".
+- The same card is used on the [accounts screen](accounts-screen.md), with a
+  menu in place of the check.
 
 ## Rules
 - `TransactionEffect.changeFor(account)` and `projectedBalance` are pure and

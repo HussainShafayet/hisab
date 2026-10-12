@@ -23,6 +23,12 @@ search, the ones used most, and the tree.
 - No match: "No category matches "xyz"." with an "Add category" button. No
   categories at all: "There are no categories yet." with the same button.
 
+## Choosing where a category goes
+The same sheet is used for the "Inside" field of the category form
+(`topLevelLabel` set, `allowAdd` false): a first row "Top level (not inside
+another)", no "New category" button, and only the categories the category can
+go inside. With none: "There is no other category to put it inside yet."
+
 ## Rules
 - Only categories of the transaction's type are listed.
 - Quick picks that share a name with another category show the whole path.

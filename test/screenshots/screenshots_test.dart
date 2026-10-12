@@ -325,12 +325,37 @@ void main() {
     await tester.tap(listRow('Accounts'));
     await tester.pumpAndSettle();
     await _capture(tester, key, '5_accounts');
+    // The form for a new account, with a kind picked and a name filled in.
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('type-mobileBanking')));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('suggestion-Nagad')));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, '5_account_form');
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
 
     await tester.tap(listRow('Categories'));
     await tester.pumpAndSettle();
     await _capture(tester, key, '6_categories');
+    // The form for a new category inside Food.
+    await tester.tap(find.byType(FloatingActionButton));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextFormField, 'Name'),
+      'Tiffin',
+    );
+    await tester.tap(find.byKey(const ValueKey('parent-field')));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, '6_category_parent_picker');
+    await tester.tap(find.byKey(const ValueKey('category-top-level')));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, '6_category_form');
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
 

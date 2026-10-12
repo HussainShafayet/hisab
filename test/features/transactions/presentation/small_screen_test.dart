@@ -148,6 +148,111 @@ void main() {
     });
   }
 
+  for (final scale in [1.0, 1.5]) {
+    testWithDatabase(
+      'the accounts screen with every kind of account fits (text x$scale)',
+      (tester, db) async {
+        useSmallPhone(tester, textScale: scale);
+        for (final type in AccountType.values) {
+          await db.accountsDao.insertAccount(
+            AccountsCompanion.insert(
+              name: 'A long name for the ${type.name} account',
+              type: type,
+              openingBalance: const Value(123456789012),
+            ),
+          );
+        }
+        await pumpAppWithDatabase(tester, db);
+        await openFromMore(tester, 'Accounts');
+
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(const ValueKey('total-card')), findsOneWidget);
+        // Every kind has its line in the breakdown.
+        for (final type in AccountType.values) {
+          expect(
+            find.byKey(ValueKey('type-total-${type.name}')),
+            findsOneWidget,
+          );
+        }
+      },
+    );
+
+    testWithDatabase('the account form fits a small phone (text x$scale)', (
+      tester,
+      db,
+    ) async {
+      useSmallPhone(tester, textScale: scale);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Accounts');
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Name'),
+        'A savings account with a rather long name indeed',
+      );
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Opening balance'),
+        '99999999999.99',
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      // The button stays on screen, below the form.
+      expect(
+        tester.getRect(find.widgetWithText(FilledButton, 'Add account')).bottom,
+        lessThanOrEqualTo(tester.view.physicalSize.height),
+      );
+    });
+
+    testWithDatabase('the category form fits a small phone (text x$scale)', (
+      tester,
+      db,
+    ) async {
+      useSmallPhone(tester, textScale: scale);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Name'),
+        'A category with a name that is far too long for one line of text',
+      );
+      await tester.pumpAndSettle();
+
+      expect(tester.takeException(), isNull);
+      expect(
+        tester
+            .getRect(find.widgetWithText(FilledButton, 'Add category'))
+            .bottom,
+        lessThanOrEqualTo(tester.view.physicalSize.height),
+      );
+    });
+
+    testWithDatabase('the category tree with long names fits (text x$scale)', (
+      tester,
+      db,
+    ) async {
+      useSmallPhone(tester, textScale: scale);
+      var parent = await insertTestCategory(
+        db,
+        name: 'A top level category with a very long name',
+      );
+      for (var level = 2; level <= 5; level++) {
+        parent = await insertTestCategory(
+          db,
+          name: 'Level $level of a category with a long name',
+          parentId: parent,
+        );
+      }
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   group('layout on a 360 dp wide phone', () {
     testWithDatabase('bottom bar labels stay on one line', (tester, db) async {
       useSmallPhone(tester);

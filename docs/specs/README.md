@@ -11,6 +11,10 @@ behaviour.
 | [categories](categories/) | [Category picker](categories/category-picker.md) | 8 |
 | [transactions](transactions/) | [Add / edit transaction form](transactions/entry-form.md) | 8 |
 | [accounts](accounts/) | [Wallet cards and the balance preview](accounts/wallet-cards.md) | 8 |
+| [accounts](accounts/) | [Accounts screen](accounts/accounts-screen.md) | 9 |
+| [accounts](accounts/) | [Add / edit account](accounts/account-form.md) | 9 |
+| [categories](categories/) | [Categories screen](categories/categories-screen.md) | 9 |
+| [categories](categories/) | [Add / edit category](categories/category-form.md) | 9 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.
