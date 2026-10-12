@@ -16,11 +16,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/database/database_provider.dart';
+import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/core/router/app_router.dart';
 import 'package:hishab/core/theme/app_theme.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
+import '../helpers/fake_file_gateway.dart';
 import '../helpers/fixtures.dart';
 import '../helpers/fonts.dart';
 import '../helpers/pump_app.dart';
@@ -192,6 +194,19 @@ Future<void> _seed(AppDatabase db) async {
   await budget(300000, category: 'Shopping'); // 3,000
 }
 
+/// A file picker that always offers a small sheet.
+FileGateway _sheetGateway() => FakeFileGateway()
+  ..pickText(
+    'october-expenses.csv',
+    'Date,Description,Category,Amount,Account\n'
+        '11/10/2026,Lunch with Rahim,Food,-350,Cash\n'
+        '12/10/2026,Rickshaw,Transport,-60,Cash\n'
+        '13/10/2026,Freelance payment,Freelance,15000,bKash\n'
+        '14/10/2026,Electricity bill,Bills & utilities,-1450,Nagad\n'
+        '31/02/2026,Typo in the date,Food,-90,Cash\n'
+        '15/10/2026,Pet food,Pets,-420,Cash\n',
+  );
+
 Future<GlobalKey> _pump(WidgetTester tester, AppDatabase db) async {
   final key = GlobalKey();
   await tester.pumpWidget(
@@ -199,6 +214,7 @@ Future<GlobalKey> _pump(WidgetTester tester, AppDatabase db) async {
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
         clockProvider.overrideWithValue(() => testNow),
+        fileGatewayProvider.overrideWithValue(_sheetGateway()),
       ],
       child: RepaintBoundary(key: key, child: const _ShotApp()),
     ),
@@ -267,6 +283,28 @@ void main() {
     await tester.drag(find.byType(Scrollable).first, const Offset(0, -560));
     await tester.pumpAndSettle();
     await _capture(tester, key, '9_reports_charts');
+
+    await _openTab(tester, 'More');
+    await tester.tap(listRow('Backup & export'));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, 'a_backup');
+    await tester.tap(find.byKey(const ValueKey('import-csv')));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, 'b_import_choose');
+    await tester.tap(find.text('Choose CSV file'));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, 'c_import_map');
+    await tester.tap(find.text('Preview'));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, 'd_import_preview');
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byType(BackButton));
+    await tester.pumpAndSettle();
 
     await _openTab(tester, 'More');
     await tester.tap(listRow('Accounts'));

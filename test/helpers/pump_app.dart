@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/app.dart';
 import 'package:hishab/core/database/app_database.dart';
@@ -42,6 +43,7 @@ Future<void> pumpAppWithDatabase(
   WidgetTester tester,
   AppDatabase db, {
   DateTime? now,
+  List<Override> overrides = const [],
 }) async {
   final time = now ?? testNow;
   await tester.pumpWidget(
@@ -49,6 +51,7 @@ Future<void> pumpAppWithDatabase(
       overrides: [
         appDatabaseProvider.overrideWithValue(db),
         clockProvider.overrideWithValue(() => time),
+        ...overrides,
       ],
       child: const HishabApp(),
     ),

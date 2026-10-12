@@ -97,4 +97,24 @@ void main() {
       }
     });
   });
+
+  group('poishaToFixed', () {
+    test('always has two decimals, no grouping and no symbol', () {
+      expect(poishaToFixed(0), '0.00');
+      expect(poishaToFixed(5), '0.05');
+      expect(poishaToFixed(150000), '1500.00');
+      expect(poishaToFixed(123456789), '1234567.89');
+    });
+
+    test('keeps the minus sign', () {
+      expect(poishaToFixed(-25075), '-250.75');
+      expect(poishaToFixed(-5), '-0.05');
+    });
+
+    test('can be read back by parseTakaToPoisha', () {
+      for (final value in [0, 1, 99, 100, 123456, -99999]) {
+        expect(parseTakaToPoisha(poishaToFixed(value)), value);
+      }
+    });
+  });
 }

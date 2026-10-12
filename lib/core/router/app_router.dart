@@ -7,6 +7,7 @@ import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/presentation/screens/account_form_screen.dart';
 import 'package:hishab/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/backup_screen.dart';
+import 'package:hishab/features/backup/presentation/screens/csv_import_screen.dart';
 import 'package:hishab/features/budget/presentation/screens/budget_screen.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/screens/categories_screen.dart';
@@ -145,6 +146,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'backup',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const BackupScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'import-csv',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => const CsvImportScreen(),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'settings',

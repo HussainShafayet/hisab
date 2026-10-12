@@ -2,10 +2,12 @@ import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 
+import '../../../helpers/fake_file_gateway.dart';
 import '../../../helpers/fixtures.dart';
 import '../../../helpers/fonts.dart';
 import '../../../helpers/pump_app.dart';
@@ -429,5 +431,57 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     });
+  }
+
+  for (final scale in [1.0, 1.5]) {
+    testWithDatabase(
+      'Backup and the CSV import fit a small phone (text x$scale)',
+      (tester, db) async {
+        useSmallPhone(tester, textScale: scale);
+        await tester.runAsync(loadRealFonts);
+        await seedBasics(db);
+        final gateway = FakeFileGateway()
+          ..pickText(
+            'a-sheet-with-a-rather-long-file-name-for-the-month-of-october.csv',
+            'Transaction date,A very long description column name,Category,Total amount (BDT),Paid from\n'
+                '11/10/2026,বাজার করলাম অনেক কিছু একসাথে,Food,"-৳50,00,00,000.50",bKash personal wallet\n'
+                '12/10/2026,Rent for the whole month of October,Rent,-12000,Cash\n'
+                'not a date,Broken,Food,-5,Cash\n',
+          );
+        await pumpAppWithDatabase(
+          tester,
+          db,
+          overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+        );
+
+        await openFromMore(tester, 'Backup & export');
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.byKey(const ValueKey('import-csv')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.text('Choose CSV file'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        // The map step is a long list: look at the end of it too.
+        await tester.drag(
+          find.byType(Scrollable).first,
+          const Offset(0, -3000),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+
+        await tester.tap(find.text('Preview'));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        await tester.drag(
+          find.byType(Scrollable).first,
+          const Offset(0, -3000),
+        );
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 }
