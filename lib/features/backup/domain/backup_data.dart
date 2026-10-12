@@ -2,6 +2,8 @@ import 'dart:convert';
 
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart'
+    show maxCategoryDepth;
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -344,6 +346,28 @@ class BackupData {
     'budgets': [for (final b in budgets) b.toJson()],
   };
 
+  /// The categories with every category after the one it is inside, so they
+  /// can be saved one by one without a category pointing at one that is not
+  /// there yet.
+  List<BackupCategory> get categoriesParentsFirst {
+    final byId = {for (final c in categories) c.id: c};
+    int level(BackupCategory category) {
+      var level = 0;
+      var current = category;
+      while (level <= categories.length) {
+        final parent = byId[current.parentId];
+        if (parent == null) break;
+        level++;
+        current = parent;
+      }
+      return level;
+    }
+
+    final withLevel = [for (final c in categories) (level: level(c), c: c)];
+    withLevel.sort((a, b) => a.level.compareTo(b.level));
+    return [for (final entry in withLevel) entry.c];
+  }
+
   /// The backup as text, ready to be written to a file.
   String encode() => const JsonEncoder.withIndent('  ').convert(toJson());
 
@@ -371,8 +395,16 @@ class BackupData {
           'category ${category.id} has a parent that is not in the file.',
         );
       }
-      if (parentId == category.id || parents[parentId] != null) {
-        _damaged('category ${category.id} is nested more than one level.');
+      // Walk up to the top: a loop, or a tree deeper than the app allows,
+      // means the file is not one the app made.
+      var level = 1;
+      int? up = parentId;
+      while (up != null) {
+        level++;
+        if (up == category.id || level > maxCategoryDepth) {
+          _damaged('category ${category.id} is nested in a loop or too deep.');
+        }
+        up = parents[up];
       }
     }
     for (final t in transactions) {

@@ -1,3 +1,4 @@
+import 'package:hishab/core/utils/digits.dart';
 import 'package:hishab/core/utils/money.dart';
 
 // The keypad builds an expression like `1200+350.5×2`. Operators are + - × ÷
@@ -65,6 +66,25 @@ String _appendOperator(String expression, String operator) {
   }
   return expression.length >= _maxLength ? expression : expression + operator;
 }
+
+/// What is left of [raw] after keeping only what can be part of one plain
+/// number: digits (Bengali ones too) and a single dot, at most two decimals
+/// and twelve digits before the dot. Commas, spaces and letters are dropped,
+/// so a pasted `1,500.50` becomes `1500.50`. For the amount field that is
+/// typed in without the calculator.
+String sanitizeAmountText(String raw) {
+  var result = '';
+  for (final char in normalizeDigits(raw).split('')) {
+    if (char == '.' || RegExp(r'^\d$').hasMatch(char)) {
+      result = applyKey(result, char);
+    }
+  }
+  return result;
+}
+
+/// Whether [expression] has a calculation in it (`12+3`), not just a number.
+bool expressionHasOperator(String expression) =>
+    _operatorPattern.hasMatch(expression);
 
 /// The value of [expression] in poisha, rounded to the nearest poisha, or
 /// null if it cannot be calculated (empty, division by zero, too large).

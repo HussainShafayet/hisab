@@ -3,6 +3,7 @@ import 'package:hishab/features/backup/domain/csv_table.dart';
 import 'package:hishab/features/backup/domain/import_mapping.dart';
 import 'package:hishab/features/backup/domain/sheet_amount.dart';
 import 'package:hishab/features/backup/domain/sheet_date.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -98,12 +99,17 @@ class CategoryResolver {
         ),
       );
 
-  /// The id for a category path of one or two names, or null if it does not
-  /// exist (yet).
+  /// The id for a category path of one or more names (`Food`, or
+  /// `Food > Restaurant > Dinner`), or null if it does not exist (yet). A
+  /// single name also finds a sub-category of that name.
   int? find(List<String> path, CategoryType type) {
     if (path.length == 1) return findAny(path.first, type);
-    final parent = findTopLevel(path.first, type);
-    return parent == null ? null : findChild(parent, path[1]);
+    var current = findTopLevel(path.first, type);
+    for (final name in path.skip(1)) {
+      if (current == null) return null;
+      current = findChild(current, name);
+    }
+    return current;
   }
 }
 
@@ -189,7 +195,7 @@ class ParsedRow {
   final String accountName;
   final String? toAccountName;
 
-  /// One or two names, empty for a transfer.
+  /// From the top-level category down, empty for a transfer.
   final List<String> categoryPath;
   final String note;
 }
@@ -215,7 +221,8 @@ class PlannedRow {
 class CategoryToCreate {
   const CategoryToCreate({required this.path, required this.type});
 
-  /// One or two names.
+  /// From the top-level category down: one name, or several for a
+  /// sub-category.
   final List<String> path;
   final CategoryType type;
 
@@ -355,8 +362,10 @@ ImportPlan buildImportPlan({
     } else {
       final categoryCell = cell(ImportField.category);
       categoryPath = splitCategoryPath(categoryCell);
-      if (categoryPath.length > 2) {
-        rows.add(fail('"$categoryCell" has more than two levels.'));
+      if (categoryPath.length > maxCategoryDepth) {
+        rows.add(
+          fail('"$categoryCell" has more than $maxCategoryDepth levels.'),
+        );
         continue;
       }
       if (categoryPath.isEmpty) {

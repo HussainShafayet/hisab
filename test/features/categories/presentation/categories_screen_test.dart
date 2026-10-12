@@ -5,6 +5,7 @@ import 'package:hishab/features/categories/data/categories_repository.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 
 import '../../../helpers/pump_app.dart';
+import '../../../helpers/test_database.dart';
 
 Future<CategoryRow> categoryNamed(AppDatabase db, String name) async {
   final all = await db.categoriesDao.getAll(includeArchived: true);
@@ -216,7 +217,7 @@ void main() {
       expect(listRow('Rent'), findsNothing);
     }, seedDefaults: true);
 
-    testWithDatabase('a category with sub-categories stays top-level', (
+    testWithDatabase('a category with sub-categories can be moved too', (
       tester,
       db,
     ) async {
@@ -233,11 +234,7 @@ void main() {
               find.byType(DropdownButtonFormField<int?>),
             )
             .onChanged,
-        isNull,
-      );
-      expect(
-        find.text('This category has sub-categories, so it stays top-level.'),
-        findsOneWidget,
+        isNotNull,
       );
     }, seedDefaults: true);
 
@@ -336,5 +333,131 @@ void main() {
       expect(find.textContaining('Restore "Food" first'), findsOneWidget);
       expect((await categoryNamed(db, 'Groceries')).isArchived, isTrue);
     }, seedDefaults: true);
+  });
+
+  group('categories inside categories', () {
+    // Food > Groceries > Rice, and Transport on its own.
+    Future<({int food, int groceries, int rice, int transport})> seedDeep(
+      AppDatabase db,
+    ) async {
+      final food = await insertTestCategory(db, name: 'Food');
+      final groceries = await insertTestCategory(
+        db,
+        name: 'Groceries',
+        parentId: food,
+      );
+      final rice = await insertTestCategory(
+        db,
+        name: 'Rice',
+        parentId: groceries,
+      );
+      final transport = await insertTestCategory(db, name: 'Transport');
+      return (
+        food: food,
+        groceries: groceries,
+        rice: rice,
+        transport: transport,
+      );
+    }
+
+    testWithDatabase('are listed one level deeper each time', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedDeep(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      double left(String name) => tester.getTopLeft(find.text(name)).dx;
+      expect(listRow('Rice'), findsOneWidget);
+      expect(left('Groceries'), greaterThan(left('Food')));
+      expect(left('Rice'), greaterThan(left('Groceries')));
+      expect(left('Transport'), left('Food'));
+    });
+
+    testWithDatabase('offer "Add sub-category" down to the fifth level', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      var parent = await insertTestCategory(db, name: 'L1');
+      for (final name in ['L2', 'L3', 'L4', 'L5']) {
+        parent = await insertTestCategory(db, name: name, parentId: parent);
+      }
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      await openRowMenu(tester, 'L4');
+      expect(find.text('Add sub-category'), findsOneWidget);
+      await tester.tapAt(const Offset(5, 5));
+      await tester.pumpAndSettle();
+
+      await openRowMenu(tester, 'L5');
+      expect(find.text('Add sub-category'), findsNothing);
+    });
+
+    testWithDatabase(
+      'the parent list shows paths and leaves out itself and what is inside',
+      (tester, db) async {
+        useTallScreen(tester);
+        await seedDeep(db);
+        await pumpAppWithDatabase(tester, db);
+        await openFromMore(tester, 'Categories');
+
+        await tester.tap(listRow('Groceries'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byType(DropdownButtonFormField<int?>));
+        await tester.pumpAndSettle();
+
+        // Groceries itself and Rice (inside it) cannot be its parent.
+        expect(find.text('Food'), findsWidgets);
+        expect(find.text('Transport'), findsWidgets);
+        expect(find.text('Food › Groceries'), findsNothing);
+        expect(find.text('Food › Groceries › Rice'), findsNothing);
+      },
+    );
+
+    testWithDatabase('a category can be moved inside a sub-category', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final ids = await seedDeep(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      await tester.tap(listRow('Transport'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<int?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Food › Groceries').last);
+      await tester.pumpAndSettle();
+      await tapSave(tester, 'Save changes');
+
+      expect((await categoryNamed(db, 'Transport')).parentId, ids.groceries);
+    });
+
+    testWithDatabase('a category with others inside can be moved with them', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final ids = await seedDeep(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      await tester.tap(listRow('Food'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(DropdownButtonFormField<int?>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Transport').last);
+      await tester.pumpAndSettle();
+      await tapSave(tester, 'Save changes');
+
+      expect((await categoryNamed(db, 'Food')).parentId, ids.transport);
+      // What was inside Food came along.
+      expect((await categoryNamed(db, 'Groceries')).parentId, ids.food);
+    });
   });
 }

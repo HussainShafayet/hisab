@@ -155,14 +155,20 @@ class TransactionsRepository {
       if (row != null) categories.add(row.toDomain());
     }
 
+    // The picker shows the categories as a tree, and the ones used most in a
+    // row of their own.
     final since = now.subtract(_usageWindow);
-    Future<List<Category>> chipsFor(TransactionType type) async {
+    Future<({List<Category> tree, List<int> frequent})> categoriesFor(
+      TransactionType type,
+    ) async {
       final ofType = categories.where((c) => c.type == type.categoryType);
+      final tree = flattenCategoryTree(buildCategoryTree(ofType));
       final usage = await _db.transactionsDao.categoryUsage(type, since: since);
-      return sortCategoriesByUsage(
-        flattenCategoryTree(buildCategoryTree(ofType)),
-        usage,
-      );
+      final frequent = [
+        for (final category in sortCategoriesByUsage(tree, usage))
+          if (usage.containsKey(category.id)) category.id,
+      ].take(maxFrequentCategories).toList();
+      return (tree: tree, frequent: frequent);
     }
 
     final lastUsed = await _db.transactionsDao.lastUsedAccountId();
@@ -171,11 +177,15 @@ class TransactionsRepository {
         ? lastUsed
         : accounts.where((a) => !a.isArchived).firstOrNull?.id;
 
+    final expense = await categoriesFor(TransactionType.expense);
+    final income = await categoriesFor(TransactionType.income);
     return AddTransactionOptions(
       accounts: accounts,
       defaultAccountId: defaultAccountId,
-      expenseCategories: await chipsFor(TransactionType.expense),
-      incomeCategories: await chipsFor(TransactionType.income),
+      expenseCategories: expense.tree,
+      incomeCategories: income.tree,
+      frequentExpenseIds: expense.frequent,
+      frequentIncomeIds: income.frequent,
     );
   }
 

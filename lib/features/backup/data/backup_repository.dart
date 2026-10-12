@@ -4,6 +4,8 @@ import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/backup/domain/backup_data.dart';
+import 'package:hishab/features/categories/data/category_mapper.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:intl/intl.dart';
 
@@ -94,13 +96,10 @@ class BackupRepository {
                 createdAt: Value(a.createdAt),
               ),
           ]);
-          // Parents first: a sub-category points at its parent.
-          final ordered = [
-            ...data.categories.where((c) => c.parentId == null),
-            ...data.categories.where((c) => c.parentId != null),
-          ];
+          // Parents first: a sub-category points at its parent. (The sort is
+          // stable, so categories keep their order within a level.)
           batch.insertAll(_db.categories, [
-            for (final c in ordered)
+            for (final c in data.categoriesParentsFirst)
               CategoriesCompanion.insert(
                 id: Value(c.id),
                 name: c.name,
@@ -149,35 +148,43 @@ class BackupRepository {
   }
 
   /// Rows that others point at go last: transactions and budgets first, then
-  /// sub-categories before their parents, then accounts.
+  /// categories from the innermost out, then accounts.
   Future<void> _deleteEverything() async {
     await _db.delete(_db.budgets).go();
     await _db.delete(_db.transactions).go();
-    await (_db.delete(
-      _db.categories,
-    )..where((c) => c.parentId.isNotNull())).go();
-    await _db.delete(_db.categories).go();
+    // A category that has others inside it cannot go before them, so remove
+    // the ones nothing is inside, over and over, until none are left. Each
+    // round takes one level off the bottom of the tree.
+    var removed = 1;
+    while (removed > 0) {
+      removed = await _db.customUpdate(
+        'DELETE FROM categories WHERE id NOT IN '
+        '(SELECT parent_id FROM categories WHERE parent_id IS NOT NULL)',
+        updates: {_db.categories},
+        updateKind: UpdateKind.delete,
+      );
+    }
     await _db.delete(_db.accounts).go();
   }
 
   /// Every transaction as a spreadsheet, oldest first:
   /// `Date, Type, Amount, Account, To account, Category, Note, Correction`.
-  /// The category of a sub-category is written `Parent > Child`. Amounts are
+  /// The category of a sub-category is written with its whole path, like
+  /// `Food > Restaurant > Dinner`. Amounts are
   /// plain taka (`1234.50`), the type is income, expense or transfer, and
   /// "Correction" says `yes` for a balance adjustment. The columns have the
   /// names the CSV import looks for, so the file can be imported again.
   Future<String> exportTransactionsCsv() async {
     final categories = await _db.categoriesDao.getAll(includeArchived: true);
-    final names = {for (final c in categories) c.id: c.name};
+    final byId = {for (final c in categories) c.id: c.toDomain()};
     final rows = await _db.transactionsDao.getAllWithDetails();
     final dateFormat = DateFormat('yyyy-MM-dd HH:mm');
 
     String categoryPath(CategoryRow? category) {
-      if (category == null) return '';
-      final parent = category.parentId == null
-          ? null
-          : names[category.parentId];
-      return parent == null ? category.name : '$parent > ${category.name}';
+      final domain = category == null ? null : byId[category.id];
+      return domain == null
+          ? ''
+          : categoryPathLabel(domain, byId, separator: ' > ');
     }
 
     final table = <List<String>>[

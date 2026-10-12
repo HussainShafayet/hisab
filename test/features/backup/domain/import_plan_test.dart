@@ -255,10 +255,18 @@ void main() {
       );
     });
 
-    test('a category more than two levels deep', () {
+    test('a category more than five levels deep', () {
       expect(
-        errorOf(['11/10/2026', '10', 'expense', 'A > B > C', 'Cash', '', '']),
-        contains('more than two levels'),
+        errorOf([
+          '11/10/2026',
+          '10',
+          'expense',
+          'A > B > C > D > E > F',
+          'Cash',
+          '',
+          '',
+        ]),
+        contains('more than 5 levels'),
       );
     });
 

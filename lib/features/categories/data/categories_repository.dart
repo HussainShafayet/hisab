@@ -3,12 +3,14 @@ import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/categories/data/category_mapper.dart';
 import 'package:hishab/features/categories/domain/category.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 
 /// Everything the UI needs to know about categories. Validates input, turns
 /// database rows into domain models and enforces the category rules:
-/// one level of sub-categories, a sub-category has its parent's type, names
-/// are unique among siblings, and nothing is ever deleted, only archived.
+/// categories can sit inside categories up to [maxCategoryDepth] levels, a
+/// sub-category has its parent's type, names are unique among siblings, and
+/// nothing is ever deleted, only archived.
 class CategoriesRepository {
   CategoriesRepository(this._db);
 
@@ -38,7 +40,8 @@ class CategoriesRepository {
   }
 
   /// Returns the new category's id. A sub-category passes its parent's
-  /// [parentId] and the same [type] as that parent.
+  /// [parentId] (which can itself be a sub-category) and the same [type] as
+  /// that parent.
   Future<int> createCategory({
     required String name,
     required CategoryType type,
@@ -78,12 +81,16 @@ class CategoriesRepository {
       final all = await _db.categoriesDao.getAll(includeArchived: true);
       final current = _requireRow(all, id);
       final cleanName = _validatedName(name);
-      _validateParent(
-        all,
-        parentId: parentId,
-        type: current.type,
-        categoryId: id,
-      );
+      // An unchanged parent is not checked again: a category can be renamed
+      // while its parent is archived.
+      if (parentId != current.parentId) {
+        _validateParent(
+          all,
+          parentId: parentId,
+          type: current.type,
+          categoryId: id,
+        );
+      }
       _ensureNameFree(
         all,
         cleanName,
@@ -106,12 +113,12 @@ class CategoriesRepository {
     });
   }
 
-  /// Hides the category and its sub-categories from lists. Transactions that
-  /// use them are untouched.
+  /// Hides the category and everything inside it from lists. Transactions
+  /// that use them are untouched.
   Future<void> archiveCategory(int id) => _setArchived(id, archived: true);
 
-  /// Brings the category and its sub-categories back. A sub-category cannot
-  /// be restored while its parent is archived.
+  /// Brings the category and everything inside it back. A sub-category
+  /// cannot be restored while its parent is archived.
   Future<void> restoreCategory(int id) => _setArchived(id, archived: false);
 
   Future<void> _setArchived(int id, {required bool archived}) {
@@ -128,9 +135,12 @@ class CategoriesRepository {
         }
       }
 
-      await _db.categoriesDao.setArchived(id, archived: archived);
-      for (final child in all.where((c) => c.parentId == id)) {
-        await _db.categoriesDao.setArchived(child.id, archived: archived);
+      final everyone = categoryAndDescendantIds(
+        id,
+        all.map((row) => row.toDomain()),
+      );
+      for (final affected in everyone) {
+        await _db.categoriesDao.setArchived(affected, archived: archived);
       }
     });
   }
@@ -159,29 +169,13 @@ class CategoriesRepository {
     required CategoryType type,
     int? categoryId,
   }) {
-    if (parentId == null) return;
-    if (parentId == categoryId) {
-      throw const ValidationException('A category cannot be its own parent.');
-    }
-    final parent = _requireRow(all, parentId);
-    if (parent.parentId != null) {
-      throw const ValidationException(
-        'Sub-categories can only go one level deep.',
-      );
-    }
-    if (parent.type != type) {
-      throw const ValidationException(
-        'A sub-category must have the same type as its parent.',
-      );
-    }
-    if (parent.isArchived) {
-      throw const ValidationException('The parent category is archived.');
-    }
-    if (categoryId != null && all.any((c) => c.parentId == categoryId)) {
-      throw const ValidationException(
-        'A category that has sub-categories cannot become a sub-category.',
-      );
-    }
+    final problem = categoryParentProblem(
+      all: all.map((row) => row.toDomain()),
+      type: type,
+      parentId: parentId,
+      categoryId: categoryId,
+    );
+    if (problem != null) throw ValidationException(problem);
   }
 
   void _ensureNameFree(

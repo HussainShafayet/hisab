@@ -132,13 +132,16 @@ class CsvImportRepository {
       Future<int> ensureCategory(List<String> path, CategoryType type) async {
         final found = resolver.find(path, type);
         if (found != null) return found;
+        // Walk down the path, making the levels that are missing.
         int? parentId;
-        if (path.length == 2) {
+        for (final name in path) {
           parentId =
-              resolver.findTopLevel(path.first, type) ??
-              await createCategory(path.first, type, null);
+              (parentId == null
+                  ? resolver.findTopLevel(name, type)
+                  : resolver.findChild(parentId, name)) ??
+              await createCategory(name, type, parentId);
         }
-        return createCategory(path.last, type, parentId);
+        return parentId!;
       }
 
       var imported = 0;

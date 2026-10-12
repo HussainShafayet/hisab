@@ -10,6 +10,7 @@ import 'package:hishab/features/transactions/presentation/widgets/transaction_ti
 import '../../../helpers/fake_file_gateway.dart';
 import '../../../helpers/fixtures.dart';
 import '../../../helpers/fonts.dart';
+import '../../../helpers/form_actions.dart';
 import '../../../helpers/pump_app.dart';
 import '../../../helpers/test_database.dart';
 
@@ -41,16 +42,26 @@ void main() {
       // Overflows are reported as exceptions, which fail the test.
       expect(tester.takeException(), isNull);
       final screen = tester.view.physicalSize;
-      for (final label in ['Save', 'Save & add another']) {
+      for (final label in ['Save', 'Save & new']) {
         final rect = tester.getRect(find.text(label));
         expect(rect.bottom, lessThanOrEqualTo(screen.height), reason: label);
         expect(rect.right, lessThanOrEqualTo(screen.width), reason: label);
       }
-      // The keypad is fully visible too.
+
+      // With the calculator on, its keypad is fully visible too.
+      await turnCalculatorOn(tester);
+      expect(tester.takeException(), isNull);
       expect(
         tester.getRect(find.byKey(const ValueKey('key-+'))).bottom,
         lessThanOrEqualTo(screen.height),
       );
+      for (final label in ['Save', 'Save & new']) {
+        expect(
+          tester.getRect(find.text(label)).bottom,
+          lessThanOrEqualTo(screen.height),
+          reason: label,
+        );
+      }
     }, seedDefaults: true);
   }
 
@@ -64,12 +75,8 @@ void main() {
 
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    for (final key in '250'.split('')) {
-      await tester.tap(find.byKey(ValueKey('key-$key')));
-    }
-    await tester.ensureVisible(find.byKey(ValueKey('category-${b.food}')));
-    await tester.tap(find.byKey(ValueKey('category-${b.food}')));
-    await tester.pump();
+    await typeAmount(tester, '250');
+    await chooseCategory(tester, b.food);
     await tester.tap(find.text('Save'));
     await tester.pumpAndSettle();
 
@@ -227,7 +234,7 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      for (final label in ['Save', 'Save & add another']) {
+      for (final label in ['Save', 'Save & new']) {
         expect(
           tester.getSize(find.text(label)).height,
           lessThan(24),
@@ -236,28 +243,55 @@ void main() {
       }
     });
 
-    testWithDatabase(
-      'category chips are short, and add the parent only when needed',
-      (tester, db) async {
-        useSmallPhone(tester);
-        await insertTestAccount(db, name: 'Cash');
-        final food = await insertTestCategory(db, name: 'Food');
-        final shopping = await insertTestCategory(db, name: 'Shopping');
-        await insertTestCategory(db, name: 'Groceries', parentId: food);
-        await insertTestCategory(db, name: 'Other', parentId: food);
-        await insertTestCategory(db, name: 'Other', parentId: shopping);
-        await pumpAppWithDatabase(tester, db);
+    for (final scale in [1.0, 1.5]) {
+      testWithDatabase(
+        'the category picker fits a small phone (text x$scale)',
+        (tester, db) async {
+          useSmallPhone(tester, textScale: scale);
+          await tester.runAsync(loadRealFonts);
+          await insertTestAccount(db, name: 'Cash');
+          final food = await insertTestCategory(
+            db,
+            name: 'Food and everything we eat or drink at home and outside',
+          );
+          final shopping = await insertTestCategory(db, name: 'Shopping');
+          final groceries = await insertTestCategory(
+            db,
+            name: 'Groceries from the neighbourhood bazaar',
+            parentId: food,
+          );
+          await insertTestCategory(
+            db,
+            name: 'Rice, lentils and oil in bulk for the whole month',
+            parentId: groceries,
+          );
+          await insertTestCategory(db, name: 'Other', parentId: food);
+          await insertTestCategory(db, name: 'Other', parentId: shopping);
+          await pumpAppWithDatabase(tester, db);
+          await tester.tap(find.byType(FloatingActionButton));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(const ValueKey('category-field')));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
 
-        await tester.tap(find.byType(FloatingActionButton));
-        await tester.pumpAndSettle();
+          // Open the long ones.
+          await tester.tap(find.byKey(ValueKey('category-expand-$food')));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byKey(ValueKey('category-expand-$groceries')));
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
 
-        expect(find.text('Groceries'), findsOneWidget);
-        expect(find.text('Food › Groceries'), findsNothing);
-        // Two sub-categories are called "Other", so both say where they belong.
-        expect(find.text('Food › Other'), findsOneWidget);
-        expect(find.text('Shopping › Other'), findsOneWidget);
-      },
-    );
+          // Two categories are called "Other": a search says where each is.
+          await tester.enterText(
+            find.byKey(const ValueKey('category-search')),
+            'other',
+          );
+          await tester.pumpAndSettle();
+          expect(tester.takeException(), isNull);
+          expect(find.text('Other'), findsNWidgets(2));
+        },
+      );
+    }
   });
 
   group('on a short window (phone turned sideways, split screen)', () {
@@ -295,17 +329,9 @@ void main() {
       // The form is one long list here, so scroll to each part like a user.
       // The Note text field has a Scrollable of its own: take the outer one.
       final formList = find.byType(Scrollable).first;
-      await tester.ensureVisible(find.byKey(ValueKey('category-${b.food}')));
-      await tester.tap(find.byKey(ValueKey('category-${b.food}')));
-      await tester.pump();
-      for (final key in '75'.split('')) {
-        await tester.scrollUntilVisible(
-          find.byKey(ValueKey('key-$key')),
-          100,
-          scrollable: formList,
-        );
-        await tester.tap(find.byKey(ValueKey('key-$key')));
-      }
+      await typeAmount(tester, '75');
+      await tester.ensureVisible(find.byKey(const ValueKey('category-field')));
+      await chooseCategory(tester, b.food);
       await tester.scrollUntilVisible(
         find.text('Save'),
         100,
@@ -320,6 +346,27 @@ void main() {
         DateTime(2100),
       );
       expect(rows.single.amount, 7500);
+    });
+
+    testWithDatabase('the calculator keypad scrolls with the form', (
+      tester,
+      db,
+    ) async {
+      useShortWindow(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await tester.tap(find.byType(FloatingActionButton));
+      await tester.pumpAndSettle();
+
+      await turnCalculatorOn(tester);
+
+      expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('key-+')),
+        100,
+        scrollable: find.byType(Scrollable).first,
+      );
+      expect(tester.takeException(), isNull);
     });
 
     testWithDatabase('the transfer form fits too', (tester, db) async {

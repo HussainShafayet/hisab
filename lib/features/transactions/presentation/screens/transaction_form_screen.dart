@@ -11,13 +11,20 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/money_form_field.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
+import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
+import 'package:hishab/features/accounts/presentation/widgets/account_picker_sheet.dart';
 import 'package:hishab/features/categories/domain/category.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
+import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 import 'package:hishab/features/transactions/domain/amount_calculator.dart';
+import 'package:hishab/features/transactions/domain/balance_preview.dart';
 import 'package:hishab/features/transactions/domain/transaction_input.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
 import 'package:hishab/features/transactions/presentation/widgets/amount_keypad.dart';
+import 'package:hishab/features/transactions/presentation/widgets/amount_text_formatter.dart';
 import 'package:intl/intl.dart';
 
 /// Adds a transaction, edits the one with [editId], or adds a copy of the one
@@ -36,6 +43,10 @@ class TransactionFormScreen extends ConsumerWidget {
     return ref
         .watch(transactionFormDataProvider(args))
         .when(
+          // The options reload after a new category or account was made from
+          // the form. The form stays put (what was typed is kept) and just
+          // gets the new options.
+          skipLoadingOnReload: true,
           loading: () => Scaffold(
             appBar: AppBar(title: title),
             body: const LoadingView(),
@@ -63,25 +74,31 @@ class _TransactionForm extends ConsumerStatefulWidget {
 }
 
 class _TransactionFormState extends ConsumerState<_TransactionForm> {
+  final _amount = TextEditingController();
   final _note = TextEditingController();
   final _fee = TextEditingController();
+  final _amountFocus = FocusNode();
   final _noteFocus = FocusNode();
   final _feeFocus = FocusNode();
 
   late TransactionType _type;
-  String _expression = '';
   int? _categoryId;
   int? _accountId;
   int? _toAccountId;
   late DateTime _day;
+
+  /// Whether the amount is typed with the calculator keypad, so it can be a
+  /// sum like `1200+350`. Otherwise it is a plain number typed on the keyboard.
+  bool _calculator = false;
   bool _saving = false;
   String? _error;
 
-  /// Confirms "Save & add another". Shown inline instead of as a snack bar,
-  /// because a snack bar would cover the Save buttons.
+  /// Confirms "Save & new". Shown inline instead of as a snack bar, because a
+  /// snack bar would cover the Save buttons.
   String? _notice;
 
   bool get _isEditing => widget.args.editId != null;
+  bool get _isAdding => widget.data.source == null;
   TransactionFormData get _data => widget.data;
 
   @override
@@ -92,7 +109,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     final now = ref.read(clockProvider)();
 
     _type = source?.type ?? TransactionType.expense;
-    _expression = source == null ? '' : poishaToInput(source.amount);
+    _amount.text = source == null ? '' : poishaToInput(source.amount);
     _note.text = source?.note ?? '';
     _day = dateOnly(_isEditing ? source!.date : now);
 
@@ -118,19 +135,29 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ? source!.categoryId
         : null;
 
-    _noteFocus.addListener(_onFocusChanged);
-    _feeFocus.addListener(_onFocusChanged);
+    for (final node in [_amountFocus, _noteFocus, _feeFocus]) {
+      node.addListener(_onFocusChanged);
+    }
   }
 
   void _onFocusChanged() => setState(() {});
 
   @override
   void dispose() {
+    _amount.dispose();
     _note.dispose();
     _fee.dispose();
+    _amountFocus.dispose();
     _noteFocus.dispose();
     _feeFocus.dispose();
     super.dispose();
+  }
+
+  void _setAmountText(String text) {
+    _amount.value = TextEditingValue(
+      text: text,
+      selection: TextSelection.collapsed(offset: text.length),
+    );
   }
 
   void _setType(TransactionType type) {
@@ -143,8 +170,58 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     });
   }
 
+  /// Switches between the keyboard and the calculator keypad. Leaving the
+  /// calculator turns a sum into its result, so the field holds a plain number
+  /// again.
+  void _toggleCalculator() {
+    if (_calculator) {
+      final text = _amount.text;
+      if (expressionHasOperator(text)) {
+        final result = evaluateAmount(text);
+        if (result == null) {
+          setState(() => _error = 'Check the calculation first.');
+          return;
+        }
+        _setAmountText(result > 0 ? poishaToInput(result) : '');
+      }
+      setState(() {
+        _calculator = false;
+        _error = null;
+      });
+      _amountFocus.requestFocus();
+    } else {
+      FocusScope.of(context).unfocus();
+      setState(() {
+        _calculator = true;
+        _error = null;
+      });
+    }
+  }
+
+  void _onKey(String key) {
+    setState(() {
+      _setAmountText(applyKey(_amount.text, key));
+      _error = null;
+      _notice = null;
+    });
+  }
+
+  void _onAmountChanged(String _) => setState(() {
+    _error = null;
+    _notice = null;
+  });
+
+  /// The keyboard's "next": on to the category, which is what comes after
+  /// the amount.
+  void _onAmountSubmitted(String _) {
+    _amountFocus.unfocus();
+    if (_type != TransactionType.transfer && _categoryId == null) {
+      _chooseCategory();
+    }
+  }
+
   Future<bool> _save() async {
-    final amount = evaluateAmount(_expression);
+    final amount = evaluateAmount(_amount.text);
     if (amount == null || amount <= 0) {
       setState(() => _error = 'Enter an amount.');
       return false;
@@ -205,17 +282,21 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     if (await _save() && mounted) context.pop();
   }
 
+  /// Saves, then empties the form for the next one. The account, the type and
+  /// the date stay, since the next one is usually alike (several things
+  /// bought on the same day).
   Future<void> _saveAndAddAnother() async {
-    final saved = formatPoisha(evaluateAmount(_expression) ?? 0);
+    final saved = formatPoisha(evaluateAmount(_amount.text) ?? 0);
     if (!await _save() || !mounted) return;
     setState(() {
-      _expression = '';
+      _setAmountText('');
       _categoryId = null;
       _saving = false;
-      _notice = 'Saved $saved';
+      _notice = 'Saved $saved. Add the next one.';
       _note.clear();
       _fee.clear();
     });
+    if (!_calculator) _amountFocus.requestFocus();
   }
 
   Future<void> _pickDate() async {
@@ -236,8 +317,150 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   }
 
   Future<void> _addCategory() async {
-    await context.push(AppRoutes.newCategory(type: _type.name));
+    final id = await context.push<int>(AppRoutes.newCategory(type: _type.name));
     ref.invalidate(transactionFormDataProvider(widget.args));
+    // The category that was just made is the one wanted.
+    if (id != null && mounted) {
+      setState(() {
+        _categoryId = id;
+        _error = null;
+      });
+    }
+  }
+
+  Future<void> _chooseCategory() async {
+    _amountFocus.unfocus();
+    final options = _data.options;
+    final pick = await showCategoryPicker(
+      context,
+      title: _type == TransactionType.income
+          ? 'Income category'
+          : 'Expense category',
+      categories: options.categoriesFor(_type),
+      frequentIds: options.frequentIdsFor(_type),
+      selectedId: _categoryId,
+    );
+    if (!mounted) return;
+    switch (pick) {
+      case CategoryPicked(:final id):
+        setState(() {
+          _categoryId = id;
+          _error = null;
+        });
+      case CategoryAddRequested():
+        await _addCategory();
+      case null:
+        break;
+    }
+  }
+
+  /// Opens the account sheet and hands the chosen id to [onChosen].
+  Future<void> _chooseAccount({
+    required String title,
+    required int? selected,
+    required ValueChanged<int> onChosen,
+    int? disabled,
+  }) async {
+    _amountFocus.unfocus();
+    final id = await showAccountPicker(
+      context,
+      title: title,
+      accounts: [
+        for (final account in _data.options.accounts)
+          if (!account.isArchived || account.id == selected) account,
+      ],
+      balances: _balances(),
+      selectedId: selected,
+      disabledId: disabled,
+    );
+    if (id == null || !mounted) return;
+    setState(() {
+      onChosen(id);
+      _error = null;
+    });
+  }
+
+  Map<int, int> _balances() => {
+    for (final item
+        in ref.read(accountsProvider(true)).value ??
+            const <AccountWithBalance>[])
+      item.account.id: item.balance,
+  };
+
+  Account? _account(int? id) {
+    for (final account in _data.options.accounts) {
+      if (account.id == id) return account;
+    }
+    return null;
+  }
+
+  /// What saving would do to the accounts, or null while the amount is empty.
+  TransactionEffect? get _effect {
+    final amount = evaluateAmount(_amount.text);
+    final from = _accountId;
+    if (amount == null || amount <= 0 || from == null) return null;
+    final isTransfer = _type == TransactionType.transfer;
+    return TransactionEffect(
+      type: _type,
+      amount: amount,
+      accountId: from,
+      toAccountId: isTransfer ? _toAccountId : null,
+      fee: isTransfer && !_isEditing ? (parseTakaToPoisha(_fee.text) ?? 0) : 0,
+    );
+  }
+
+  /// What the transaction being edited did to the balances, which the
+  /// accounts already include.
+  TransactionEffect? get _oldEffect {
+    final source = _data.source;
+    if (!_isEditing || source == null) return null;
+    return TransactionEffect(
+      type: source.type,
+      amount: source.amount,
+      accountId: source.accountId,
+      toAccountId: source.toAccountId,
+    );
+  }
+
+  /// The wallet card for [accountId]: its balance, and what the balance will
+  /// be once this transaction is saved.
+  Widget _accountCard({
+    required Key key,
+    required int? accountId,
+    required String? caption,
+    required String placeholder,
+    required VoidCallback onTap,
+    required Map<int, int> balances,
+  }) {
+    final account = _account(accountId);
+    if (account == null) {
+      return _ChooseTile(
+        key: key,
+        icon: Icons.account_balance_wallet_outlined,
+        label: placeholder,
+        onTap: onTap,
+      );
+    }
+    final balance = balances[account.id];
+    final effect = _effect;
+    return KeyedSubtree(
+      key: key,
+      child: AccountCard(
+        account: account,
+        caption: caption,
+        balance: balance,
+        balanceAfter: balance == null || effect == null
+            ? null
+            : projectedBalance(
+                current: balance,
+                account: account.id,
+                after: effect,
+                before: _oldEffect,
+              ),
+        trailing: const Icon(Icons.unfold_more, color: Colors.white70),
+        onTap: onTap,
+      ),
+    );
   }
 
   @override
@@ -268,6 +491,10 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       TransactionType.expense => colors.expense,
       TransactionType.transfer => theme.colorScheme.onSurface,
     };
+    // The balances come from their own stream. Watching it keeps the numbers
+    // right while the form is open (they change after "Save & new").
+    ref.watch(accountsProvider(true));
+    final balances = _balances();
 
     final header = <Widget>[
       Padding(
@@ -289,7 +516,16 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           onSelectionChanged: (selection) => _setType(selection.first),
         ),
       ),
-      _AmountDisplay(expression: _expression, color: amountColor),
+      _AmountInput(
+        controller: _amount,
+        focusNode: _amountFocus,
+        color: amountColor,
+        calculator: _calculator,
+        autofocus: _isAdding,
+        onToggleCalculator: _toggleCalculator,
+        onChanged: _onAmountChanged,
+        onSubmitted: _onAmountSubmitted,
+      ),
       if (_error != null)
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -313,11 +549,13 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 color: theme.colorScheme.primary,
               ),
               const SizedBox(width: 6),
-              Text(
-                _notice!,
-                key: const ValueKey('form-notice'),
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.primary,
+              Flexible(
+                child: Text(
+                  _notice!,
+                  key: const ValueKey('form-notice'),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
                 ),
               ),
             ],
@@ -327,20 +565,21 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
 
     final fields = <Widget>[
       if (_type == TransactionType.transfer)
-        ..._transferFields(context)
+        ..._transferFields(context, balances)
       else ...[
-        _SectionLabel(
-          _type == TransactionType.income
-              ? 'Income category'
-              : 'Expense category',
-        ),
-        _categoryChips(context),
-        const SizedBox(height: 16),
-        const _SectionLabel('Account'),
-        _accountChips(
-          selected: _accountId,
-          keyPrefix: 'account',
-          onSelected: (id) => setState(() => _accountId = id),
+        _categoryTile(context),
+        const SizedBox(height: 12),
+        _accountCard(
+          key: const ValueKey('account-field'),
+          accountId: _accountId,
+          caption: null,
+          placeholder: 'Choose account',
+          balances: balances,
+          onTap: () => _chooseAccount(
+            title: 'Account',
+            selected: _accountId,
+            onChosen: (id) => _accountId = id,
+          ),
         ),
       ],
       const SizedBox(height: 16),
@@ -355,7 +594,9 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       ),
     ];
 
-    final keypad = textFieldFocused ? null : AmountKeypad(onKey: _onKey);
+    final keypad = _calculator && !textFieldFocused
+        ? AmountKeypad(onKey: _onKey)
+        : null;
 
     final saveBar = SafeArea(
       top: false,
@@ -374,8 +615,9 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                   Expanded(
                     flex: 3,
                     child: OutlinedButton(
+                      key: const ValueKey('save-and-new'),
                       onPressed: _saving ? null : _saveAndAddAnother,
-                      child: const Text('Save & add another'),
+                      child: const Text('Save & new'),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -391,11 +633,11 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       ),
     );
 
-    // The amount, keypad and Save buttons take about 410 dp. On a short
-    // window (a phone turned sideways, split screen) nothing is left for the
-    // fields, so everything scrolls together. The window height does not
-    // shrink when the system keyboard opens, so typing a note keeps the
-    // normal layout with the Save buttons above the keyboard.
+    // The calculator keypad and the Save buttons take about 300 dp. On a
+    // short window (a phone turned sideways, split screen) nothing is left
+    // for the fields, so everything scrolls together. The window height does
+    // not shrink when the system keyboard opens, so typing keeps the normal
+    // layout with the Save buttons above the keyboard.
     final isShort = MediaQuery.sizeOf(context).height < 520;
 
     return Scaffold(
@@ -417,11 +659,21 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             )
           : Column(
               children: [
-                ...header,
                 Expanded(
                   child: ListView(
-                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-                    children: fields,
+                    keyboardDismissBehavior:
+                        ScrollViewKeyboardDismissBehavior.onDrag,
+                    padding: const EdgeInsets.only(bottom: 8),
+                    children: [
+                      ...header,
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: fields,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 ?keypad,
@@ -431,15 +683,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     );
   }
 
-  void _onKey(String key) {
-    setState(() {
-      _expression = applyKey(_expression, key);
-      _error = null;
-      _notice = null;
-    });
-  }
-
-  List<Widget> _transferFields(BuildContext context) {
+  List<Widget> _transferFields(BuildContext context, Map<int, int> balances) {
     final accounts = _data.options.accounts;
     if (accounts.length < 2) {
       return [
@@ -454,21 +698,47 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ),
       ];
     }
+    final canSwap = _accountId != null && _toAccountId != null;
     return [
-      const _SectionLabel('From'),
-      _accountChips(
-        selected: _accountId,
-        keyPrefix: 'from',
-        disabledId: _toAccountId,
-        onSelected: (id) => setState(() => _accountId = id),
+      _accountCard(
+        key: const ValueKey('from-field'),
+        accountId: _accountId,
+        caption: 'From',
+        placeholder: 'Choose the account the money leaves',
+        balances: balances,
+        onTap: () => _chooseAccount(
+          title: 'Move money from',
+          selected: _accountId,
+          disabled: _toAccountId,
+          onChosen: (id) => _accountId = id,
+        ),
       ),
-      const SizedBox(height: 16),
-      const _SectionLabel('To'),
-      _accountChips(
-        selected: _toAccountId,
-        keyPrefix: 'to',
-        disabledId: _accountId,
-        onSelected: (id) => setState(() => _toAccountId = id),
+      Align(
+        child: IconButton(
+          key: const ValueKey('swap-accounts'),
+          tooltip: 'Swap From and To',
+          icon: const Icon(Icons.swap_vert),
+          onPressed: canSwap
+              ? () => setState(() {
+                  final from = _accountId;
+                  _accountId = _toAccountId;
+                  _toAccountId = from;
+                })
+              : null,
+        ),
+      ),
+      _accountCard(
+        key: const ValueKey('to-field'),
+        accountId: _toAccountId,
+        caption: 'To',
+        placeholder: 'Choose the account the money goes to',
+        balances: balances,
+        onTap: () => _chooseAccount(
+          title: 'Move money to',
+          selected: _toAccountId,
+          disabled: _accountId,
+          onChosen: (id) => _toAccountId = id,
+        ),
       ),
       if (!_isEditing) ...[
         const SizedBox(height: 16),
@@ -477,108 +747,84 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           focusNode: _feeFocus,
           label: 'Fee (optional)',
           isRequired: false,
+          onChanged: (_) => setState(() {}),
           helperText: 'Saved as an expense on the "From" account.',
         ),
       ],
     ];
   }
 
-  Widget _categoryChips(BuildContext context) {
+  Widget _categoryTile(BuildContext context) {
+    final theme = Theme.of(context);
     final categories = _data.options.categoriesFor(_type);
-    if (categories.isEmpty) {
-      return Align(
-        alignment: Alignment.centerLeft,
+    final byId = {for (final c in categories) c.id: c};
+    final Category? selected = byId[_categoryId];
+    final caption = _type == TransactionType.income
+        ? 'Income category'
+        : 'Expense category';
+
+    return Material(
+      color: theme.colorScheme.surfaceContainerHigh,
+      borderRadius: BorderRadius.circular(16),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: const ValueKey('category-field'),
+        onTap: _chooseCategory,
         child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: OutlinedButton.icon(
-            onPressed: _addCategory,
-            icon: const Icon(Icons.add),
-            label: Text(
-              _type == TransactionType.income
-                  ? 'Add an income category'
-                  : 'Add an expense category',
-            ),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          child: Row(
+            children: [
+              if (selected != null)
+                CategoryAvatar(icon: selected.icon, color: selected.color)
+              else
+                CircleAvatar(
+                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  child: Icon(
+                    Icons.category_outlined,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      caption,
+                      style: theme.textTheme.labelMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      selected == null
+                          ? 'Choose a category'
+                          : selected.isArchived
+                          ? '${categoryPathLabel(selected, byId)} (archived)'
+                          : categoryPathLabel(selected, byId),
+                      key: const ValueKey('category-value'),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        color: selected == null
+                            ? theme.colorScheme.onSurfaceVariant
+                            : null,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              Icon(
+                Icons.search,
+                color: theme.colorScheme.onSurfaceVariant,
+                semanticLabel: 'Search categories',
+              ),
+            ],
           ),
         ),
-      );
-    }
-
-    // A sub-category is shown by its own name, which keeps the chips short.
-    // The parent's name is added only when two chips would read the same.
-    final byId = {for (final c in categories) c.id: c};
-    final sameNameCount = <String, int>{};
-    for (final c in categories) {
-      sameNameCount.update(
-        c.name.toLowerCase(),
-        (count) => count + 1,
-        ifAbsent: () => 1,
-      );
-    }
-    String labelOf(Category category) {
-      final parent = byId[category.parentId];
-      final isAmbiguous = sameNameCount[category.name.toLowerCase()]! > 1;
-      return parent != null && isAmbiguous
-          ? '${parent.name} › ${category.name}'
-          : category.name;
-    }
-
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        for (final category in categories)
-          ChoiceChip(
-            key: ValueKey('category-${category.id}'),
-            showCheckmark: false,
-            avatar: CategoryAvatar(
-              icon: category.icon,
-              color: category.color,
-              radius: 10,
-            ),
-            label: Text(
-              category.isArchived
-                  ? '${labelOf(category)} (archived)'
-                  : labelOf(category),
-            ),
-            selected: _categoryId == category.id,
-            onSelected: (_) => setState(() {
-              _categoryId = category.id;
-              _error = null;
-            }),
-          ),
-      ],
+      ),
     );
   }
-
-  Widget _accountChips({
-    required int? selected,
-    required String keyPrefix,
-    required ValueChanged<int> onSelected,
-    int? disabledId,
-  }) {
-    return Wrap(
-      spacing: 8,
-      runSpacing: 4,
-      children: [
-        for (final account in _data.options.accounts)
-          ChoiceChip(
-            key: ValueKey('$keyPrefix-${account.id}'),
-            showCheckmark: false,
-            label: Text(_accountLabel(account)),
-            selected: selected == account.id,
-            onSelected: account.id == disabledId
-                ? null
-                : (_) {
-                    onSelected(account.id);
-                    setState(() => _error = null);
-                  },
-          ),
-      ],
-    );
-  }
-
-  String _accountLabel(Account account) =>
-      account.isArchived ? '${account.name} (archived)' : account.name;
 
   Widget _dateChips(BuildContext context) {
     final today = dateOnly(ref.read(clockProvider)());
@@ -635,46 +881,149 @@ class _SectionLabel extends StatelessWidget {
   }
 }
 
-/// The number being typed, large, with the result below when it is a sum.
-class _AmountDisplay extends StatelessWidget {
-  const _AmountDisplay({required this.expression, required this.color});
+/// A tile for something not chosen yet, which opens its chooser.
+class _ChooseTile extends StatelessWidget {
+  const _ChooseTile({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+    super.key,
+  });
 
-  final String expression;
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return OutlinedButton.icon(
+      onPressed: onTap,
+      icon: Icon(icon),
+      label: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(label, overflow: TextOverflow.ellipsis),
+      ),
+      style: OutlinedButton.styleFrom(
+        minimumSize: const Size.fromHeight(64),
+        alignment: Alignment.centerLeft,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        side: BorderSide(color: theme.colorScheme.outline),
+      ),
+    );
+  }
+}
+
+/// The amount: a big field typed on the keyboard, with a button beside it
+/// that switches to the calculator keypad. With the calculator the field only
+/// shows what the keypad builds, and the result of a sum is shown below it.
+class _AmountInput extends StatelessWidget {
+  const _AmountInput({
+    required this.controller,
+    required this.focusNode,
+    required this.color,
+    required this.calculator,
+    required this.autofocus,
+    required this.onToggleCalculator,
+    required this.onChanged,
+    required this.onSubmitted,
+  });
+
+  final TextEditingController controller;
+  final FocusNode focusNode;
   final Color color;
+  final bool calculator;
+  final bool autofocus;
+  final VoidCallback onToggleCalculator;
+  final ValueChanged<String> onChanged;
+  final ValueChanged<String> onSubmitted;
 
   static final _operator = RegExp(r'[+\-×÷]');
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final result = evaluateAmount(expression);
-    final showResult = _operator.hasMatch(expression) && result != null;
+    final style = theme.textTheme.headlineMedium?.tabular.copyWith(
+      color: color,
+      fontWeight: FontWeight.w600,
+    );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Column(
         children: [
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              '৳ ${expression.isEmpty ? '0' : expression.replaceAll('-', '−')}',
-              key: const ValueKey('amount-display'),
-              style: theme.textTheme.displaySmall?.tabular.copyWith(
-                color: expression.isEmpty
-                    ? theme.colorScheme.onSurfaceVariant
-                    : color,
-                fontWeight: FontWeight.w600,
-              ),
+          Container(
+            decoration: BoxDecoration(
+              color: theme.colorScheme.surfaceContainerHigh,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            padding: const EdgeInsets.only(left: 16, right: 4),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    key: const ValueKey('amount-field'),
+                    controller: controller,
+                    focusNode: focusNode,
+                    autofocus: autofocus,
+                    readOnly: calculator,
+                    showCursor: !calculator,
+                    keyboardType: const TextInputType.numberWithOptions(
+                      decimal: true,
+                    ),
+                    inputFormatters: calculator
+                        ? null
+                        : [AmountTextFormatter()],
+                    textInputAction: TextInputAction.done,
+                    onChanged: onChanged,
+                    onSubmitted: onSubmitted,
+                    style: style,
+                    decoration: InputDecoration(
+                      hintText: '0',
+                      hintStyle: style?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                      prefixText: '৳ ',
+                      prefixStyle: style,
+                      filled: false,
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                    ),
+                  ),
+                ),
+                IconButton(
+                  key: const ValueKey('calculator-toggle'),
+                  tooltip: calculator
+                      ? 'Type with the keyboard'
+                      : 'Use the calculator',
+                  isSelected: calculator,
+                  icon: const Icon(Icons.calculate_outlined),
+                  selectedIcon: const Icon(Icons.keyboard_alt_outlined),
+                  onPressed: onToggleCalculator,
+                ),
+              ],
             ),
           ),
-          if (showResult)
-            Text(
-              '= ${formatPoisha(result)}',
-              key: const ValueKey('amount-result'),
-              style: theme.textTheme.titleMedium?.tabular.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
+          ValueListenableBuilder<TextEditingValue>(
+            valueListenable: controller,
+            builder: (context, value, _) {
+              final result = evaluateAmount(value.text);
+              if (!_operator.hasMatch(value.text) || result == null) {
+                return const SizedBox.shrink();
+              }
+              return Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text(
+                  '= ${formatPoisha(result)}',
+                  key: const ValueKey('amount-result'),
+                  style: theme.textTheme.titleMedium?.tabular.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              );
+            },
+          ),
         ],
       ),
     );
