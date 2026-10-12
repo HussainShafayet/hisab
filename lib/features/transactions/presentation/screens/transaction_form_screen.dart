@@ -349,7 +349,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         });
       case CategoryAddRequested():
         await _addCategory();
-      case null:
+      case CategoryTopLevelChosen() || null:
         break;
     }
   }

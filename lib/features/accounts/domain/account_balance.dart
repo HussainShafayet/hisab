@@ -1,4 +1,5 @@
 import 'package:hishab/features/accounts/domain/account.dart';
+import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// Everything that ever moved through one account, in poisha (all >= 0).
@@ -72,4 +73,24 @@ BalanceAdjustment? calculateBalanceAdjustment({
     type: difference > 0 ? TransactionType.income : TransactionType.expense,
     amount: difference.abs(),
   );
+}
+
+/// How much of the total balance is in each kind of account (cash, mobile
+/// banking, bank, card). Counts the same accounts as [calculateTotalBalance],
+/// so the parts add up to the total. A kind with no counted account is left
+/// out.
+Map<AccountType, int> totalByAccountType(
+  Iterable<AccountWithBalance> accounts,
+) {
+  final totals = <AccountType, int>{};
+  for (final item in accounts) {
+    if (item.account.includeInTotal && !item.account.isArchived) {
+      totals.update(
+        item.account.type,
+        (sum) => sum + item.balance,
+        ifAbsent: () => item.balance,
+      );
+    }
+  }
+  return totals;
 }

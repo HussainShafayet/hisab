@@ -50,8 +50,10 @@ class AccountCard extends StatelessWidget {
     final tail =
         trailing ??
         (selected ? const Icon(Icons.check_circle, color: _white) : null);
+    // "Cash" under an account called "Cash" says nothing.
     final notes = [
-      account.type.label,
+      if (account.name.trim().toLowerCase() != account.type.label.toLowerCase())
+        account.type.label,
       if (account.isArchived) 'Archived',
       if (!account.includeInTotal) 'Not in total',
     ];
@@ -106,14 +108,15 @@ class AccountCard extends StatelessWidget {
                                 fontWeight: FontWeight.w600,
                               ),
                             ),
-                            Text(
-                              notes.join(' · '),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: _whiteSoft,
+                            if (notes.isNotEmpty)
+                              Text(
+                                notes.join(' · '),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: _whiteSoft,
+                                ),
                               ),
-                            ),
                           ],
                         ),
                       ),

@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/categories/data/categories_repository.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 
 import '../../../helpers/pump_app.dart';
 import '../../../helpers/test_database.dart';
@@ -20,6 +21,21 @@ Future<void> openAddForm(WidgetTester tester) async {
 Future<void> tapSave(WidgetTester tester, String label) async {
   await tester.tap(find.widgetWithText(FilledButton, label));
   await tester.pumpAndSettle();
+}
+
+// Food > Groceries > Rice, and Transport on its own.
+Future<({int food, int groceries, int rice, int transport})> seedDeep(
+  AppDatabase db,
+) async {
+  final food = await insertTestCategory(db, name: 'Food');
+  final groceries = await insertTestCategory(
+    db,
+    name: 'Groceries',
+    parentId: food,
+  );
+  final rice = await insertTestCategory(db, name: 'Rice', parentId: groceries);
+  final transport = await insertTestCategory(db, name: 'Transport');
+  return (food: food, groceries: groceries, rice: rice, transport: transport);
 }
 
 void main() {
@@ -159,11 +175,8 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.descendant(
-          of: find.byType(DropdownButtonFormField<int?>),
-          matching: find.text('Food'),
-        ),
-        findsOneWidget,
+        tester.widget<Text>(find.byKey(const ValueKey('parent-value'))).data,
+        'Food',
       );
 
       await tester.enterText(
@@ -224,18 +237,17 @@ void main() {
       useTallScreen(tester);
       await pumpAppWithDatabase(tester, db);
       await openFromMore(tester, 'Categories');
+      final food = await categoryNamed(db, 'Food');
 
       await tester.tap(listRow('Food'));
       await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('parent-field')));
+      await tester.pumpAndSettle();
 
-      expect(
-        tester
-            .widget<DropdownButtonFormField<int?>>(
-              find.byType(DropdownButtonFormField<int?>),
-            )
-            .onChanged,
-        isNotNull,
-      );
+      // The sheet opens, and Food itself is not among the places it can go.
+      expect(find.byType(CategoryPickerSheet), findsOneWidget);
+      expect(find.byKey(ValueKey('category-option-${food.id}')), findsNothing);
+      expect(find.byKey(const ValueKey('category-top-level')), findsOneWidget);
     }, seedDefaults: true);
 
     testWithDatabase('moves a sub-category to the top level', (
@@ -248,10 +260,18 @@ void main() {
 
       await tester.tap(listRow('Groceries'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<int?>));
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('parent-value'))).data,
+        'Food',
+      );
+      await tester.tap(find.byKey(const ValueKey('parent-field')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('None (top-level)').last);
+      await tester.tap(find.byKey(const ValueKey('category-top-level')));
       await tester.pumpAndSettle();
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('parent-value'))).data,
+        'Top level',
+      );
       await tapSave(tester, 'Save changes');
 
       expect((await categoryNamed(db, 'Groceries')).parentId, isNull);
@@ -278,16 +298,17 @@ void main() {
         expect(listRow('Rent'), findsOneWidget);
         expect(find.text('Food archived'), findsOneWidget);
 
-        await tester.tap(find.byTooltip('Show archived'));
+        await tester.tap(find.byKey(const ValueKey('show-archived')));
         await tester.pumpAndSettle();
         expect(listRow('Food'), findsOneWidget);
         expect(listRow('Groceries'), findsOneWidget);
+        expect(find.textContaining('Archived'), findsWidgets);
 
         await openRowMenu(tester, 'Food');
         await tester.tap(find.text('Restore'));
         await tester.pumpAndSettle();
 
-        expect(find.text('Archived'), findsNothing);
+        expect(find.textContaining('Archived'), findsNothing);
         expect(listRow('Groceries'), findsOneWidget);
       },
       seedDefaults: true,
@@ -323,7 +344,7 @@ void main() {
       await CategoriesRepository(db).archiveCategory(food.id);
       await pumpAppWithDatabase(tester, db);
       await openFromMore(tester, 'Categories');
-      await tester.tap(find.byTooltip('Show archived'));
+      await tester.tap(find.byKey(const ValueKey('show-archived')));
       await tester.pumpAndSettle();
 
       await openRowMenu(tester, 'Groceries');
@@ -336,30 +357,6 @@ void main() {
   });
 
   group('categories inside categories', () {
-    // Food > Groceries > Rice, and Transport on its own.
-    Future<({int food, int groceries, int rice, int transport})> seedDeep(
-      AppDatabase db,
-    ) async {
-      final food = await insertTestCategory(db, name: 'Food');
-      final groceries = await insertTestCategory(
-        db,
-        name: 'Groceries',
-        parentId: food,
-      );
-      final rice = await insertTestCategory(
-        db,
-        name: 'Rice',
-        parentId: groceries,
-      );
-      final transport = await insertTestCategory(db, name: 'Transport');
-      return (
-        food: food,
-        groceries: groceries,
-        rice: rice,
-        transport: transport,
-      );
-    }
-
     testWithDatabase('are listed one level deeper each time', (
       tester,
       db,
@@ -374,6 +371,110 @@ void main() {
       expect(left('Groceries'), greaterThan(left('Food')));
       expect(left('Rice'), greaterThan(left('Groceries')));
       expect(left('Transport'), left('Food'));
+    });
+
+    testWithDatabase('say how many sub-categories they hold', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final ids = await seedDeep(db);
+      await insertTestCategory(db, name: 'Snacks', parentId: ids.food);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      expect(
+        find.descendant(
+          of: listRow('Food'),
+          matching: find.text('2 sub-categories'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: listRow('Groceries'),
+          matching: find.text('1 sub-category'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: listRow('Rice'),
+          matching: find.textContaining('sub-categor'),
+        ),
+        findsNothing,
+      );
+    });
+
+    testWithDatabase('open and close with their arrow', (tester, db) async {
+      useTallScreen(tester);
+      final ids = await seedDeep(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+      expect(listRow('Groceries'), findsOneWidget);
+
+      await tester.tap(find.byKey(ValueKey('category-toggle-${ids.food}')));
+      await tester.pumpAndSettle();
+
+      // Closing Food hides everything inside it, however deep.
+      expect(listRow('Food'), findsOneWidget);
+      expect(listRow('Groceries'), findsNothing);
+      expect(listRow('Rice'), findsNothing);
+
+      await tester.tap(find.byKey(ValueKey('category-toggle-${ids.food}')));
+      await tester.pumpAndSettle();
+
+      expect(listRow('Groceries'), findsOneWidget);
+      expect(listRow('Rice'), findsOneWidget);
+    });
+
+    testWithDatabase('a category with nothing inside has no arrow', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final ids = await seedDeep(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      expect(
+        find.byKey(ValueKey('category-toggle-${ids.transport}')),
+        findsNothing,
+      );
+      expect(find.byKey(ValueKey('category-toggle-${ids.rice}')), findsNothing);
+    });
+
+    testWithDatabase('can all be closed and opened with one button', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedDeep(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      await tester.tap(find.byKey(const ValueKey('collapse-all')));
+      await tester.pumpAndSettle();
+      expect(listRow('Food'), findsOneWidget);
+      expect(listRow('Groceries'), findsNothing);
+      expect(find.byTooltip('Open all'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('collapse-all')));
+      await tester.pumpAndSettle();
+      expect(listRow('Rice'), findsOneWidget);
+      expect(find.byTooltip('Close all'), findsOneWidget);
+    });
+
+    testWithDatabase('have no open/close all button when nothing is nested', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await insertTestCategory(db, name: 'Food');
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      expect(find.byKey(const ValueKey('collapse-all')), findsNothing);
     });
 
     testWithDatabase('offer "Add sub-category" down to the fifth level', (
@@ -398,23 +499,40 @@ void main() {
     });
 
     testWithDatabase(
-      'the parent list shows paths and leaves out itself and what is inside',
+      'the places a category can go leave out itself and what is inside it',
       (tester, db) async {
         useTallScreen(tester);
-        await seedDeep(db);
+        final ids = await seedDeep(db);
         await pumpAppWithDatabase(tester, db);
         await openFromMore(tester, 'Categories');
 
         await tester.tap(listRow('Groceries'));
         await tester.pumpAndSettle();
-        await tester.tap(find.byType(DropdownButtonFormField<int?>));
+        await tester.tap(find.byKey(const ValueKey('parent-field')));
         await tester.pumpAndSettle();
 
-        // Groceries itself and Rice (inside it) cannot be its parent.
-        expect(find.text('Food'), findsWidgets);
-        expect(find.text('Transport'), findsWidgets);
-        expect(find.text('Food › Groceries'), findsNothing);
-        expect(find.text('Food › Groceries › Rice'), findsNothing);
+        expect(find.byKey(ValueKey('category-option-${ids.food}')), findsOne);
+        expect(
+          find.byKey(ValueKey('category-option-${ids.transport}')),
+          findsOne,
+        );
+        // Groceries itself and Rice (inside it) are not offered.
+        expect(
+          find.byKey(ValueKey('category-option-${ids.groceries}')),
+          findsNothing,
+        );
+        expect(
+          find.byKey(ValueKey('category-option-${ids.rice}')),
+          findsNothing,
+        );
+        // The place it is in now is marked.
+        expect(
+          find.descendant(
+            of: find.byKey(ValueKey('category-option-${ids.food}')),
+            matching: find.byIcon(Icons.check_circle),
+          ),
+          findsOneWidget,
+        );
       },
     );
 
@@ -429,10 +547,18 @@ void main() {
 
       await tester.tap(listRow('Transport'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<int?>));
+      await tester.tap(find.byKey(const ValueKey('parent-field')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Food › Groceries').last);
+      await tester.tap(find.byKey(ValueKey('category-expand-${ids.food}')));
       await tester.pumpAndSettle();
+      await tester.tap(
+        find.byKey(ValueKey('category-option-${ids.groceries}')),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('parent-value'))).data,
+        'Food › Groceries',
+      );
       await tapSave(tester, 'Save changes');
 
       expect((await categoryNamed(db, 'Transport')).parentId, ids.groceries);
@@ -449,15 +575,122 @@ void main() {
 
       await tester.tap(listRow('Food'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<int?>));
+      await tester.tap(find.byKey(const ValueKey('parent-field')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('Transport').last);
+      await tester.tap(
+        find.byKey(ValueKey('category-option-${ids.transport}')),
+      );
       await tester.pumpAndSettle();
       await tapSave(tester, 'Save changes');
 
       expect((await categoryNamed(db, 'Food')).parentId, ids.transport);
       // What was inside Food came along.
       expect((await categoryNamed(db, 'Groceries')).parentId, ids.food);
+    });
+  });
+
+  group('the category form', () {
+    testWithDatabase('shows a preview of the category as it is filled in', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+      await openAddForm(tester);
+
+      String previewName() =>
+          tester.widget<Text>(find.byKey(const ValueKey('preview-name'))).data!;
+      expect(previewName(), 'Category name');
+      expect(find.text('Expense · top level'), findsOneWidget);
+
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Name'),
+        'Pets',
+      );
+      await tester.pump();
+      expect(previewName(), 'Pets');
+
+      await tester.tap(find.text('Income'));
+      await tester.pump();
+      expect(find.text('Income · top level'), findsOneWidget);
+    });
+
+    testWithDatabase('says where it goes in the preview', (tester, db) async {
+      useTallScreen(tester);
+      await insertTestCategory(db, name: 'Food');
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+      await openAddForm(tester);
+
+      await tester.tap(find.byKey(const ValueKey('parent-field')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Food'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Inside Food'), findsOneWidget);
+    });
+
+    testWithDatabase('switching the type forgets the place it was put', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await insertTestCategory(db, name: 'Food');
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+      await openAddForm(tester);
+      await tester.tap(find.byKey(const ValueKey('parent-field')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Food'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Income'));
+      await tester.pump();
+
+      expect(
+        tester.widget<Text>(find.byKey(const ValueKey('parent-value'))).data,
+        'Top level',
+      );
+    });
+
+    testWithDatabase('the "Inside" sheet has no way to add a category', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+      await openAddForm(tester);
+
+      await tester.tap(find.byKey(const ValueKey('parent-field')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('category-add')), findsNothing);
+      expect(find.byKey(const ValueKey('category-top-level')), findsOneWidget);
+      expect(
+        find.text('There is no other category to put it inside yet.'),
+        findsOneWidget,
+      );
+    });
+
+    testWithDatabase('the "Inside" sheet can search', (tester, db) async {
+      useTallScreen(tester);
+      final ids = await seedDeep(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+      await openAddForm(tester);
+
+      await tester.tap(find.byKey(const ValueKey('parent-field')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('category-search')),
+        'rice',
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(ValueKey('category-option-${ids.rice}')), findsOne);
+      expect(find.byKey(const ValueKey('category-top-level')), findsNothing);
     });
   });
 }

@@ -72,6 +72,21 @@ void main() {
     expect(find.text('From'), findsOneWidget);
   });
 
+  testWidgets('does not repeat the kind when the name already says it', (
+    tester,
+  ) async {
+    await pump(
+      tester,
+      AccountCard(
+        account: account(name: 'Cash', type: AccountType.cash),
+        balance: 1000,
+      ),
+    );
+
+    // The name only, once.
+    expect(find.text('Cash'), findsOneWidget);
+  });
+
   testWidgets('says when an account is archived or not in the total', (
     tester,
   ) async {

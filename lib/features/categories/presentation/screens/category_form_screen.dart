@@ -11,6 +11,7 @@ import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/category_style.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
+import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 
 /// Creates a category, or edits the one with [categoryId]. When creating,
 /// [initialType] and [initialParentId] pre-fill the form (used by
@@ -189,30 +190,103 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
     ];
   }
 
+  /// Opens the sheet to choose which category this one goes inside.
+  Future<void> _chooseParent() async {
+    final pick = await showCategoryPicker(
+      context,
+      title: 'Put it inside',
+      categories: _parentOptions,
+      selectedId: _parentId,
+      topLevelLabel: 'Top level (not inside another)',
+      allowAdd: false,
+    );
+    if (!mounted) return;
+    switch (pick) {
+      case CategoryPicked(:final id):
+        setState(() => _parentId = id);
+      case CategoryTopLevelChosen():
+        setState(() => _parentId = null);
+      case CategoryAddRequested() || null:
+        break;
+    }
+  }
+
+  String get _parentLabel {
+    final parent = _byId[_parentId];
+    if (parent == null) return 'Top level';
+    final path = categoryPathLabel(parent, _byId);
+    return parent.isArchived ? '$path (archived)' : path;
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final typedName = _name.text.trim();
 
     return Scaffold(
       appBar: AppBar(
         title: Text(_isEditing ? 'Edit category' : 'New category'),
       ),
-      body: Form(
-        key: _formKey,
-        child: ListView(
-          padding: const EdgeInsets.all(16),
-          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
-          children: [
-            Row(
-              children: [
-                CategoryAvatar(icon: _icon, color: _color, radius: 24),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: TextFormField(
+      body: Column(
+        children: [
+          Expanded(
+            child: Form(
+              key: _formKey,
+              child: ListView(
+                padding: const EdgeInsets.all(16),
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
+                children: [
+                  // How the category will look in lists.
+                  Container(
+                    key: const ValueKey('category-preview'),
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surfaceContainerHigh,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      children: [
+                        CategoryAvatar(icon: _icon, color: _color, radius: 28),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                typedName.isEmpty ? 'Category name' : typedName,
+                                key: const ValueKey('preview-name'),
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleLarge?.copyWith(
+                                  color: typedName.isEmpty
+                                      ? theme.colorScheme.onSurfaceVariant
+                                      : null,
+                                ),
+                              ),
+                              Text(
+                                _parentId == null
+                                    ? '${_type == CategoryType.income ? 'Income' : 'Expense'} · top level'
+                                    : 'Inside $_parentLabel',
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  TextFormField(
                     controller: _name,
                     autofocus: !_isEditing,
                     textCapitalization: TextCapitalization.words,
                     textInputAction: TextInputAction.done,
+                    onChanged: (_) => setState(() {}),
                     inputFormatters: [
                       LengthLimitingTextInputFormatter(
                         CategoriesRepository.maxNameLength,
@@ -222,121 +296,126 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                     validator: (value) =>
                         (value?.trim().isEmpty ?? true) ? 'Enter a name' : null,
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            SegmentedButton<CategoryType>(
-              showSelectedIcon: false,
-              segments: const [
-                ButtonSegment(
-                  value: CategoryType.expense,
-                  label: Text('Expense'),
-                ),
-                ButtonSegment(
-                  value: CategoryType.income,
-                  label: Text('Income'),
-                ),
-              ],
-              selected: {_type},
-              // The type of an existing category never changes, because old
-              // transactions depend on it.
-              onSelectionChanged: _isEditing
-                  ? null
-                  : (selection) => setState(() {
-                      _type = selection.first;
-                      _parentId = null;
-                    }),
-            ),
-            if (_isEditing)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Text(
-                  'The type of an existing category cannot be changed.',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurfaceVariant,
+                  const SizedBox(height: 20),
+                  SegmentedButton<CategoryType>(
+                    showSelectedIcon: false,
+                    segments: const [
+                      ButtonSegment(
+                        value: CategoryType.expense,
+                        label: Text('Expense'),
+                      ),
+                      ButtonSegment(
+                        value: CategoryType.income,
+                        label: Text('Income'),
+                      ),
+                    ],
+                    selected: {_type},
+                    // The type of an existing category never changes, because
+                    // old transactions depend on it.
+                    onSelectionChanged: _isEditing
+                        ? null
+                        : (selection) => setState(() {
+                            _type = selection.first;
+                            _parentId = null;
+                          }),
                   ),
-                ),
-              ),
-            const SizedBox(height: 24),
-            DropdownButtonFormField<int?>(
-              key: ValueKey('parent-$_type-$_parentId'),
-              initialValue: _parentId,
-              isExpanded: true,
-              decoration: const InputDecoration(labelText: 'Parent category'),
-              items: [
-                const DropdownMenuItem<int?>(
-                  value: null,
-                  child: Text('None (top-level)'),
-                ),
-                for (final parent in _parentOptions)
-                  DropdownMenuItem<int?>(
-                    value: parent.id,
-                    child: Text(
-                      categoryPathLabel(parent, _byId),
-                      overflow: TextOverflow.ellipsis,
+                  if (_isEditing)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Text(
+                        'The type of an existing category cannot be changed.',
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                      ),
                     ),
-                  ),
-              ],
-              onChanged: (value) => setState(() => _parentId = value),
-            ),
-            const SizedBox(height: 24),
-            Text('Icon', style: theme.textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final entry in categoryIcons.entries)
-                  _PickerCell(
-                    key: ValueKey('icon-${entry.key}'),
-                    label: entry.key.replaceAll('_', ' '),
-                    selected: _icon == entry.key,
-                    onTap: () => setState(() => _icon = entry.key),
-                    child: Icon(entry.value),
-                  ),
-              ],
-            ),
-            const SizedBox(height: 24),
-            Text('Color', style: theme.textTheme.labelLarge),
-            const SizedBox(height: 8),
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (final color in categoryColors)
-                  _PickerCell(
-                    key: ValueKey('color-${color.toRadixString(16)}'),
-                    label: 'Color ${color.toRadixString(16)}',
-                    selected: _color == color,
-                    onTap: () => setState(() => _color = color),
-                    child: Container(
-                      width: 28,
-                      height: 28,
-                      decoration: BoxDecoration(
-                        color: Color(color),
-                        shape: BoxShape.circle,
+                  const SizedBox(height: 20),
+                  InkWell(
+                    key: const ValueKey('parent-field'),
+                    onTap: _chooseParent,
+                    borderRadius: BorderRadius.circular(12),
+                    child: InputDecorator(
+                      decoration: const InputDecoration(
+                        labelText: 'Inside',
+                        suffixIcon: Icon(Icons.unfold_more),
+                      ),
+                      child: Text(
+                        _parentLabel,
+                        key: const ValueKey('parent-value'),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
                       ),
                     ),
                   ),
-              ],
+                  const SizedBox(height: 24),
+                  Text('Icon', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final entry in categoryIcons.entries)
+                        _PickerCell(
+                          key: ValueKey('icon-${entry.key}'),
+                          label: entry.key.replaceAll('_', ' '),
+                          selected: _icon == entry.key,
+                          onTap: () => setState(() => _icon = entry.key),
+                          child: Icon(entry.value),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  Text('Color', style: theme.textTheme.titleSmall),
+                  const SizedBox(height: 8),
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      for (final color in categoryColors)
+                        _PickerCell(
+                          key: ValueKey('color-${color.toRadixString(16)}'),
+                          label: 'Color ${color.toRadixString(16)}',
+                          selected: _color == color,
+                          onTap: () => setState(() => _color = color),
+                          child: Container(
+                            width: 28,
+                            height: 28,
+                            decoration: BoxDecoration(
+                              color: Color(color),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  if (_error != null) ...[
+                    const SizedBox(height: 16),
+                    Text(
+                      _error!,
+                      key: const ValueKey('form-error'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-            if (_error != null) ...[
-              const SizedBox(height: 16),
-              Text(
-                _error!,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.error,
+          ),
+          SafeArea(
+            top: false,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: FilledButton(
+                  onPressed: _saving ? null : _save,
+                  child: Text(_isEditing ? 'Save changes' : 'Add category'),
                 ),
               ),
-            ],
-            const SizedBox(height: 24),
-            FilledButton(
-              onPressed: _saving ? null : _save,
-              child: Text(_isEditing ? 'Save changes' : 'Add category'),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }

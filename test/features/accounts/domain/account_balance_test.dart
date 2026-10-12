@@ -131,4 +131,65 @@ void main() {
       expect(adjustment.amount, 1500);
     });
   });
+
+  group('totalByAccountType', () {
+    AccountWithBalance of(
+      AccountType type,
+      int balance, {
+      bool includeInTotal = true,
+      bool isArchived = false,
+    }) => AccountWithBalance(
+      account: Account(
+        id: 1,
+        name: 'Test',
+        type: type,
+        openingBalance: 0,
+        includeInTotal: includeInTotal,
+        isArchived: isArchived,
+      ),
+      balance: balance,
+    );
+
+    test('adds up the balances of each kind', () {
+      final totals = totalByAccountType([
+        of(AccountType.cash, 1000),
+        of(AccountType.cash, 500),
+        of(AccountType.mobileBanking, 250),
+      ]);
+
+      expect(totals, {AccountType.cash: 1500, AccountType.mobileBanking: 250});
+    });
+
+    test('counts the same accounts as the total', () {
+      final accounts = [
+        of(AccountType.cash, 1000),
+        of(AccountType.bank, 9000, includeInTotal: false),
+        of(AccountType.card, 700, isArchived: true),
+        of(AccountType.mobileBanking, -200),
+      ];
+
+      final totals = totalByAccountType(accounts);
+
+      expect(totals.containsKey(AccountType.bank), isFalse);
+      expect(totals.containsKey(AccountType.card), isFalse);
+      expect(
+        totals.values.fold<int>(0, (sum, value) => sum + value),
+        calculateTotalBalance(accounts),
+      );
+    });
+
+    test('keeps a negative balance', () {
+      expect(totalByAccountType([of(AccountType.card, -5000)]), {
+        AccountType.card: -5000,
+      });
+    });
+
+    test('is empty when nothing counts', () {
+      expect(totalByAccountType([]), isEmpty);
+      expect(
+        totalByAccountType([of(AccountType.cash, 100, isArchived: true)]),
+        isEmpty,
+      );
+    });
+  });
 }

@@ -118,6 +118,20 @@ void main() {
     });
   });
 
+  group('flattenNodes', () {
+    test('lists every node, each followed by what is inside it', () {
+      final tree = buildCategoryTree([
+        category(1),
+        category(2, parentId: 1),
+        category(3, parentId: 2),
+        category(4),
+      ]);
+
+      expect(flattenNodes(tree).map((n) => n.category.id), [1, 2, 3, 4]);
+      expect(flattenNodes([]), isEmpty);
+    });
+  });
+
   group('paths', () {
     final list = [
       category(1),

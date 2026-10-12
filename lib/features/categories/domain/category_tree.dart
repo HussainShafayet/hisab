@@ -195,3 +195,8 @@ String? categoryParentProblem({
   }
   return null;
 }
+
+/// Every node of the tree, each followed by everything inside it.
+List<CategoryNode> flattenNodes(List<CategoryNode> nodes) => [
+  for (final node in nodes) ...[node, ...flattenNodes(node.children)],
+];

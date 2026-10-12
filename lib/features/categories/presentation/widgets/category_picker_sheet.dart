@@ -20,18 +20,28 @@ class CategoryAddRequested extends CategoryPick {
   const CategoryAddRequested();
 }
 
+/// Chose "top level", for picking where a category goes.
+class CategoryTopLevelChosen extends CategoryPick {
+  const CategoryTopLevelChosen();
+}
+
 /// Opens the category picker: a sheet with a search field, the categories
 /// used most, and all categories as a tree that opens and closes. Returns
 /// what the user did, or null when the sheet is dismissed.
 ///
 /// [categories] are the ones that can be chosen, a category followed by what
 /// is inside it. [frequentIds] are shown first, as quick picks.
+///
+/// To choose where a category goes, pass [topLevelLabel] (a first row that
+/// means "not inside any category") and set [allowAdd] to false.
 Future<CategoryPick?> showCategoryPicker(
   BuildContext context, {
   required String title,
   required List<Category> categories,
   List<int> frequentIds = const [],
   int? selectedId,
+  String? topLevelLabel,
+  bool allowAdd = true,
 }) {
   return showModalBottomSheet<CategoryPick>(
     context: context,
@@ -49,6 +59,8 @@ Future<CategoryPick?> showCategoryPicker(
           categories: categories,
           frequentIds: frequentIds,
           selectedId: selectedId,
+          topLevelLabel: topLevelLabel,
+          allowAdd: allowAdd,
         ),
       ),
     ),
@@ -61,6 +73,8 @@ class CategoryPickerSheet extends StatefulWidget {
     required this.categories,
     this.frequentIds = const [],
     this.selectedId,
+    this.topLevelLabel,
+    this.allowAdd = true,
     super.key,
   });
 
@@ -68,6 +82,12 @@ class CategoryPickerSheet extends StatefulWidget {
   final List<Category> categories;
   final List<int> frequentIds;
   final int? selectedId;
+
+  /// When set, a first row with this text that picks "top level".
+  final String? topLevelLabel;
+
+  /// Whether the sheet offers to make a new category.
+  final bool allowAdd;
 
   @override
   State<CategoryPickerSheet> createState() => _CategoryPickerSheetState();
@@ -105,6 +125,8 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
 
   void _pick(Category category) =>
       Navigator.of(context).pop(CategoryPicked(category.id));
+
+  void _requestAdd() => Navigator.of(context).pop(const CategoryAddRequested());
 
   void _toggle(int id) =>
       setState(() => _open.contains(id) ? _open.remove(id) : _open.add(id));
@@ -167,27 +189,28 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
           ),
         ),
         Expanded(
-          child: widget.categories.isEmpty
+          child: widget.categories.isEmpty && widget.topLevelLabel == null
               ? _Empty(
                   message: 'There are no categories yet.',
-                  onAdd: () =>
-                      Navigator.of(context).pop(const CategoryAddRequested()),
+                  onAdd: widget.allowAdd ? _requestAdd : null,
                 )
               : query.isNotEmpty
               ? _results(context, matches)
               : _treeList(context),
         ),
-        const Divider(height: 1),
-        SafeArea(
-          top: false,
-          child: ListTile(
-            key: const ValueKey('category-add'),
-            leading: const Icon(Icons.add_circle_outline),
-            title: const Text('New category'),
-            onTap: () =>
-                Navigator.of(context).pop(const CategoryAddRequested()),
+        if (widget.allowAdd) ...[
+          const Divider(height: 1),
+          SafeArea(
+            top: false,
+            child: ListTile(
+              key: const ValueKey('category-add'),
+              leading: const Icon(Icons.add_circle_outline),
+              title: const Text('New category'),
+              onTap: _requestAdd,
+            ),
           ),
-        ),
+        ] else
+          const SafeArea(top: false, child: SizedBox(height: 8)),
       ],
     );
   }
@@ -196,7 +219,7 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
     if (matches.isEmpty) {
       return _Empty(
         message: 'No category matches "${_search.text.trim()}".',
-        onAdd: () => Navigator.of(context).pop(const CategoryAddRequested()),
+        onAdd: widget.allowAdd ? _requestAdd : null,
       );
     }
     return ListView(
@@ -235,6 +258,27 @@ class _CategoryPickerSheetState extends State<CategoryPickerSheet> {
     return ListView(
       keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       children: [
+        if (widget.topLevelLabel != null)
+          ListTile(
+            key: const ValueKey('category-top-level'),
+            leading: const Icon(Icons.vertical_align_top),
+            title: Text(widget.topLevelLabel!),
+            trailing: widget.selectedId == null
+                ? Icon(Icons.check_circle, color: theme.colorScheme.primary)
+                : null,
+            onTap: () =>
+                Navigator.of(context).pop(const CategoryTopLevelChosen()),
+          ),
+        if (_tree.isEmpty && widget.topLevelLabel != null)
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Text(
+              'There is no other category to put it inside yet.',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
         if (frequent.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
@@ -379,7 +423,9 @@ class _Empty extends StatelessWidget {
   const _Empty({required this.message, required this.onAdd});
 
   final String message;
-  final VoidCallback onAdd;
+
+  /// Null when the sheet cannot make categories.
+  final VoidCallback? onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -390,13 +436,15 @@ class _Empty extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Text(message, textAlign: TextAlign.center),
-            const SizedBox(height: 12),
-            OutlinedButton.icon(
-              key: const ValueKey('category-empty-add'),
-              onPressed: onAdd,
-              icon: const Icon(Icons.add),
-              label: const Text('Add category'),
-            ),
+            if (onAdd != null) ...[
+              const SizedBox(height: 12),
+              OutlinedButton.icon(
+                key: const ValueKey('category-empty-add'),
+                onPressed: onAdd,
+                icon: const Icon(Icons.add),
+                label: const Text('Add category'),
+              ),
+            ],
           ],
         ),
       ),
