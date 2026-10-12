@@ -56,6 +56,28 @@ class $AccountsTable extends Accounts
     requiredDuringInsert: false,
     defaultValue: const Constant(0),
   );
+  static const VerificationMeta _creditLimitMeta = const VerificationMeta(
+    'creditLimit',
+  );
+  @override
+  late final GeneratedColumn<int> creditLimit = GeneratedColumn<int>(
+    'credit_limit',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
+  static const VerificationMeta _billDueDayMeta = const VerificationMeta(
+    'billDueDay',
+  );
+  @override
+  late final GeneratedColumn<int> billDueDay = GeneratedColumn<int>(
+    'bill_due_day',
+    aliasedName,
+    true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _includeInTotalMeta = const VerificationMeta(
     'includeInTotal',
   );
@@ -104,6 +126,8 @@ class $AccountsTable extends Accounts
     name,
     type,
     openingBalance,
+    creditLimit,
+    billDueDay,
     includeInTotal,
     isArchived,
     createdAt,
@@ -137,6 +161,24 @@ class $AccountsTable extends Accounts
         openingBalance.isAcceptableOrUnknown(
           data['opening_balance']!,
           _openingBalanceMeta,
+        ),
+      );
+    }
+    if (data.containsKey('credit_limit')) {
+      context.handle(
+        _creditLimitMeta,
+        creditLimit.isAcceptableOrUnknown(
+          data['credit_limit']!,
+          _creditLimitMeta,
+        ),
+      );
+    }
+    if (data.containsKey('bill_due_day')) {
+      context.handle(
+        _billDueDayMeta,
+        billDueDay.isAcceptableOrUnknown(
+          data['bill_due_day']!,
+          _billDueDayMeta,
         ),
       );
     }
@@ -188,6 +230,14 @@ class $AccountsTable extends Accounts
         DriftSqlType.int,
         data['${effectivePrefix}opening_balance'],
       )!,
+      creditLimit: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}credit_limit'],
+      ),
+      billDueDay: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}bill_due_day'],
+      ),
       includeInTotal: attachedDatabase.typeMapping.read(
         DriftSqlType.bool,
         data['${effectivePrefix}include_in_total'],
@@ -219,6 +269,13 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
 
   /// In poisha (1 BDT = 100 poisha). May be negative, e.g. a credit card.
   final int openingBalance;
+
+  /// A credit card only: the most it may owe, in poisha. Null when not set.
+  final int? creditLimit;
+
+  /// A credit card only: the day of the month the bill is due, 1 to 31. In a
+  /// shorter month it is the last day. Null when not set.
+  final int? billDueDay;
   final bool includeInTotal;
   final bool isArchived;
   final DateTime createdAt;
@@ -227,6 +284,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     required this.name,
     required this.type,
     required this.openingBalance,
+    this.creditLimit,
+    this.billDueDay,
     required this.includeInTotal,
     required this.isArchived,
     required this.createdAt,
@@ -240,6 +299,12 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
       map['type'] = Variable<String>($AccountsTable.$convertertype.toSql(type));
     }
     map['opening_balance'] = Variable<int>(openingBalance);
+    if (!nullToAbsent || creditLimit != null) {
+      map['credit_limit'] = Variable<int>(creditLimit);
+    }
+    if (!nullToAbsent || billDueDay != null) {
+      map['bill_due_day'] = Variable<int>(billDueDay);
+    }
     map['include_in_total'] = Variable<bool>(includeInTotal);
     map['is_archived'] = Variable<bool>(isArchived);
     map['created_at'] = Variable<DateTime>(createdAt);
@@ -252,6 +317,12 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
       name: Value(name),
       type: Value(type),
       openingBalance: Value(openingBalance),
+      creditLimit: creditLimit == null && nullToAbsent
+          ? const Value.absent()
+          : Value(creditLimit),
+      billDueDay: billDueDay == null && nullToAbsent
+          ? const Value.absent()
+          : Value(billDueDay),
       includeInTotal: Value(includeInTotal),
       isArchived: Value(isArchived),
       createdAt: Value(createdAt),
@@ -270,6 +341,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
         serializer.fromJson<String>(json['type']),
       ),
       openingBalance: serializer.fromJson<int>(json['openingBalance']),
+      creditLimit: serializer.fromJson<int?>(json['creditLimit']),
+      billDueDay: serializer.fromJson<int?>(json['billDueDay']),
       includeInTotal: serializer.fromJson<bool>(json['includeInTotal']),
       isArchived: serializer.fromJson<bool>(json['isArchived']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
@@ -285,6 +358,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
         $AccountsTable.$convertertype.toJson(type),
       ),
       'openingBalance': serializer.toJson<int>(openingBalance),
+      'creditLimit': serializer.toJson<int?>(creditLimit),
+      'billDueDay': serializer.toJson<int?>(billDueDay),
       'includeInTotal': serializer.toJson<bool>(includeInTotal),
       'isArchived': serializer.toJson<bool>(isArchived),
       'createdAt': serializer.toJson<DateTime>(createdAt),
@@ -296,6 +371,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     String? name,
     AccountType? type,
     int? openingBalance,
+    Value<int?> creditLimit = const Value.absent(),
+    Value<int?> billDueDay = const Value.absent(),
     bool? includeInTotal,
     bool? isArchived,
     DateTime? createdAt,
@@ -304,6 +381,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     name: name ?? this.name,
     type: type ?? this.type,
     openingBalance: openingBalance ?? this.openingBalance,
+    creditLimit: creditLimit.present ? creditLimit.value : this.creditLimit,
+    billDueDay: billDueDay.present ? billDueDay.value : this.billDueDay,
     includeInTotal: includeInTotal ?? this.includeInTotal,
     isArchived: isArchived ?? this.isArchived,
     createdAt: createdAt ?? this.createdAt,
@@ -316,6 +395,12 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
       openingBalance: data.openingBalance.present
           ? data.openingBalance.value
           : this.openingBalance,
+      creditLimit: data.creditLimit.present
+          ? data.creditLimit.value
+          : this.creditLimit,
+      billDueDay: data.billDueDay.present
+          ? data.billDueDay.value
+          : this.billDueDay,
       includeInTotal: data.includeInTotal.present
           ? data.includeInTotal.value
           : this.includeInTotal,
@@ -333,6 +418,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('openingBalance: $openingBalance, ')
+          ..write('creditLimit: $creditLimit, ')
+          ..write('billDueDay: $billDueDay, ')
           ..write('includeInTotal: $includeInTotal, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt')
@@ -346,6 +433,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
     name,
     type,
     openingBalance,
+    creditLimit,
+    billDueDay,
     includeInTotal,
     isArchived,
     createdAt,
@@ -358,6 +447,8 @@ class AccountRow extends DataClass implements Insertable<AccountRow> {
           other.name == this.name &&
           other.type == this.type &&
           other.openingBalance == this.openingBalance &&
+          other.creditLimit == this.creditLimit &&
+          other.billDueDay == this.billDueDay &&
           other.includeInTotal == this.includeInTotal &&
           other.isArchived == this.isArchived &&
           other.createdAt == this.createdAt);
@@ -368,6 +459,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
   final Value<String> name;
   final Value<AccountType> type;
   final Value<int> openingBalance;
+  final Value<int?> creditLimit;
+  final Value<int?> billDueDay;
   final Value<bool> includeInTotal;
   final Value<bool> isArchived;
   final Value<DateTime> createdAt;
@@ -376,6 +469,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     this.name = const Value.absent(),
     this.type = const Value.absent(),
     this.openingBalance = const Value.absent(),
+    this.creditLimit = const Value.absent(),
+    this.billDueDay = const Value.absent(),
     this.includeInTotal = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -385,6 +480,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     required String name,
     required AccountType type,
     this.openingBalance = const Value.absent(),
+    this.creditLimit = const Value.absent(),
+    this.billDueDay = const Value.absent(),
     this.includeInTotal = const Value.absent(),
     this.isArchived = const Value.absent(),
     this.createdAt = const Value.absent(),
@@ -395,6 +492,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     Expression<String>? name,
     Expression<String>? type,
     Expression<int>? openingBalance,
+    Expression<int>? creditLimit,
+    Expression<int>? billDueDay,
     Expression<bool>? includeInTotal,
     Expression<bool>? isArchived,
     Expression<DateTime>? createdAt,
@@ -404,6 +503,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
       if (name != null) 'name': name,
       if (type != null) 'type': type,
       if (openingBalance != null) 'opening_balance': openingBalance,
+      if (creditLimit != null) 'credit_limit': creditLimit,
+      if (billDueDay != null) 'bill_due_day': billDueDay,
       if (includeInTotal != null) 'include_in_total': includeInTotal,
       if (isArchived != null) 'is_archived': isArchived,
       if (createdAt != null) 'created_at': createdAt,
@@ -415,6 +516,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     Value<String>? name,
     Value<AccountType>? type,
     Value<int>? openingBalance,
+    Value<int?>? creditLimit,
+    Value<int?>? billDueDay,
     Value<bool>? includeInTotal,
     Value<bool>? isArchived,
     Value<DateTime>? createdAt,
@@ -424,6 +527,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
       name: name ?? this.name,
       type: type ?? this.type,
       openingBalance: openingBalance ?? this.openingBalance,
+      creditLimit: creditLimit ?? this.creditLimit,
+      billDueDay: billDueDay ?? this.billDueDay,
       includeInTotal: includeInTotal ?? this.includeInTotal,
       isArchived: isArchived ?? this.isArchived,
       createdAt: createdAt ?? this.createdAt,
@@ -447,6 +552,12 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
     if (openingBalance.present) {
       map['opening_balance'] = Variable<int>(openingBalance.value);
     }
+    if (creditLimit.present) {
+      map['credit_limit'] = Variable<int>(creditLimit.value);
+    }
+    if (billDueDay.present) {
+      map['bill_due_day'] = Variable<int>(billDueDay.value);
+    }
     if (includeInTotal.present) {
       map['include_in_total'] = Variable<bool>(includeInTotal.value);
     }
@@ -466,6 +577,8 @@ class AccountsCompanion extends UpdateCompanion<AccountRow> {
           ..write('name: $name, ')
           ..write('type: $type, ')
           ..write('openingBalance: $openingBalance, ')
+          ..write('creditLimit: $creditLimit, ')
+          ..write('billDueDay: $billDueDay, ')
           ..write('includeInTotal: $includeInTotal, ')
           ..write('isArchived: $isArchived, ')
           ..write('createdAt: $createdAt')
@@ -4212,6 +4325,8 @@ typedef $$AccountsTableCreateCompanionBuilder = AccountsCompanion Function({
   required String name,
   required AccountType type,
   Value<int> openingBalance,
+  Value<int?> creditLimit,
+  Value<int?> billDueDay,
   Value<bool> includeInTotal,
   Value<bool> isArchived,
   Value<DateTime> createdAt,
@@ -4221,6 +4336,8 @@ typedef $$AccountsTableUpdateCompanionBuilder = AccountsCompanion Function({
   Value<String> name,
   Value<AccountType> type,
   Value<int> openingBalance,
+  Value<int?> creditLimit,
+  Value<int?> billDueDay,
   Value<bool> includeInTotal,
   Value<bool> isArchived,
   Value<DateTime> createdAt,
@@ -4349,6 +4466,16 @@ class $$AccountsTableFilterComposer
 
   ColumnFilters<int> get openingBalance => $composableBuilder(
     column: $table.openingBalance,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get creditLimit => $composableBuilder(
+    column: $table.creditLimit,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get billDueDay => $composableBuilder(
+    column: $table.billDueDay,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -4522,6 +4649,16 @@ class $$AccountsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<int> get creditLimit => $composableBuilder(
+    column: $table.creditLimit,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get billDueDay => $composableBuilder(
+    column: $table.billDueDay,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<bool> get includeInTotal => $composableBuilder(
     column: $table.includeInTotal,
     builder: (column) => ColumnOrderings(column),
@@ -4558,6 +4695,16 @@ class $$AccountsTableAnnotationComposer
 
   GeneratedColumn<int> get openingBalance => $composableBuilder(
     column: $table.openingBalance,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get creditLimit => $composableBuilder(
+    column: $table.creditLimit,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get billDueDay => $composableBuilder(
+    column: $table.billDueDay,
     builder: (column) => column,
   );
 
@@ -4738,6 +4885,8 @@ class $$AccountsTableTableManager
                 Value<String> name = const Value.absent(),
                 Value<AccountType> type = const Value.absent(),
                 Value<int> openingBalance = const Value.absent(),
+                Value<int?> creditLimit = const Value.absent(),
+                Value<int?> billDueDay = const Value.absent(),
                 Value<bool> includeInTotal = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4746,6 +4895,8 @@ class $$AccountsTableTableManager
                 name: name,
                 type: type,
                 openingBalance: openingBalance,
+                creditLimit: creditLimit,
+                billDueDay: billDueDay,
                 includeInTotal: includeInTotal,
                 isArchived: isArchived,
                 createdAt: createdAt,
@@ -4756,6 +4907,8 @@ class $$AccountsTableTableManager
                 required String name,
                 required AccountType type,
                 Value<int> openingBalance = const Value.absent(),
+                Value<int?> creditLimit = const Value.absent(),
+                Value<int?> billDueDay = const Value.absent(),
                 Value<bool> includeInTotal = const Value.absent(),
                 Value<bool> isArchived = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
@@ -4764,6 +4917,8 @@ class $$AccountsTableTableManager
                 name: name,
                 type: type,
                 openingBalance: openingBalance,
+                creditLimit: creditLimit,
+                billDueDay: billDueDay,
                 includeInTotal: includeInTotal,
                 isArchived: isArchived,
                 createdAt: createdAt,

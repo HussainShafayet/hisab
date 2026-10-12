@@ -116,13 +116,15 @@ class CategoryResolver {
 
 /// A guess at the kind of account from its name, for accounts that are created
 /// by an import: bKash and Nagad are mobile banking, anything with "bank" is a
-/// bank, cards are cards, everything else is cash.
+/// bank, cards are cards (a credit card if it says so), everything else is
+/// cash.
 AccountType guessAccountType(String name) {
   final lower = name.toLowerCase();
   bool has(List<String> words) => words.any(lower.contains);
   if (has(['bkash', 'nagad', 'rocket', 'upay', 'mobile'])) {
     return AccountType.mobileBanking;
   }
+  if (has(['credit'])) return AccountType.creditCard;
   if (has(['card', 'visa', 'mastercard'])) return AccountType.card;
   if (has(['bank', 'savings', 'dps', 'fdr', 'current'])) {
     return AccountType.bank;

@@ -5,7 +5,7 @@ import 'package:hishab/core/l10n/app_language.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_router.dart';
 import 'package:hishab/core/theme/app_theme.dart';
-import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
+import 'package:hishab/features/reminders/reminder_sync.dart';
 import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
@@ -22,7 +22,7 @@ class _HishabAppState extends ConsumerState<HishabApp> {
   /// When the app comes back to the front, a new day may have started, so
   /// what is due is worked out again.
   late final _lifecycle = AppLifecycleListener(
-    onResume: () => ref.invalidate(recurringSyncProvider),
+    onResume: () => ref.invalidate(reminderSyncProvider),
   );
 
   @override
@@ -35,7 +35,7 @@ class _HishabAppState extends ConsumerState<HishabApp> {
   Widget build(BuildContext context) {
     // Adds what is due for the recurring items that add themselves, and sets
     // their reminders. Kept alive here for as long as the app runs.
-    ref.watch(recurringSyncProvider);
+    ref.watch(reminderSyncProvider);
     final preferences = ref.watch(preferencesProvider);
     // Set before anything below is built, so every `tr` already answers in
     // the chosen language.

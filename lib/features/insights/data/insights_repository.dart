@@ -3,8 +3,6 @@ import 'dart:math' as math;
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/features/budget/data/budgets_repository.dart';
-import 'package:hishab/features/debts/data/debts_repository.dart';
-import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/insights/domain/insights.dart';
 import 'package:hishab/features/recurring/data/recurring_repository.dart';
 import 'package:hishab/features/reports/data/reports_repository.dart';
@@ -14,16 +12,14 @@ class InsightsRepository {
   InsightsRepository(AppDatabase db)
     : _reports = ReportsRepository(db),
       _budgets = BudgetsRepository(db),
-      _debts = DebtsRepository(db),
       _recurring = RecurringRepository(db);
 
   final ReportsRepository _reports;
   final BudgetsRepository _budgets;
-  final DebtsRepository _debts;
   final RecurringRepository _recurring;
 
   /// The insights as of [now]: this month so far against the same days of last
-  /// month, the pace of the budget, loans, and what is coming up.
+  /// month, the pace of the budget, and what is coming up.
   Future<List<Insight>> load(DateTime now) async {
     final today = dateOnly(now);
     final monthStartDay = monthStart(today);
@@ -39,7 +35,6 @@ class InsightsRepository {
     );
 
     final budget = await _budgets.overallBudget(now);
-    final debts = await _debts.watchDebts().first;
     final rules = await _recurring.getRules();
 
     UpcomingRecurring? upcoming;
@@ -61,7 +56,6 @@ class InsightsRepository {
         categoriesLastPeriod: await _reports.expenseByCategory(lastPeriod),
         budgetLimit: budget?.limit,
         budgetSpent: budget?.spent ?? 0,
-        loans: debtTotals(debts, today),
         recurring: upcoming,
       ),
     );

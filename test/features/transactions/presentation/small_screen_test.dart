@@ -326,6 +326,22 @@ void main() {
       db,
     ) async {
       useSmallPhone(tester, textScale: scale);
+      final cash = await db.accountsDao.insertAccount(
+        AccountsCompanion.insert(
+          name: 'A cash account with a rather long name',
+          type: AccountType.cash,
+          openingBalance: const Value(123456789012),
+        ),
+      );
+      await db.accountsDao.insertAccount(
+        AccountsCompanion.insert(
+          name: 'A credit card with a very long name for its bank',
+          type: AccountType.creditCard,
+          openingBalance: const Value(-98765432100),
+          creditLimit: const Value(123456789012),
+          billDueDay: const Value(31),
+        ),
+      );
       final repo = DebtsRepository(db);
       final id = await repo.createDebt(
         person: 'A person with a rather long name indeed, Mr Rahim Uddin',
@@ -334,23 +350,58 @@ void main() {
         openedOn: DateTime(2026, 9, 1),
         dueOn: DateTime(2026, 10, 1),
         note: 'A long note about why this money was lent to this person',
+        accountId: cash,
       );
       await repo.addPayment(id, amount: 12345678, paidOn: DateTime(2026, 9, 5));
       await repo.createDebt(
-        person: 'Karim',
+        person: 'A person with a rather long name indeed, Mr Rahim Uddin',
         direction: DebtDirection.borrowed,
         amount: 5000,
         openedOn: DateTime(2026, 10, 1),
       );
       await pumpAppWithDatabase(tester, db);
+      expect(tester.takeException(), isNull);
+
+      // Home has the Loans card.
+      expect(find.byKey(const ValueKey('loans-home-card')), findsOneWidget);
 
       await openFromMore(tester, 'Loans');
       expect(tester.takeException(), isNull);
+
+      // The money I will give has the credit card at the top.
+      await tester.tap(find.byKey(const ValueKey('tab-give')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      // And the people, then one person with everything.
+      await tester.tap(find.byKey(const ValueKey('tab-people')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.tap(
+        find.byKey(
+          ValueKey(
+            'person-tile-${'A person with a rather long name indeed, Mr Rahim Uddin'.toLowerCase()}',
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('set-off')), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('set-off')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('tab-get')));
+      await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(ValueKey('debt-$id')));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
+      // The payment dialog has the account as a card.
       await tester.tap(find.byKey(const ValueKey('add-payment')));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -362,12 +413,56 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
+      // The account card and the extra details fit too.
+      await tester.tap(find.byKey(const ValueKey('loan-account-switch')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('More details'));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
       // The button stays on screen below the form.
       expect(
         tester.getRect(find.widgetWithText(FilledButton, 'Add loan')).bottom,
         lessThanOrEqualTo(tester.view.physicalSize.height),
       );
     });
+
+    testWithDatabase(
+      'the credit card form and the pay bill form fit (text x$scale)',
+      (tester, db) async {
+        useSmallPhone(tester, textScale: scale);
+        final card = await db.accountsDao.insertAccount(
+          AccountsCompanion.insert(
+            name: 'A credit card with a very long name for its bank',
+            type: AccountType.creditCard,
+            openingBalance: const Value(-98765432100),
+            creditLimit: const Value(123456789012),
+            billDueDay: const Value(31),
+          ),
+        );
+        await db.accountsDao.insertAccount(
+          AccountsCompanion.insert(name: 'Cash', type: AccountType.cash),
+        );
+        await pumpAppWithDatabase(tester, db);
+
+        await openFromMore(tester, 'Accounts');
+        expect(tester.takeException(), isNull);
+        await tester.tap(find.byKey(ValueKey('balance-$card')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+        expect(find.byKey(const ValueKey('credit-limit')), findsOneWidget);
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+
+        await tester.tap(find.byType(BackButton));
+        await tester.pumpAndSettle();
+        await openFromMore(tester, 'Loans');
+        await tester.tap(find.byKey(const ValueKey('tab-give')));
+        await tester.pumpAndSettle();
+        await tester.tap(find.byKey(ValueKey('pay-bill-$card')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
+      },
+    );
   }
 
   group('layout on a 360 dp wide phone', () {

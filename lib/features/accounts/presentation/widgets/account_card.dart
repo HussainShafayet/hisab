@@ -48,6 +48,8 @@ class AccountCard extends StatelessWidget {
         ? Colors.blueGrey.shade600
         : account.type.color;
     final after = balanceAfter;
+    final card = account.isCreditCard;
+    final limit = account.creditLimit;
     final tail =
         trailing ??
         (selected ? const Icon(Icons.check_circle, color: _white) : null);
@@ -131,7 +133,11 @@ class AccountCard extends StatelessWidget {
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
                               Text(
-                                tr('Balance'),
+                                card
+                                    ? (balance! > 0
+                                          ? tr('In credit')
+                                          : tr('Owed'))
+                                    : tr('Balance'),
                                 style: theme.textTheme.labelSmall?.copyWith(
                                   color: _whiteSoft,
                                 ),
@@ -140,7 +146,9 @@ class AccountCard extends StatelessWidget {
                                 fit: BoxFit.scaleDown,
                                 alignment: Alignment.centerRight,
                                 child: Text(
-                                  formatPoisha(balance!),
+                                  formatPoisha(
+                                    card ? balance!.abs() : balance!,
+                                  ),
                                   key: ValueKey('balance-${account.id}'),
                                   style: theme.textTheme.titleMedium?.tabular
                                       .copyWith(
@@ -156,6 +164,10 @@ class AccountCard extends StatelessWidget {
                       if (tail != null) ...[const SizedBox(width: 8), tail],
                     ],
                   ),
+                  if (card && limit != null && balance != null) ...[
+                    const SizedBox(height: 10),
+                    _LimitBar(owed: balance! < 0 ? -balance! : 0, limit: limit),
+                  ],
                   if (after != null) ...[
                     const SizedBox(height: 8),
                     const Divider(height: 1, color: Color(0x55FFFFFF)),
@@ -163,13 +175,15 @@ class AccountCard extends StatelessWidget {
                     Row(
                       children: [
                         Text(
-                          tr('After this'),
+                          card ? tr('Owed after this') : tr('After this'),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: _whiteSoft,
                           ),
                         ),
                         const Spacer(),
-                        if (after < 0) ...[
+                        if (card
+                            ? (limit != null && -after > limit)
+                            : after < 0) ...[
                           const Icon(
                             Icons.warning_amber_rounded,
                             size: 16,
@@ -182,11 +196,14 @@ class AccountCard extends StatelessWidget {
                             fit: BoxFit.scaleDown,
                             alignment: Alignment.centerRight,
                             child: Text(
-                              formatPoisha(after),
+                              formatPoisha(card ? after.abs() : after),
                               key: ValueKey('balance-after-${account.id}'),
                               style: theme.textTheme.titleSmall?.tabular
                                   .copyWith(
-                                    color: after < 0
+                                    color:
+                                        (card
+                                            ? (limit != null && -after > limit)
+                                            : after < 0)
                                         ? const Color(0xFFFFE082)
                                         : _white,
                                     fontWeight: FontWeight.w700,
@@ -218,6 +235,65 @@ class _Badge extends StatelessWidget {
       radius: 20,
       backgroundColor: const Color(0x33FFFFFF),
       child: Icon(icon, color: Colors.white),
+    );
+  }
+}
+
+/// How much of a credit card's limit is used, with what is still available.
+class _LimitBar extends StatelessWidget {
+  const _LimitBar({required this.owed, required this.limit});
+
+  final int owed;
+  final int limit;
+
+  static const _amber = Color(0xFFFFE082);
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final over = owed > limit;
+    final left = limit - owed;
+    final style = theme.textTheme.bodySmall?.copyWith(
+      color: over ? _amber : const Color(0xCCFFFFFF),
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        ClipRRect(
+          borderRadius: BorderRadius.circular(4),
+          child: LinearProgressIndicator(
+            value: (owed / limit).clamp(0.0, 1.0),
+            minHeight: 5,
+            color: over ? _amber : Colors.white,
+            backgroundColor: const Color(0x33FFFFFF),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                over
+                    ? tr('Over the limit by {amount}', {
+                        'amount': formatPoisha(-left),
+                      })
+                    : tr('{amount} left to spend', {
+                        'amount': formatPoisha(left),
+                      }),
+                key: const ValueKey('limit-left'),
+                style: style,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            Text(
+              tr('Limit {amount}', {'amount': formatPoisha(limit)}),
+              style: style,
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

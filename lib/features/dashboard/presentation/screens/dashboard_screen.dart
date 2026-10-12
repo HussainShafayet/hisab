@@ -10,6 +10,7 @@ import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/dashboard/domain/dashboard_data.dart';
 import 'package:hishab/features/dashboard/presentation/providers/dashboard_providers.dart';
 import 'package:hishab/features/dashboard/presentation/widgets/dashboard_cards.dart';
+import 'package:hishab/features/debts/presentation/widgets/loans_home_card.dart';
 import 'package:hishab/features/insights/presentation/widgets/insights_card.dart';
 import 'package:hishab/features/recurring/presentation/widgets/due_recurring_card.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
@@ -63,6 +64,7 @@ class _DashboardContent extends ConsumerWidget {
           today: now,
         ),
         SpendingTiles(today: data.todayExpense, week: data.weekExpense),
+        const LoansHomeCard(),
         const InsightsCard(),
         DashboardHeading(tr('Top spending')),
         TopCategoriesCard(

@@ -14,10 +14,6 @@ List<String> accountNameSuggestions(AccountType type) => switch (type) {
     'BRAC Bank',
     'City Bank',
   ],
-  AccountType.card => [
-    tr('Debit card'),
-    tr('Credit card'),
-    'Visa',
-    'Mastercard',
-  ],
+  AccountType.card => [tr('Debit card'), 'Visa', 'Mastercard'],
+  AccountType.creditCard => [tr('Credit card'), 'Visa', 'Mastercard'],
 };

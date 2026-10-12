@@ -42,7 +42,7 @@ final transactionFormDataProvider = FutureProvider.autoDispose
           ? null
           : await repository.getTransaction(sourceId);
       if (sourceId != null && source == null) {
-        throw ValidationException(tr('This transaction no longer exists.'));
+        throw ValidationException(tr('This transaction was already deleted.'));
       }
       final options = await repository.loadAddOptions(
         now: ref.read(clockProvider)(),

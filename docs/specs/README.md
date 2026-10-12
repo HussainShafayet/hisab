@@ -17,9 +17,10 @@ behaviour.
 | [categories](categories/) | [Add / edit category](categories/category-form.md) | 9 |
 | [settings](settings/) | [Settings](settings/settings.md) | 10a |
 | [core](core/) | [Bangla UI](core/bangla-ui.md) | 10a |
-| [debts](debts/) | [Loans (dhar / baki)](debts/loans.md) | 10b |
+| [debts](debts/) | [Loans (dhar / baki)](debts/loans.md) | 10b, 11 |
 | [recurring](recurring/) | [Recurring transactions and reminders](recurring/recurring.md) | 10c |
 | [insights](insights/) | [Insights, the new Home, budget pace and reports](insights/insights.md) | 10d |
+| [accounts](accounts/) | [Credit cards](accounts/credit-cards.md) | 11 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

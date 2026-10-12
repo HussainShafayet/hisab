@@ -24,6 +24,10 @@ and how much will be left.
   says it, so an account called "Cash" does not read "Cash / Cash".
 - The same card is used on the [accounts screen](accounts-screen.md), with a
   menu in place of the check.
+- A [credit card](credit-cards.md) is orange-red, says "Owed" with what is owed
+  instead of a balance, has a limit bar when a limit is set, and its preview
+  says "Owed after this" (the warning is for going over the limit). A debit card
+  is the purple "Debit card".
 
 ## Rules
 - `TransactionEffect.changeFor(account)` and `projectedBalance` are pure and

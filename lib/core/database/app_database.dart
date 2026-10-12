@@ -70,8 +70,9 @@ class AppDatabase extends _$AppDatabase {
   /// 3: the `app_settings` table (Settings).
   /// 4: the `debts` and `debt_payments` tables (dhar / baki).
   /// 5: the `recurring_rules` table.
+  /// 6: `accounts.credit_limit` and `accounts.bill_due_day` (credit cards).
   @override
-  int get schemaVersion => 5;
+  int get schemaVersion => 6;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -104,6 +105,10 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 5) {
         await migrator.createTable(recurringRules);
+      }
+      if (from < 6) {
+        await migrator.addColumn(accounts, accounts.creditLimit);
+        await migrator.addColumn(accounts, accounts.billDueDay);
       }
     },
     beforeOpen: (details) async {

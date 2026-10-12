@@ -1,5 +1,4 @@
 import 'package:hishab/core/utils/dates.dart';
-import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/reports/domain/category_total.dart';
 
 /// What an insight is about. The text for each is in `insight_text.dart`.
@@ -10,9 +9,6 @@ enum InsightKind {
   withinBudgetPace,
   categoryJump,
   topCategory,
-  loansOverdue,
-  loansToGet,
-  loansToPay,
   recurringSoon,
 }
 
@@ -50,7 +46,6 @@ class InsightInput {
     required this.categoriesLastPeriod,
     this.budgetLimit,
     this.budgetSpent = 0,
-    this.loans = const DebtTotals(),
     this.recurring,
   });
 
@@ -70,7 +65,6 @@ class InsightInput {
   /// The overall budget of this month and what is spent against it.
   final int? budgetLimit;
   final int budgetSpent;
-  final DebtTotals loans;
 
   /// The next recurring item coming up, if any.
   final UpcomingRecurring? recurring;
@@ -165,15 +159,6 @@ List<Insight> buildInsights(InsightInput input, {int max = 4}) {
     );
   }
 
-  // Loans.
-  if (input.loans.overdueCount > 0) {
-    found.add(
-      Insight(InsightKind.loansOverdue, InsightTone.warning, {
-        'count': input.loans.overdueCount,
-      }),
-    );
-  }
-
   // The biggest slice of the spending.
   if (input.expense > 0 && input.categories.isNotEmpty) {
     final top = input.categories.first;
@@ -186,21 +171,6 @@ List<Insight> buildInsights(InsightInput input, {int max = 4}) {
         }),
       );
     }
-  }
-
-  if (input.loans.toReceive > 0) {
-    found.add(
-      Insight(InsightKind.loansToGet, InsightTone.info, {
-        'amount': input.loans.toReceive,
-      }),
-    );
-  }
-  if (input.loans.toPay > 0) {
-    found.add(
-      Insight(InsightKind.loansToPay, InsightTone.info, {
-        'amount': input.loans.toPay,
-      }),
-    );
   }
 
   final recurring = input.recurring;

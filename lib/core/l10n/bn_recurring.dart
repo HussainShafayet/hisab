@@ -43,7 +43,7 @@ const bnRecurring = <String, String>{
       'শেষের দিন প্রথম দিনের আগে হতে পারে না।',
   'This recurring item is paused.': 'এই নিয়মিত জিনিসটি থামানো আছে।',
   'This recurring item no longer exists.': 'এই নিয়মিত জিনিসটি আর নেই।',
-  'recurring item': 'নিয়মিত জিনিস',
   '{amount} is due today.': 'আজ {amount} দেওয়ার কথা।',
   '{amount} is expected today.': 'আজ {amount} পাওয়ার কথা।',
+  'recurring item': 'নিয়মিত জিনিস',
 };

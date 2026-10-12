@@ -11,6 +11,8 @@ import 'package:hishab/features/accounts/presentation/providers/accounts_provide
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/debts/presentation/widgets/day_field.dart';
+import 'package:hishab/features/debts/presentation/widgets/loan_account_field.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
 /// Asks how much was paid back, and when, and records it. Pops with true when
 /// it was recorded.
@@ -70,14 +72,19 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
 
   @override
   Widget build(BuildContext context) {
-    final accounts =
-        ref.watch(accountsProvider(false)).value ??
-        const <AccountWithBalance>[];
+    final all =
+        ref.watch(accountsProvider(true)).value ?? const <AccountWithBalance>[];
+    // Archived accounts cannot be chosen, except the one the loan uses.
+    final accounts = [
+      for (final a in all)
+        if (!a.account.isArchived || a.account.id == widget.item.debt.accountId)
+          a,
+    ];
     final lent = widget.item.debt.direction == DebtDirection.lent;
     final theme = Theme.of(context);
 
     return AlertDialog(
-      title: Text(lent ? tr('Money received') : tr('Money paid back')),
+      title: Text(lent ? tr('They paid me') : tr('I paid them')),
       content: SingleChildScrollView(
         child: Form(
           key: _formKey,
@@ -96,6 +103,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                 controller: _amount,
                 label: tr('Amount'),
                 autofocus: true,
+                onChanged: (_) => setState(() {}),
               ),
               const SizedBox(height: 12),
               DayField(
@@ -119,31 +127,20 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                 controller: _note,
                 decoration: InputDecoration(labelText: tr('Note')),
               ),
-              if (accounts.isNotEmpty) ...[
-                const SizedBox(height: 12),
-                DropdownButtonFormField<int?>(
-                  key: const ValueKey('payment-account'),
-                  initialValue: accounts.any((a) => a.account.id == _accountId)
-                      ? _accountId
-                      : null,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: tr('Also change the balance of'),
-                  ),
-                  items: [
-                    DropdownMenuItem<int?>(
-                      value: null,
-                      child: Text(tr('No account, just a note')),
-                    ),
-                    for (final item in accounts)
-                      DropdownMenuItem<int?>(
-                        value: item.account.id,
-                        child: Text(item.account.name),
-                      ),
-                  ],
-                  onChanged: (value) => setState(() => _accountId = value),
-                ),
-              ],
+              const SizedBox(height: 4),
+              LoanAccountField(
+                switchKey: const ValueKey('payment-account-switch'),
+                accounts: accounts,
+                accountId: accounts.any((a) => a.account.id == _accountId)
+                    ? _accountId
+                    : null,
+                moneyIn: lent,
+                amount: parseTakaToPoisha(_amount.text),
+                preferredId:
+                    widget.item.debt.accountId ??
+                    ref.read(preferencesProvider).defaultAccountId,
+                onChanged: (id) => setState(() => _accountId = id),
+              ),
               if (_error != null) ...[
                 const SizedBox(height: 8),
                 Text(

@@ -146,3 +146,158 @@ List<DebtItem> sortDebts(Iterable<DebtItem> items, DateTime today) {
   });
   return list;
 }
+
+/// The key two spellings of one name share: trimmed and lower-case, so
+/// "Rahim" and " rahim " are the same person.
+String personKey(String name) => name.trim().toLowerCase();
+
+/// Every loan with one person: what they owe me, what I owe them, and the
+/// difference.
+class PersonDebts {
+  const PersonDebts({required this.name, required this.items});
+
+  /// The name as it was written most recently.
+  final String name;
+
+  /// Open loans first (see [sortDebts]), then the settled ones.
+  final List<DebtItem> items;
+
+  Iterable<DebtItem> get _open => items.where((i) => !i.isSettled);
+
+  /// Left to get back from this person, in poisha.
+  int get toReceive => _open
+      .where((i) => i.debt.direction == DebtDirection.lent)
+      .fold(0, (sum, i) => sum + i.remaining);
+
+  /// Left to give back to this person, in poisha.
+  int get toPay => _open
+      .where((i) => i.debt.direction == DebtDirection.borrowed)
+      .fold(0, (sum, i) => sum + i.remaining);
+
+  /// What is left once the two sides are set against each other: above zero
+  /// when they owe me, below zero when I owe them.
+  int get net => toReceive - toPay;
+
+  bool get isSettled => _open.isEmpty;
+
+  /// How much can be set off: what is owed both ways, whichever is less.
+  int get setOffAmount => math.min(toReceive, toPay);
+
+  /// How many open loans with this person are late.
+  int overdueCount(DateTime today) =>
+      _open.where((i) => i.isOverdue(today)).length;
+}
+
+/// The loans grouped by person. People with something open come first (late
+/// ones, then the biggest difference), people who are all settled after,
+/// by name.
+List<PersonDebts> groupByPerson(Iterable<DebtItem> items, DateTime today) {
+  final byKey = <String, List<DebtItem>>{};
+  for (final item in items) {
+    byKey.putIfAbsent(personKey(item.debt.person), () => []).add(item);
+  }
+  final people = <PersonDebts>[];
+  for (final group in byKey.values) {
+    // The newest loan has the spelling the person used last.
+    final newest = group.reduce((a, b) => a.debt.id > b.debt.id ? a : b);
+    people.add(
+      PersonDebts(name: newest.debt.person, items: sortDebts(group, today)),
+    );
+  }
+  int rank(PersonDebts p) =>
+      p.isSettled ? 2 : (p.overdueCount(today) > 0 ? 0 : 1);
+  people.sort((a, b) {
+    final byRank = rank(a).compareTo(rank(b));
+    if (byRank != 0) return byRank;
+    if (!a.isSettled) {
+      final byNet = b.net.abs().compareTo(a.net.abs());
+      if (byNet != 0) return byNet;
+    }
+    return personKey(a.name).compareTo(personKey(b.name));
+  });
+  return people;
+}
+
+/// The loans that go the given [direction], sorted like [sortDebts].
+List<DebtItem> debtsGoing(
+  Iterable<DebtItem> items,
+  DebtDirection direction,
+  DateTime today,
+) => sortDebts(items.where((i) => i.debt.direction == direction), today);
+
+/// When a notification should come for an open loan with a due day.
+class PlannedDebtReminder {
+  const PlannedDebtReminder({
+    required this.item,
+    required this.day,
+    required this.dayBefore,
+  });
+
+  final DebtItem item;
+
+  /// The day the notification is shown.
+  final DateTime day;
+
+  /// True for the heads-up the day before, false for the due day itself.
+  final bool dayBefore;
+}
+
+/// The notifications to schedule for loans as of [today]: one on the due day
+/// and one the day before, for every open loan whose due day has not passed.
+/// A loan that is late already is not reminded again (the list and Home show
+/// it).
+List<PlannedDebtReminder> upcomingDebtReminders(
+  Iterable<DebtItem> items,
+  DateTime today,
+) {
+  final from = dateOnly(today);
+  final planned = <PlannedDebtReminder>[];
+  for (final item in items) {
+    final due = item.debt.dueOn;
+    if (item.isSettled || due == null) continue;
+    final dueDay = dateOnly(due);
+    if (dueDay.isBefore(from)) continue;
+    final before = DateTime(dueDay.year, dueDay.month, dueDay.day - 1);
+    if (!before.isBefore(from)) {
+      planned.add(
+        PlannedDebtReminder(item: item, day: before, dayBefore: true),
+      );
+    }
+    planned.add(PlannedDebtReminder(item: item, day: dueDay, dayBefore: false));
+  }
+  planned.sort((a, b) {
+    final byDay = a.day.compareTo(b.day);
+    return byDay != 0 ? byDay : a.item.debt.id.compareTo(b.item.debt.id);
+  });
+  return planned;
+}
+
+/// A payment that sets a loan off against one going the other way.
+class SetOffStep {
+  const SetOffStep(this.debtId, this.amount);
+
+  final int debtId;
+
+  /// In poisha, above zero.
+  final int amount;
+}
+
+/// How to set off what [person] owes me against what I owe them: take
+/// [PersonDebts.setOffAmount] off the loans going each way, the earliest due
+/// first. Nothing to do (an empty list) when the money goes only one way.
+List<SetOffStep> planSetOff(PersonDebts person) {
+  final amount = person.setOffAmount;
+  if (amount <= 0) return const [];
+  final steps = <SetOffStep>[];
+  for (final direction in DebtDirection.values) {
+    var left = amount;
+    for (final item in person.items) {
+      if (left == 0) break;
+      if (item.isSettled || item.debt.direction != direction) continue;
+      final part = math.min(left, item.remaining);
+      steps.add(SetOffStep(item.debt.id, part));
+      left -= part;
+    }
+  }
+  return steps;
+}

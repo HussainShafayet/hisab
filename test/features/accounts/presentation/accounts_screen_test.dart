@@ -257,7 +257,7 @@ void main() {
       await tester.pump();
 
       expect(inPreview('My wallet'), findsOneWidget);
-      expect(inPreview('Card'), findsOneWidget);
+      expect(inPreview('Debit card'), findsOneWidget);
       expect(inPreview('৳120.00'), findsOneWidget);
     });
 

@@ -17,7 +17,7 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 /// 2: also loans (`debts`) and their payments (`debtPayments`).
 /// 3: also recurring items (`recurringRules`). An older file has none of what
 /// came after it, and is read as having none.
-const backupFormatVersion = 3;
+const backupFormatVersion = 4;
 
 const _appId = 'hishab';
 
@@ -105,6 +105,8 @@ class BackupAccount {
     required this.includeInTotal,
     required this.isArchived,
     required this.createdAt,
+    this.creditLimit,
+    this.billDueDay,
   });
 
   factory BackupAccount.fromJson(Map<String, Object?> json) {
@@ -117,6 +119,8 @@ class BackupAccount {
       includeInTotal: _bool(json, 'includeInTotal', where),
       isArchived: _bool(json, 'isArchived', where),
       createdAt: _date(json, 'createdAt', where),
+      creditLimit: _intOrNull(json, 'creditLimit', where),
+      billDueDay: _intOrNull(json, 'billDueDay', where),
     );
   }
 
@@ -128,6 +132,10 @@ class BackupAccount {
   final bool isArchived;
   final DateTime createdAt;
 
+  /// Credit cards only (format 4 and later).
+  final int? creditLimit;
+  final int? billDueDay;
+
   Map<String, Object?> toJson() => {
     'id': id,
     'name': name,
@@ -136,6 +144,8 @@ class BackupAccount {
     'includeInTotal': includeInTotal,
     'isArchived': isArchived,
     'createdAt': _iso(createdAt),
+    'creditLimit': creditLimit,
+    'billDueDay': billDueDay,
   };
 }
 

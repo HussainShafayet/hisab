@@ -1,10 +1,17 @@
+import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/files/file_gateway.dart';
+import 'package:hishab/core/notifications/reminder_scheduler.dart';
 import 'package:hishab/features/accounts/data/accounts_repository.dart';
+import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/debts/data/debts_repository.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 
+import '../../../helpers/fake_file_gateway.dart';
+import '../../../helpers/fake_reminder_scheduler.dart';
+import '../../../helpers/form_actions.dart';
 import '../../../helpers/pump_app.dart';
 import '../../../helpers/test_database.dart';
 
@@ -38,6 +45,22 @@ Future<int> make(
   return id;
 }
 
+Future<int> makeCard(
+  AppDatabase db, {
+  String name = 'Visa',
+  int owed = 50000,
+  int? limit = 200000,
+  int? day = 15,
+}) => db.accountsDao.insertAccount(
+  AccountsCompanion.insert(
+    name: name,
+    type: AccountType.creditCard,
+    openingBalance: Value(-owed),
+    creditLimit: Value(limit),
+    billDueDay: Value(day),
+  ),
+);
+
 Future<void> openLoans(WidgetTester tester) => openFromMore(tester, 'Loans');
 
 Future<void> tapKey(WidgetTester tester, String key) async {
@@ -45,12 +68,41 @@ Future<void> tapKey(WidgetTester tester, String key) async {
   await tester.pumpAndSettle();
 }
 
+/// Taps the "I'll give" tab.
+Future<void> showGive(WidgetTester tester) => tapKey(tester, 'tab-give');
+
+/// Taps the "People" tab.
+Future<void> showPeople(WidgetTester tester) => tapKey(tester, 'tab-people');
+
 String textOf(WidgetTester tester, String key) =>
     tester.widget<Text>(find.byKey(ValueKey(key))).data!;
 
 Future<void> openDetail(WidgetTester tester, int id) async {
   await tester.tap(find.byKey(ValueKey('debt-$id')));
   await tester.pumpAndSettle();
+}
+
+Future<void> longPressLoan(WidgetTester tester, int id) async {
+  await tester.longPress(find.byKey(ValueKey('debt-$id')));
+  await tester.pumpAndSettle();
+}
+
+Future<void> swipeLoan(WidgetTester tester, int id, Offset offset) async {
+  await tester.fling(find.byKey(ValueKey('swipe-$id')), offset, 1500);
+  await tester.pumpAndSettle();
+}
+
+Future<void> enterField(WidgetTester tester, String label, String text) =>
+    tester.enterText(find.widgetWithText(TextFormField, label), text);
+
+String fieldText(WidgetTester tester, String label) => tester
+    .widget<TextFormField>(find.widgetWithText(TextFormField, label))
+    .controller!
+    .text;
+
+Future<int> balanceOf(AppDatabase db, int accountId) async {
+  final accounts = await AccountsRepository(db).watchAccounts().first;
+  return accounts.firstWhere((a) => a.account.id == accountId).balance;
 }
 
 void main() {
@@ -72,7 +124,7 @@ void main() {
       expect(appBarTitle('New loan'), findsOneWidget);
     });
 
-    testWithDatabase('adds up what is left to get back and to pay back', (
+    testWithDatabase('adds up what I will get and what I will give', (
       tester,
       db,
     ) async {
@@ -92,28 +144,35 @@ void main() {
       expect(textOf(tester, 'to-pay-back'), '৳200.00');
     });
 
-    testWithDatabase(
-      'shows each loan with what is left and how far it is paid',
-      (tester, db) async {
-        useTallScreen(tester);
-        final lent = await make(db, amount: 100000, paid: 40000);
-        final borrowed = await make(
-          db,
-          person: 'Karim',
-          direction: DebtDirection.borrowed,
-          amount: 30000,
-        );
-        await pumpAppWithDatabase(tester, db);
-        await openLoans(tester);
+    testWithDatabase('shows the loans that go each way in their own tab', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final lent = await make(db, amount: 100000, paid: 40000);
+      final borrowed = await make(
+        db,
+        person: 'Karim',
+        direction: DebtDirection.borrowed,
+        amount: 30000,
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
 
-        expect(textOf(tester, 'debt-amount-$lent'), '৳600.00');
-        expect(textOf(tester, 'debt-amount-$borrowed'), '৳300.00');
-        expect(find.text('Rahim'), findsOneWidget);
-        expect(find.text('They owe you'), findsOneWidget);
-        expect(find.text('You owe'), findsOneWidget);
-        expect(find.text('Paid ৳400.00 of ৳1,000.00'), findsOneWidget);
-      },
-    );
+      // The first tab is the money I will get.
+      expect(textOf(tester, 'debt-amount-$lent'), '৳600.00');
+      expect(find.byKey(ValueKey('debt-$borrowed')), findsNothing);
+      expect(find.text('Rahim'), findsOneWidget);
+      expect(find.text('Owes you'), findsOneWidget);
+      expect(find.text('Paid ৳400.00 of ৳1,000.00'), findsOneWidget);
+
+      await showGive(tester);
+
+      expect(textOf(tester, 'debt-amount-$borrowed'), '৳300.00');
+      expect(find.byKey(ValueKey('debt-$lent')), findsNothing);
+      expect(find.text('Karim'), findsOneWidget);
+      expect(find.text('You owe'), findsOneWidget);
+    });
 
     testWithDatabase('says when each one is due, and when it is late', (
       tester,
@@ -132,24 +191,24 @@ void main() {
       await pumpAppWithDatabase(tester, db);
       await openLoans(tester);
 
-      expect(textOf(tester, 'debt-due-$late'), 'Overdue by 10 days');
-      expect(textOf(tester, 'debt-due-$yesterday'), 'Overdue by 1 day');
+      expect(textOf(tester, 'debt-due-$late'), '10 days late');
+      expect(textOf(tester, 'debt-due-$yesterday'), '1 day late');
       expect(textOf(tester, 'debt-due-$today'), 'Due today');
       expect(textOf(tester, 'debt-due-$later'), 'Due 20 Oct');
       expect(find.byKey(ValueKey('debt-due-$none')), findsNothing);
-      expect(textOf(tester, 'overdue-count'), '2 loans are overdue');
+      expect(textOf(tester, 'overdue-count'), '2 loans are late');
     });
 
-    testWithDatabase('says so when only one is overdue', (tester, db) async {
+    testWithDatabase('says so when only one is late', (tester, db) async {
       useTallScreen(tester);
       await make(db, dueOn: DateTime(2026, 10, 1));
       await pumpAppWithDatabase(tester, db);
       await openLoans(tester);
 
-      expect(textOf(tester, 'overdue-count'), '1 loan is overdue');
+      expect(textOf(tester, 'overdue-count'), '1 loan is late');
     });
 
-    testWithDatabase('has no overdue line when nothing is late', (
+    testWithDatabase('has no late line when nothing is late', (
       tester,
       db,
     ) async {
@@ -173,7 +232,7 @@ void main() {
       expect(lateTop, lessThan(fineTop));
     });
 
-    testWithDatabase('hides settled loans until asked', (tester, db) async {
+    testWithDatabase('hides the paid ones until asked', (tester, db) async {
       useTallScreen(tester);
       final open = await make(db, person: 'Open');
       final done = await make(db, person: 'Done', amount: 5000, paid: 5000);
@@ -186,12 +245,12 @@ void main() {
       await tapKey(tester, 'show-settled');
 
       expect(find.byKey(ValueKey('debt-$done')), findsOneWidget);
-      expect(textOf(tester, 'debt-due-$done'), 'Settled');
-      // Settled loans are not in the totals.
+      expect(textOf(tester, 'debt-due-$done'), 'All paid');
+      // Paid loans are not in the totals.
       expect(textOf(tester, 'to-get-back'), '৳1,000.00');
     });
 
-    testWithDatabase('has no settled chip when nothing is settled', (
+    testWithDatabase('has no chip for paid ones when none is paid', (
       tester,
       db,
     ) async {
@@ -203,14 +262,700 @@ void main() {
       expect(find.byKey(const ValueKey('show-settled')), findsNothing);
     });
 
-    testWithDatabase('says so when everything is settled', (tester, db) async {
+    testWithDatabase('says so when everything is paid', (tester, db) async {
       useTallScreen(tester);
       await make(db, amount: 5000, paid: 5000);
       await pumpAppWithDatabase(tester, db);
       await openLoans(tester);
 
-      expect(find.text('Everything is settled.'), findsOneWidget);
+      expect(find.text('Everything is paid.'), findsOneWidget);
       expect(textOf(tester, 'to-get-back'), '৳0.00');
+    });
+
+    testWithDatabase('says so when a tab has nothing', (tester, db) async {
+      useTallScreen(tester);
+      await make(db, direction: DebtDirection.borrowed);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+
+      expect(textOf(tester, 'list-empty'), 'Nobody owes you anything.');
+
+      await make(db, person: 'Other');
+      await showPeople(tester);
+      await tapKey(tester, 'tab-get');
+      await showGive(tester);
+      expect(find.byKey(const ValueKey('list-empty')), findsNothing);
+    });
+  });
+
+  group('quick actions on the list', () {
+    testWithDatabase('a long press offers what can be done', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+
+      await longPressLoan(tester, id);
+
+      expect(find.byKey(const ValueKey('loan-action-payment')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loan-action-paid')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loan-action-remind')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loan-action-edit')), findsOneWidget);
+      expect(find.byKey(const ValueKey('loan-action-delete')), findsOneWidget);
+    });
+
+    testWithDatabase('a reminder is only offered for money I will get', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db, direction: DebtDirection.borrowed);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showGive(tester);
+
+      await longPressLoan(tester, id);
+
+      expect(find.byKey(const ValueKey('loan-action-remind')), findsNothing);
+      expect(find.byKey(const ValueKey('loan-action-paid')), findsOneWidget);
+    });
+
+    testWithDatabase('"All paid" pays what is left, and can be undone', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db, amount: 100000, paid: 25000);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+
+      await longPressLoan(tester, id);
+      await tapKey(tester, 'loan-action-paid');
+
+      expect(find.text('All paid.'), findsOneWidget);
+      expect((await DebtsRepository(db).getDebt(id))!.isSettled, isTrue);
+      // It is paid, so it leaves the list.
+      expect(find.byKey(ValueKey('debt-$id')), findsNothing);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect((await DebtsRepository(db).getDebt(id))!.paid, 25000);
+      expect(find.byKey(ValueKey('debt-$id')), findsOneWidget);
+    });
+
+    testWithDatabase('a payment can be added from the sheet', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+
+      await longPressLoan(tester, id);
+      await tapKey(tester, 'loan-action-payment');
+      await enterField(tester, 'Amount', '400');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Payment saved.'), findsOneWidget);
+      expect(textOf(tester, 'debt-amount-$id'), '৳600.00');
+    });
+
+    testWithDatabase('swiping left marks it all paid', (tester, db) async {
+      useTallScreen(tester);
+      final id = await make(db);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+
+      await swipeLoan(tester, id, const Offset(-500, 0));
+
+      expect(find.text('All paid.'), findsOneWidget);
+      expect((await DebtsRepository(db).getDebt(id))!.isSettled, isTrue);
+    });
+
+    testWithDatabase('swiping right asks for a payment', (tester, db) async {
+      useTallScreen(tester);
+      final id = await make(db);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+
+      await swipeLoan(tester, id, const Offset(500, 0));
+
+      expect(find.text('They paid me'), findsOneWidget);
+      // The loan stays on the list.
+      expect(find.byKey(ValueKey('debt-$id')), findsOneWidget);
+    });
+
+    testWithDatabase('a reminder opens the share sheet with a message', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final gateway = FakeFileGateway();
+      final id = await make(db, amount: 50000, dueOn: DateTime(2026, 10, 1));
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+      );
+      await openLoans(tester);
+
+      await longPressLoan(tester, id);
+      await tapKey(tester, 'loan-action-remind');
+
+      expect(gateway.sharedTexts, [
+        'Hi Rahim, a quick reminder about the ৳500.00 you owe me, which was '
+            'due on 1 Oct. Please send it when you can. Thanks!',
+      ]);
+    });
+
+    testWithDatabase('a reminder without a due day does not mention one', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final gateway = FakeFileGateway();
+      final id = await make(db, amount: 50000);
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+      );
+      await openLoans(tester);
+
+      await longPressLoan(tester, id);
+      await tapKey(tester, 'loan-action-remind');
+
+      expect(gateway.sharedTexts, [
+        'Hi Rahim, a quick reminder about the ৳500.00 you owe me. Please send '
+            'it when you can. Thanks!',
+      ]);
+    });
+
+    testWithDatabase('says so when the share sheet cannot open', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final gateway = FakeFileGateway()..failure = StateError('no share');
+      final id = await make(db);
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+      );
+      await openLoans(tester);
+
+      await longPressLoan(tester, id);
+      await tapKey(tester, 'loan-action-remind');
+
+      expect(find.text('Could not open the share sheet.'), findsOneWidget);
+    });
+
+    testWithDatabase('a loan can be deleted from the sheet, after asking', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+
+      await longPressLoan(tester, id);
+      await tapKey(tester, 'loan-action-delete');
+      expect(find.text('Delete this loan?'), findsOneWidget);
+      await tester.tap(find.widgetWithText(FilledButton, 'Delete'));
+      await tester.pumpAndSettle();
+
+      expect(await db.debtsDao.getAllDebts(), isEmpty);
+    });
+  });
+
+  group('people', () {
+    testWithDatabase('lists each person with what is left between us', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await make(db, person: 'Rahim', amount: 100000);
+      await make(
+        db,
+        person: 'Rahim',
+        direction: DebtDirection.borrowed,
+        amount: 30000,
+      );
+      await make(
+        db,
+        person: 'Karim',
+        direction: DebtDirection.borrowed,
+        amount: 20000,
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+
+      expect(textOf(tester, 'person-net-rahim'), '৳700.00');
+      expect(find.text('Owes you · 2 loans'), findsOneWidget);
+      expect(textOf(tester, 'person-net-karim'), '৳200.00');
+      expect(find.text('You owe · 1 loan'), findsOneWidget);
+    });
+
+    testWithDatabase('puts "Rahim" and " rahim " together', (tester, db) async {
+      useTallScreen(tester);
+      await make(db, person: 'Rahim');
+      await make(db, person: 'rahim', amount: 50000);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+
+      expect(find.byKey(const ValueKey('person-tile-rahim')), findsOneWidget);
+      expect(textOf(tester, 'person-net-rahim'), '৳1,500.00');
+    });
+
+    testWithDatabase('says so when a person is late', (tester, db) async {
+      useTallScreen(tester);
+      await make(db, dueOn: DateTime(2026, 10, 1));
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+
+      expect(find.text('Owes you · 1 loan · Late'), findsOneWidget);
+    });
+
+    testWithDatabase('says "All paid" for a person with nothing left', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await make(db, amount: 5000, paid: 5000);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+
+      expect(find.text('All paid'), findsOneWidget);
+      expect(textOf(tester, 'person-net-rahim'), '');
+    });
+
+    testWithDatabase('says so when the two sides cancel out', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await make(db, amount: 30000);
+      await make(db, direction: DebtDirection.borrowed, amount: 30000);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+
+      expect(find.text('Even · 2 loans'), findsOneWidget);
+    });
+
+    testWithDatabase('has a note when there is nobody yet', (tester, db) async {
+      useTallScreen(tester);
+      await makeCard(db);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+
+      expect(
+        find.text('People you lend to or borrow from show up here.'),
+        findsOneWidget,
+      );
+    });
+
+    testWithDatabase('opens everything with one person', (tester, db) async {
+      useTallScreen(tester);
+      final lent = await make(db, person: 'Rahim', amount: 100000);
+      final borrowed = await make(
+        db,
+        person: 'Rahim',
+        direction: DebtDirection.borrowed,
+        amount: 30000,
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+      await tapKey(tester, 'person-tile-rahim');
+
+      expect(appBarTitle('Rahim'), findsOneWidget);
+      expect(find.text('Rahim owes you'), findsOneWidget);
+      expect(textOf(tester, 'person-total'), '৳700.00');
+      expect(
+        textOf(tester, 'person-both-ways'),
+        'Rahim owes you ৳1,000.00, you owe ৳300.00',
+      );
+      expect(find.byKey(ValueKey('debt-$lent')), findsOneWidget);
+      expect(find.byKey(ValueKey('debt-$borrowed')), findsOneWidget);
+      expect(find.text('Lent on 20 Sep 2026'), findsOneWidget);
+      expect(find.text('Borrowed on 20 Sep 2026'), findsOneWidget);
+    });
+
+    testWithDatabase('says who owes whom when I owe', (tester, db) async {
+      useTallScreen(tester);
+      await make(db, person: 'Karim', direction: DebtDirection.borrowed);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+      await tapKey(tester, 'person-tile-karim');
+
+      expect(find.text('You owe Karim'), findsOneWidget);
+      expect(find.byKey(const ValueKey('remind-person')), findsNothing);
+      expect(find.byKey(const ValueKey('person-both-ways')), findsNothing);
+    });
+
+    testWithDatabase('sends a reminder for what is left between us', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final gateway = FakeFileGateway();
+      await make(db, person: 'Rahim', amount: 100000);
+      await make(
+        db,
+        person: 'Rahim',
+        direction: DebtDirection.borrowed,
+        amount: 30000,
+      );
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+      );
+      await openLoans(tester);
+      await showPeople(tester);
+      await tapKey(tester, 'person-tile-rahim');
+
+      await tapKey(tester, 'remind-person');
+
+      expect(gateway.sharedTexts, [
+        'Hi Rahim, a quick reminder about the ৳700.00 you owe me. Please send '
+            'it when you can. Thanks!',
+      ]);
+    });
+
+    testWithDatabase('adds a loan with the name filled in', (tester, db) async {
+      useTallScreen(tester);
+      await make(db, person: 'Rahim');
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+      await tapKey(tester, 'person-tile-rahim');
+
+      await tapKey(tester, 'add-loan-for-person');
+
+      expect(appBarTitle('New loan'), findsOneWidget);
+      expect(fieldText(tester, 'Name'), 'Rahim');
+    });
+
+    testWithDatabase('shows paid loans last', (tester, db) async {
+      useTallScreen(tester);
+      await make(db, person: 'Rahim', amount: 5000, paid: 5000);
+      final open = await make(db, person: 'Rahim');
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showPeople(tester);
+      await tapKey(tester, 'person-tile-rahim');
+
+      expect(find.byKey(ValueKey('debt-$open')), findsOneWidget);
+      expect(find.text('Paid'), findsOneWidget);
+    });
+  });
+
+  group('setting off', () {
+    Future<int> twoWays(AppDatabase db) async {
+      await make(db, person: 'Rahim', amount: 100000);
+      return make(
+        db,
+        person: 'Rahim',
+        direction: DebtDirection.borrowed,
+        amount: 30000,
+      );
+    }
+
+    Future<void> openRahim(WidgetTester tester) async {
+      await openLoans(tester);
+      await showPeople(tester);
+      await tapKey(tester, 'person-tile-rahim');
+    }
+
+    testWithDatabase('is offered when the money goes both ways', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await twoWays(db);
+      await pumpAppWithDatabase(tester, db);
+      await openRahim(tester);
+
+      expect(find.byKey(const ValueKey('set-off')), findsOneWidget);
+    });
+
+    testWithDatabase('is not offered when the money goes one way', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await make(db, person: 'Rahim');
+      await pumpAppWithDatabase(tester, db);
+      await openRahim(tester);
+
+      expect(find.byKey(const ValueKey('set-off')), findsNothing);
+    });
+
+    testWithDatabase('asks first, saying what is left after', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await twoWays(db);
+      await pumpAppWithDatabase(tester, db);
+      await openRahim(tester);
+
+      await tapKey(tester, 'set-off');
+
+      expect(find.text('Set off ৳300.00 on both sides?'), findsOneWidget);
+      expect(
+        find.text(
+          'This takes ৳300.00 off both sides. Account balances do not '
+          'change. Then Rahim will owe you ৳700.00.',
+        ),
+        findsOneWidget,
+      );
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+      expect(await db.debtsDao.getAllPayments(), isEmpty);
+    });
+
+    testWithDatabase('leaves only the difference, and can be undone', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await twoWays(db);
+      await pumpAppWithDatabase(tester, db);
+      await openRahim(tester);
+
+      await tapKey(tester, 'set-off');
+      await tester.tap(find.widgetWithText(FilledButton, 'Set off'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Set off ৳300.00.'), findsOneWidget);
+      expect(textOf(tester, 'person-total'), '৳700.00');
+      // Only one side is left, so there is nothing more to set off.
+      expect(find.byKey(const ValueKey('person-both-ways')), findsNothing);
+      expect(find.byKey(const ValueKey('set-off')), findsNothing);
+      expect(await db.debtsDao.getAllPayments(), hasLength(2));
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(await db.debtsDao.getAllPayments(), isEmpty);
+      expect(find.byKey(const ValueKey('set-off')), findsOneWidget);
+    });
+
+    testWithDatabase('says who owes whom when I owe more', (tester, db) async {
+      useTallScreen(tester);
+      await make(db, person: 'Rahim', amount: 10000);
+      await make(
+        db,
+        person: 'Rahim',
+        direction: DebtDirection.borrowed,
+        amount: 40000,
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openRahim(tester);
+
+      await tapKey(tester, 'set-off');
+
+      expect(
+        find.textContaining('Then you will owe Rahim ৳300.00.'),
+        findsOneWidget,
+      );
+    });
+
+    testWithDatabase('says so when the two sides are the same', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await make(db, person: 'Rahim', amount: 30000);
+      await make(
+        db,
+        person: 'Rahim',
+        direction: DebtDirection.borrowed,
+        amount: 30000,
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openRahim(tester);
+
+      await tapKey(tester, 'set-off');
+
+      expect(
+        find.textContaining('Then you and Rahim will be even.'),
+        findsOneWidget,
+      );
+      await tester.tap(find.widgetWithText(FilledButton, 'Set off'));
+      await tester.pumpAndSettle();
+      expect(find.text('Rahim owes you'), findsNothing);
+      expect(find.text('All paid'), findsWidgets);
+    });
+  });
+
+  group('credit cards', () {
+    testWithDatabase('are on the "I\'ll give" side with what is owed', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final card = await makeCard(db, owed: 50000, limit: 200000, day: 15);
+      await make(db, person: 'Karim', direction: DebtDirection.borrowed);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+
+      // Nothing on the "get" side, and the total counts the card.
+      expect(find.byKey(ValueKey('card-$card')), findsNothing);
+      expect(textOf(tester, 'to-pay-back'), '৳1,500.00');
+      expect(
+        textOf(tester, 'give-split'),
+        '৳1,000.00 to people and ৳500.00 on credit cards',
+      );
+
+      await showGive(tester);
+
+      expect(find.text('Credit cards'), findsOneWidget);
+      expect(find.byKey(ValueKey('card-$card')), findsOneWidget);
+      expect(find.text('Visa'), findsOneWidget);
+      expect(textOf(tester, 'balance-$card'), '৳500.00');
+      expect(find.text('Owed'), findsOneWidget);
+      expect(textOf(tester, 'limit-left'), '৳1,500.00 left to spend');
+      expect(textOf(tester, 'card-due-$card'), 'Bill due 15 Oct');
+      // The people come after the cards.
+      expect(find.text('Karim'), findsOneWidget);
+    });
+
+    testWithDatabase('say when the bill is due today or tomorrow', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final today = await makeCard(db, name: 'Today', day: 11);
+      final tomorrow = await makeCard(db, name: 'Tomorrow', day: 12);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showGive(tester);
+
+      expect(textOf(tester, 'card-due-$today'), 'Bill due today');
+      expect(textOf(tester, 'card-due-$tomorrow'), 'Bill due tomorrow');
+    });
+
+    testWithDatabase('ask for a bill day when none is set', (tester, db) async {
+      useTallScreen(tester);
+      final card = await makeCard(db, day: null);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showGive(tester);
+
+      expect(
+        textOf(tester, 'card-due-$card'),
+        'Set a bill day to get reminders',
+      );
+    });
+
+    testWithDatabase('with nothing owed have nothing to pay', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final card = await makeCard(db, owed: 0);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showGive(tester);
+
+      expect(textOf(tester, 'card-due-$card'), 'Nothing owed');
+      expect(find.byKey(ValueKey('pay-bill-$card')), findsNothing);
+      expect(textOf(tester, 'to-pay-back'), '৳0.00');
+    });
+
+    testWithDatabase('go over the limit and say so', (tester, db) async {
+      useTallScreen(tester);
+      await makeCard(db, owed: 250000, limit: 200000);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showGive(tester);
+
+      expect(textOf(tester, 'limit-left'), 'Over the limit by ৳500.00');
+    });
+
+    testWithDatabase('do not count archived cards or debit cards', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final old = await makeCard(db, name: 'Old');
+      await AccountsRepository(db).archiveAccount(old);
+      await db.accountsDao.insertAccount(
+        AccountsCompanion.insert(
+          name: 'Debit',
+          type: AccountType.card,
+          openingBalance: const Value(-9000),
+        ),
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+
+      // Nothing to get or give, so the empty state is shown.
+      expect(find.text('No loans yet'), findsOneWidget);
+    });
+
+    testWithDatabase('"Pay bill" starts a transfer for what is owed', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await insertTestAccount(db, name: 'Bank');
+      final card = await makeCard(db, owed: 50000);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showGive(tester);
+
+      await tapKey(tester, 'pay-bill-$card');
+
+      expect(appBarTitle('Add transaction'), findsOneWidget);
+      expect(amountText(tester), '500');
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('to-field')),
+          matching: find.text('Visa'),
+        ),
+        findsOneWidget,
+      );
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('from-field')),
+          matching: find.text('Bank'),
+        ),
+        findsOneWidget,
+      );
+      // Paid in full, the card owes nothing after this.
+      expect(textOf(tester, 'balance-after-$card'), '৳0.00');
+    });
+
+    testWithDatabase('open the account when tapped', (tester, db) async {
+      useTallScreen(tester);
+      final card = await makeCard(db);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showGive(tester);
+
+      await tapKey(tester, 'card-$card');
+
+      expect(appBarTitle('Edit account'), findsOneWidget);
+      expect(find.byKey(const ValueKey('credit-limit')), findsOneWidget);
     });
   });
 
@@ -220,7 +965,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    testWithDatabase('saves the person, the amount and the day', (
+    testWithDatabase('saves the name, the amount and the day', (
       tester,
       db,
     ) async {
@@ -230,14 +975,8 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, 'Add loan'));
       await tester.pumpAndSettle();
 
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Person'),
-        '  Rahim  ',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Amount'),
-        '500',
-      );
+      await enterField(tester, 'Name', '  Rahim  ');
+      await enterField(tester, 'Amount', '500');
       await tester.tap(find.widgetWithText(FilledButton, 'Add loan'));
       await tester.pumpAndSettle();
 
@@ -254,39 +993,30 @@ void main() {
       expect(find.text('Rahim'), findsOneWidget);
     });
 
-    testWithDatabase('explains which way the money went', (tester, db) async {
+    testWithDatabase('has two big choices that say which way the money went', (
+      tester,
+      db,
+    ) async {
       useTallScreen(tester);
       await pumpAppWithDatabase(tester, db);
       await openLoans(tester);
       await openForm(tester);
-      expect(
-        textOf(tester, 'direction-hint'),
-        'I gave money, and the other person will pay it back.',
-      );
 
-      await tapKey(tester, 'direction-borrowed');
-
-      expect(
-        textOf(tester, 'direction-hint'),
-        'I took money, and I will pay it back.',
-      );
+      expect(find.text('I gave money'), findsOneWidget);
+      expect(find.text('They will pay me back'), findsOneWidget);
+      expect(find.text('I took money'), findsOneWidget);
+      expect(find.text('I will pay it back'), findsOneWidget);
     });
 
-    testWithDatabase('can be money I borrowed', (tester, db) async {
+    testWithDatabase('can be money I took', (tester, db) async {
       useTallScreen(tester);
       await pumpAppWithDatabase(tester, db);
       await openLoans(tester);
       await openForm(tester);
 
       await tapKey(tester, 'direction-borrowed');
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Person'),
-        'Karim',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Amount'),
-        '250.50',
-      );
+      await enterField(tester, 'Name', 'Karim');
+      await enterField(tester, 'Amount', '250.50');
       await tester.tap(find.widgetWithText(FilledButton, 'Add loan'));
       await tester.pumpAndSettle();
 
@@ -296,34 +1026,95 @@ void main() {
       expect(textOf(tester, 'to-pay-back'), '৳250.50');
     });
 
-    testWithDatabase('can move the balance of an account', (tester, db) async {
+    testWithDatabase('can update an account too, and shows what it will hold', (
+      tester,
+      db,
+    ) async {
       useTallScreen(tester);
       final cash = await insertTestAccount(db, name: 'Cash');
       await pumpAppWithDatabase(tester, db);
       await openLoans(tester);
       await openForm(tester);
 
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Person'),
-        'Rahim',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Amount'),
-        '500',
-      );
-      await tester.tap(find.byKey(const ValueKey('loan-account')));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Cash').last);
-      await tester.pumpAndSettle();
+      // Off to begin with: no account card.
+      expect(find.byKey(ValueKey('loan-account-$cash')), findsNothing);
+
+      await enterField(tester, 'Name', 'Rahim');
+      await enterField(tester, 'Amount', '500');
+      await tapKey(tester, 'loan-account-switch');
+
+      expect(find.byKey(ValueKey('loan-account-$cash')), findsOneWidget);
+      expect(find.text('Comes out of'), findsOneWidget);
+      expect(textOf(tester, 'balance-after-$cash'), '-৳500.00');
+
       await tester.tap(find.widgetWithText(FilledButton, 'Add loan'));
       await tester.pumpAndSettle();
 
       expect((await db.debtsDao.getAllDebts()).single.accountId, cash);
-      final accounts = await AccountsRepository(db).watchAccounts().first;
-      expect(accounts.single.balance, -50000);
+      expect(await balanceOf(db, cash), -50000);
     });
 
-    testWithDatabase('can have a due day, and lose it again', (
+    testWithDatabase('money I took goes into the account', (tester, db) async {
+      useTallScreen(tester);
+      final cash = await insertTestAccount(db, name: 'Cash');
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await openForm(tester);
+
+      await tapKey(tester, 'direction-borrowed');
+      await enterField(tester, 'Name', 'Karim');
+      await enterField(tester, 'Amount', '300');
+      await tapKey(tester, 'loan-account-switch');
+
+      expect(find.text('Goes into'), findsOneWidget);
+      expect(textOf(tester, 'balance-after-$cash'), '৳300.00');
+    });
+
+    testWithDatabase('can switch to another account', (tester, db) async {
+      useTallScreen(tester);
+      final cash = await insertTestAccount(db, name: 'Cash');
+      final bkash = await insertTestAccount(db, name: 'bKash');
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await openForm(tester);
+
+      await enterField(tester, 'Name', 'Rahim');
+      await enterField(tester, 'Amount', '100');
+      await tapKey(tester, 'loan-account-switch');
+      expect(find.byKey(ValueKey('loan-account-$cash')), findsOneWidget);
+
+      await tester.tap(find.byKey(ValueKey('loan-account-$cash')));
+      await tester.pumpAndSettle();
+      await tapKey(tester, 'account-option-$bkash');
+      expect(find.byKey(ValueKey('loan-account-$bkash')), findsOneWidget);
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Add loan'));
+      await tester.pumpAndSettle();
+      expect((await db.debtsDao.getAllDebts()).single.accountId, bkash);
+    });
+
+    testWithDatabase('turning the switch off forgets the account', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final cash = await insertTestAccount(db, name: 'Cash');
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await openForm(tester);
+
+      await enterField(tester, 'Name', 'Rahim');
+      await enterField(tester, 'Amount', '100');
+      await tapKey(tester, 'loan-account-switch');
+      await tapKey(tester, 'loan-account-switch');
+
+      expect(find.byKey(ValueKey('loan-account-$cash')), findsNothing);
+      await tester.tap(find.widgetWithText(FilledButton, 'Add loan'));
+      await tester.pumpAndSettle();
+      expect((await db.debtsDao.getAllDebts()).single.accountId, isNull);
+    });
+
+    testWithDatabase('keeps the date, pay back date and note under "More"', (
       tester,
       db,
     ) async {
@@ -331,9 +1122,29 @@ void main() {
       await pumpAppWithDatabase(tester, db);
       await openLoans(tester);
       await openForm(tester);
+
+      expect(find.text('Pay back date (optional)'), findsNothing);
+      await tester.tap(find.text('More details'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pay back date (optional)'), findsOneWidget);
+      expect(find.text('Not set'), findsOneWidget);
+      expect(find.widgetWithText(TextField, 'Note'), findsOneWidget);
+    });
+
+    testWithDatabase('can have a pay back date, and lose it again', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await openForm(tester);
+      await tester.tap(find.text('More details'));
+      await tester.pumpAndSettle();
       expect(find.text('Not set'), findsOneWidget);
 
-      await tester.tap(find.text('Pay back by (optional)'));
+      await tester.tap(find.text('Pay back date (optional)'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('OK'));
       await tester.pumpAndSettle();
@@ -342,6 +1153,63 @@ void main() {
       await tester.tap(find.byTooltip('Clear'));
       await tester.pumpAndSettle();
       expect(find.text('Not set'), findsOneWidget);
+    });
+
+    testWithDatabase('asks to allow reminders when there is a pay back date', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final scheduler = FakeReminderScheduler();
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [reminderSchedulerProvider.overrideWithValue(scheduler)],
+      );
+      await openLoans(tester);
+      await openForm(tester);
+      await enterField(tester, 'Name', 'Rahim');
+      await enterField(tester, 'Amount', '100');
+      await tester.tap(find.text('More details'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Pay back date (optional)'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      final before = scheduler.permissionRequests;
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Add loan'));
+      await tester.pumpAndSettle();
+
+      expect(scheduler.permissionRequests, before + 1);
+      // And the new loan is on the schedule.
+      expect(
+        scheduler.scheduled.map((r) => r.title),
+        contains('Loan due today'),
+      );
+    });
+
+    testWithDatabase('does not ask when there is no pay back date', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final scheduler = FakeReminderScheduler();
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [reminderSchedulerProvider.overrideWithValue(scheduler)],
+      );
+      await openLoans(tester);
+      await openForm(tester);
+      await enterField(tester, 'Name', 'Rahim');
+      await enterField(tester, 'Amount', '100');
+      final before = scheduler.permissionRequests;
+
+      await tester.tap(find.widgetWithText(FilledButton, 'Add loan'));
+      await tester.pumpAndSettle();
+
+      expect(scheduler.permissionRequests, before);
     });
 
     testWithDatabase('asks for a name and an amount', (tester, db) async {
@@ -370,13 +1238,7 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('person-Salma')));
       await tester.pumpAndSettle();
 
-      expect(
-        tester
-            .widget<TextFormField>(find.widgetWithText(TextFormField, 'Person'))
-            .controller!
-            .text,
-        'Salma',
-      );
+      expect(fieldText(tester, 'Name'), 'Salma');
       // The name that is typed is not offered again.
       expect(find.byKey(const ValueKey('person-Salma')), findsNothing);
     });
@@ -400,9 +1262,26 @@ void main() {
 
       expect(appBarTitle('Rahim'), findsOneWidget);
       expect(textOf(tester, 'remaining'), '৳700.00');
+      expect(find.text('left to get back'), findsOneWidget);
       expect(textOf(tester, 'paid-of-total'), 'Paid ৳300.00 of ৳1,000.00');
-      expect(textOf(tester, 'due-text'), 'Overdue by 10 days');
+      expect(textOf(tester, 'due-text'), '10 days late');
+      expect(find.text('Lent on 20 Sep 2026'), findsOneWidget);
       expect(find.text('৳300.00'), findsOneWidget);
+    });
+
+    testWithDatabase('says "left to pay back" for money I took', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db, direction: DebtDirection.borrowed);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showGive(tester);
+      await openDetail(tester, id);
+
+      expect(find.text('left to pay back'), findsOneWidget);
+      expect(find.text('Borrowed on 20 Sep 2026'), findsOneWidget);
     });
 
     testWithDatabase('says when nothing was paid yet', (tester, db) async {
@@ -413,6 +1292,7 @@ void main() {
       await openDetail(tester, id);
 
       expect(find.byKey(const ValueKey('no-payments')), findsOneWidget);
+      expect(find.text('No payments yet.'), findsOneWidget);
     });
 
     testWithDatabase('takes a payment', (tester, db) async {
@@ -423,19 +1303,10 @@ void main() {
       await openDetail(tester, id);
 
       await tapKey(tester, 'add-payment');
-      expect(find.text('Money received'), findsOneWidget);
+      expect(find.text('They paid me'), findsOneWidget);
       // The whole of what is left is filled in.
-      expect(
-        tester
-            .widget<TextFormField>(find.widgetWithText(TextFormField, 'Amount'))
-            .controller!
-            .text,
-        '1000',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Amount'),
-        '400',
-      );
+      expect(fieldText(tester, 'Amount'), '1000');
+      await enterField(tester, 'Amount', '400');
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
 
@@ -445,7 +1316,7 @@ void main() {
       expect(await db.debtsDao.getAllPayments(), hasLength(1));
     });
 
-    testWithDatabase('asks "Money paid back" for a loan I took', (
+    testWithDatabase('asks "I paid them" for a loan I took', (
       tester,
       db,
     ) async {
@@ -453,11 +1324,12 @@ void main() {
       final id = await make(db, direction: DebtDirection.borrowed);
       await pumpAppWithDatabase(tester, db);
       await openLoans(tester);
+      await showGive(tester);
       await openDetail(tester, id);
 
       await tapKey(tester, 'add-payment');
 
-      expect(find.text('Money paid back'), findsOneWidget);
+      expect(find.text('I paid them'), findsOneWidget);
     });
 
     testWithDatabase('refuses a payment of more than what is left', (
@@ -471,10 +1343,7 @@ void main() {
       await openDetail(tester, id);
 
       await tapKey(tester, 'add-payment');
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Amount'),
-        '1500',
-      );
+      await enterField(tester, 'Amount', '1500');
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
 
@@ -498,18 +1367,49 @@ void main() {
 
       // The account the loan used is chosen already.
       await tapKey(tester, 'add-payment');
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Amount'),
-        '400',
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const ValueKey('payment-account-switch')),
+            )
+            .value,
+        isTrue,
       );
+      expect(find.text('Goes into'), findsOneWidget);
+      await enterField(tester, 'Amount', '400');
+      await tester.pump();
+      // 1000 went out, 400 comes back.
+      expect(textOf(tester, 'balance-after-$cash'), '-৳600.00');
       await tester.tap(find.widgetWithText(FilledButton, 'Save'));
       await tester.pumpAndSettle();
 
-      final accounts = await AccountsRepository(db).watchAccounts().first;
-      expect(accounts.single.balance, -100000 + 40000);
+      expect(await balanceOf(db, cash), -100000 + 40000);
     });
 
-    testWithDatabase('can be marked as paid in one tap', (tester, db) async {
+    testWithDatabase('can leave the account alone for one payment', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final cash = await insertTestAccount(db, name: 'Cash');
+      final id = await make(db, amount: 100000, accountId: cash);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await openDetail(tester, id);
+
+      await tapKey(tester, 'add-payment');
+      await tapKey(tester, 'payment-account-switch');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save'));
+      await tester.pumpAndSettle();
+
+      expect(await balanceOf(db, cash), -100000);
+      expect(await db.debtsDao.getAllPayments(), hasLength(1));
+    });
+
+    testWithDatabase('can be marked all paid in one tap, and undone', (
+      tester,
+      db,
+    ) async {
       useTallScreen(tester);
       final id = await make(db, amount: 100000, paid: 25000);
       await pumpAppWithDatabase(tester, db);
@@ -518,11 +1418,93 @@ void main() {
 
       await tapKey(tester, 'mark-paid');
 
-      expect(find.text('Marked as paid.'), findsOneWidget);
+      expect(find.text('All paid.'), findsOneWidget);
       expect(textOf(tester, 'remaining'), '৳0.00');
       expect(find.byKey(const ValueKey('add-payment')), findsNothing);
       expect(find.byKey(const ValueKey('mark-paid')), findsNothing);
       expect((await DebtsRepository(db).getDebt(id))!.isSettled, isTrue);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(textOf(tester, 'remaining'), '৳750.00');
+      expect(find.byKey(const ValueKey('mark-paid')), findsOneWidget);
+    });
+
+    testWithDatabase('can send a reminder when I am the one waiting', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final gateway = FakeFileGateway();
+      final id = await make(db, amount: 100000, paid: 40000);
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+      );
+      await openLoans(tester);
+      await openDetail(tester, id);
+
+      await tapKey(tester, 'remind');
+
+      expect(gateway.sharedTexts.single, contains('৳600.00'));
+      expect(gateway.sharedTexts.single, startsWith('Hi Rahim,'));
+    });
+
+    testWithDatabase('has no reminder for money I took or a paid loan', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final borrowed = await make(
+        db,
+        person: 'Karim',
+        direction: DebtDirection.borrowed,
+      );
+      final paid = await make(db, person: 'Salma', amount: 5000, paid: 5000);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await showGive(tester);
+      await openDetail(tester, borrowed);
+      expect(find.byKey(const ValueKey('remind')), findsNothing);
+
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      await tapKey(tester, 'tab-get');
+      await tapKey(tester, 'show-settled');
+      await openDetail(tester, paid);
+      expect(find.byKey(const ValueKey('remind')), findsNothing);
+    });
+
+    testWithDatabase('links to everything with the person when there is more', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final first = await make(db, person: 'Rahim');
+      await make(db, person: 'rahim', amount: 5000);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await openDetail(tester, first);
+
+      await tapKey(tester, 'see-person');
+
+      expect(appBarTitle('Rahim'), findsOneWidget);
+      expect(textOf(tester, 'person-total'), '৳1,050.00');
+    });
+
+    testWithDatabase('has no such link for a person with one loan', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await openDetail(tester, id);
+
+      expect(find.byKey(const ValueKey('see-person')), findsNothing);
     });
 
     testWithDatabase('takes a payment back after asking', (tester, db) async {
@@ -579,38 +1561,150 @@ void main() {
       // Back on the list, which is empty again.
       expect(appBarTitle('Loans'), findsOneWidget);
       expect(find.text('No loans yet'), findsOneWidget);
-      final accounts = await AccountsRepository(db).watchAccounts().first;
-      expect(accounts.single.balance, 0);
+      expect(await balanceOf(db, cash), 0);
     });
+  });
 
-    testWithDatabase('can be renamed, and the money stays', (tester, db) async {
-      useTallScreen(tester);
-      final id = await make(db, amount: 100000, paid: 10000);
-      await pumpAppWithDatabase(tester, db);
+  group('changing a loan', () {
+    Future<void> openEdit(WidgetTester tester, int id) async {
       await openLoans(tester);
       await openDetail(tester, id);
-
       await tapKey(tester, 'edit-loan');
+    }
+
+    testWithDatabase('starts with everything as it is', (tester, db) async {
+      useTallScreen(tester);
+      final id = await make(db, amount: 100000);
+      await pumpAppWithDatabase(tester, db);
+      await openEdit(tester, id);
+
       expect(appBarTitle('Edit loan'), findsOneWidget);
-      // Only the name, the due day and the note can change.
-      expect(find.byKey(const ValueKey('direction-lent')), findsNothing);
-      expect(find.widgetWithText(TextFormField, 'Amount'), findsNothing);
-      expect(
-        tester
-            .widget<TextFormField>(find.widgetWithText(TextFormField, 'Person'))
-            .controller!
-            .text,
-        'Rahim',
-      );
-      await tester.enterText(
-        find.widgetWithText(TextFormField, 'Person'),
-        'Rahim Uddin',
-      );
+      expect(fieldText(tester, 'Name'), 'Rahim');
+      expect(fieldText(tester, 'Amount'), '1000');
+      expect(find.byKey(const ValueKey('kind-locked')), findsNothing);
+    });
+
+    testWithDatabase('can change the name, the amount and the kind', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db, amount: 100000);
+      await pumpAppWithDatabase(tester, db);
+      await openEdit(tester, id);
+
+      await enterField(tester, 'Name', 'Rahim Uddin');
+      await enterField(tester, 'Amount', '1500');
+      await tapKey(tester, 'direction-borrowed');
       await tester.tap(find.widgetWithText(FilledButton, 'Save changes'));
       await tester.pumpAndSettle();
 
+      final debt = (await db.debtsDao.getAllDebts()).single;
+      expect(debt.person, 'Rahim Uddin');
+      expect(debt.amount, 150000);
+      expect(debt.direction, DebtDirection.borrowed);
       expect(appBarTitle('Rahim Uddin'), findsOneWidget);
-      expect(textOf(tester, 'remaining'), '৳900.00');
+      expect(textOf(tester, 'remaining'), '৳1,500.00');
+    });
+
+    testWithDatabase('moves the account balance with the new amount', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final cash = await insertTestAccount(db, name: 'Cash');
+      final id = await make(db, amount: 100000, accountId: cash);
+      await pumpAppWithDatabase(tester, db);
+      await openEdit(tester, id);
+
+      // The loan is already counted in the balance, so it is not counted twice.
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const ValueKey('loan-account-switch')),
+            )
+            .value,
+        isTrue,
+      );
+      await enterField(tester, 'Amount', '1500');
+      await tester.pump();
+      expect(textOf(tester, 'balance-after-$cash'), '-৳1,500.00');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save changes'));
+      await tester.pumpAndSettle();
+
+      expect(await balanceOf(db, cash), -150000);
+      expect(
+        await db.transactionsDao.getBetween(DateTime(2000), DateTime(2100)),
+        hasLength(1),
+      );
+    });
+
+    testWithDatabase('can stop using the account', (tester, db) async {
+      useTallScreen(tester);
+      final cash = await insertTestAccount(db, name: 'Cash');
+      final id = await make(db, amount: 100000, accountId: cash);
+      await pumpAppWithDatabase(tester, db);
+      await openEdit(tester, id);
+
+      await tapKey(tester, 'loan-account-switch');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save changes'));
+      await tester.pumpAndSettle();
+
+      expect(await balanceOf(db, cash), 0);
+      expect((await db.debtsDao.getAllDebts()).single.accountId, isNull);
+    });
+
+    testWithDatabase('cannot change the kind once something is paid', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db, amount: 100000, paid: 10000);
+      await pumpAppWithDatabase(tester, db);
+      await openEdit(tester, id);
+
+      expect(find.byKey(const ValueKey('kind-locked')), findsOneWidget);
+      await tapKey(tester, 'direction-borrowed');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save changes'));
+      await tester.pumpAndSettle();
+
+      expect(
+        (await db.debtsDao.getAllDebts()).single.direction,
+        DebtDirection.lent,
+      );
+    });
+
+    testWithDatabase('cannot make the amount less than what is paid', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db, amount: 100000, paid: 40000);
+      await pumpAppWithDatabase(tester, db);
+      await openEdit(tester, id);
+
+      await enterField(tester, 'Amount', '300');
+      await tester.tap(find.widgetWithText(FilledButton, 'Save changes'));
+      await tester.pumpAndSettle();
+
+      expect(
+        textOf(tester, 'form-error'),
+        'The amount cannot be less than the ৳400.00 already paid.',
+      );
+      expect((await db.debtsDao.getAllDebts()).single.amount, 100000);
+    });
+
+    testWithDatabase('shows the pay back date and note already set', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await make(db, dueOn: DateTime(2026, 11, 5));
+      await pumpAppWithDatabase(tester, db);
+      await openEdit(tester, id);
+
+      // "More details" is open because there is a pay back date.
+      expect(find.text('5 Nov 2026'), findsOneWidget);
     });
   });
 
@@ -632,7 +1726,7 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(
-        find.textContaining('Lent to Rahim · not counted in totals'),
+        find.textContaining('Lent to Rahim · not in your totals'),
         findsOneWidget,
       );
     });

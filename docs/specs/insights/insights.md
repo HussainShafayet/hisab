@@ -22,11 +22,11 @@ news, then plain facts (`buildInsights`):
   limit is a warning, below it is good news.
 - *A category that jumped*: the category with the biggest rise over the same
   days of last month, if it is at least ৳500 and a quarter more.
-- *Loans*: how many are overdue (warning); what people owe you; what you owe.
 - *Biggest slice*: a category that is 35% or more of the spending.
 - *Recurring*: the next active recurring item due within 7 days.
-Nothing is shown when there is nothing to say. They update when data, loans or
-recurring items change.
+Nothing is shown when there is nothing to say. They update when data or
+recurring items change. Loans are not here: Home has its own Loans card (see
+[loans](../debts/loans.md)).
 
 ## Budget
 - The tab icon is a pie chart; the overall budget card has one too.

@@ -37,15 +37,6 @@ String insightText(Insight insight) {
       });
     case InsightKind.topCategory:
       return tr("{name} is {percent}% of this month's spending.", args);
-    case InsightKind.loansOverdue:
-      final count = args['count']! as int;
-      return count == 1
-          ? tr('1 loan is overdue')
-          : tr('{count} loans are overdue', args);
-    case InsightKind.loansToGet:
-      return tr('People owe you {amount}.', {'amount': money('amount')});
-    case InsightKind.loansToPay:
-      return tr('You owe people {amount}.', {'amount': money('amount')});
     case InsightKind.recurringSoon:
       final days = args['days']! as int;
       return switch (days) {
@@ -63,9 +54,6 @@ IconData insightIcon(InsightKind kind) => switch (kind) {
   InsightKind.withinBudgetPace => Icons.check_circle_outline,
   InsightKind.categoryJump => Icons.arrow_upward,
   InsightKind.topCategory => Icons.pie_chart_outline,
-  InsightKind.loansOverdue ||
-  InsightKind.loansToGet ||
-  InsightKind.loansToPay => Icons.handshake_outlined,
   InsightKind.recurringSoon => Icons.event,
 };
 

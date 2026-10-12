@@ -31,6 +31,9 @@ abstract interface class FileGateway {
     required String mimeType,
   });
 
+  /// Opens the share sheet with a piece of [text], for a message to send.
+  Future<void> shareText(String text);
+
   /// Asks the user to choose a file with one of [extensions] (without the
   /// dot). Returns null when the user cancelled.
   Future<PickedFile?> pick({required List<String> extensions});
@@ -65,6 +68,11 @@ class PluginFileGateway implements FileGateway {
         fileNameOverrides: [fileName],
       ),
     );
+  }
+
+  @override
+  Future<void> shareText(String text) async {
+    await SharePlus.instance.share(ShareParams(text: text));
   }
 
   @override

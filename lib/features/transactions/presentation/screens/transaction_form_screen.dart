@@ -31,12 +31,21 @@ import 'package:hishab/features/transactions/presentation/widgets/amount_text_fo
 import 'package:intl/intl.dart';
 
 /// Adds a transaction, edits the one with [editId], or adds a copy of the one
-/// with [duplicateId] (same details, dated today).
+/// with [duplicateId] (same details, dated today). With [payCardId] it starts
+/// as a transfer to that credit card, for [payAmount] (the bill).
 class TransactionFormScreen extends ConsumerWidget {
-  const TransactionFormScreen({this.editId, this.duplicateId, super.key});
+  const TransactionFormScreen({
+    this.editId,
+    this.duplicateId,
+    this.payCardId,
+    this.payAmount,
+    super.key,
+  });
 
   final int? editId;
   final int? duplicateId;
+  final int? payCardId;
+  final int? payAmount;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -63,16 +72,28 @@ class TransactionFormScreen extends ConsumerWidget {
               onRetry: () => ref.invalidate(transactionFormDataProvider(args)),
             ),
           ),
-          data: (data) => _TransactionForm(args: args, data: data),
+          data: (data) => _TransactionForm(
+            args: args,
+            data: data,
+            payCardId: payCardId,
+            payAmount: payAmount,
+          ),
         );
   }
 }
 
 class _TransactionForm extends ConsumerStatefulWidget {
-  const _TransactionForm({required this.args, required this.data});
+  const _TransactionForm({
+    required this.args,
+    required this.data,
+    this.payCardId,
+    this.payAmount,
+  });
 
   final TransactionFormArgs args;
   final TransactionFormData data;
+  final int? payCardId;
+  final int? payAmount;
 
   @override
   ConsumerState<_TransactionForm> createState() => _TransactionFormState();
@@ -143,6 +164,21 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     _categoryId = usableCategory(source?.categoryId)
         ? source!.categoryId
         : null;
+
+    // "Pay bill" on a credit card: a transfer into the card.
+    final card = widget.payCardId;
+    if (_isAdding && card != null && usableAccount(card)) {
+      _type = TransactionType.transfer;
+      _toAccountId = card;
+      if (_accountId == card) {
+        _accountId = options.accounts
+            .where((a) => a.id != card && !a.isArchived)
+            .firstOrNull
+            ?.id;
+      }
+      final owed = widget.payAmount;
+      if (owed != null && owed > 0) _amount.text = poishaToInput(owed);
+    }
 
     for (final node in [_amountFocus, _noteFocus, _feeFocus]) {
       node.addListener(_onFocusChanged);
@@ -485,7 +521,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         body: EmptyState(
           icon: Icons.account_balance_wallet_outlined,
           title: tr('Add an account first'),
-          message: tr('A transaction needs an account, like Cash or bKash.'),
+          message: tr('Pick an account, like Cash or bKash.'),
           action: FilledButton(
             onPressed: _addAccountFirst,
             child: Text(tr('Add account')),
@@ -704,7 +740,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         EmptyState(
           icon: Icons.swap_horiz,
           title: tr('You need two accounts'),
-          message: tr('A transfer moves money from one account to another.'),
+          message: tr('Move money from one account to another.'),
           action: FilledButton(
             onPressed: _addAccountFirst,
             child: Text(tr('Add account')),
@@ -718,7 +754,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         key: const ValueKey('from-field'),
         accountId: _accountId,
         caption: tr('From'),
-        placeholder: tr('Choose the account the money leaves'),
+        placeholder: tr('Where does the money come from?'),
         balances: balances,
         onTap: () => _chooseAccount(
           title: tr('Move money from'),
@@ -745,7 +781,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         key: const ValueKey('to-field'),
         accountId: _toAccountId,
         caption: tr('To'),
-        placeholder: tr('Choose the account the money goes to'),
+        placeholder: tr('Where does the money go?'),
         balances: balances,
         onTap: () => _chooseAccount(
           title: tr('Move money to'),
