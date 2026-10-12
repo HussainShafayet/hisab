@@ -58,9 +58,37 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
   Future<TransactionWithDetails?> getWithDetails(int id) =>
       _selectWithDetails((t) => t.id.equals(id)).getSingleOrNull();
 
+  /// The biggest expenses with `start <= date < end`, biggest first, at most
+  /// [limit]. Transfers and balance adjustments are not expenses.
+  Future<List<TransactionWithDetails>> topExpensesWithDetails(
+    DateTime start,
+    DateTime end, {
+    required int limit,
+  }) => _selectWithDetails(
+    (t) =>
+        t.type.equalsValue(TransactionType.expense) &
+        t.isAdjustment.equals(false) &
+        t.date.isBiggerOrEqualValue(start) &
+        t.date.isSmallerThanValue(end),
+    orderBy: [
+      OrderingTerm.desc(transactions.amount),
+      OrderingTerm.desc(transactions.date),
+      OrderingTerm.desc(transactions.id),
+    ],
+    limit: limit,
+  ).get();
+
+  /// The latest transactions of any kind, newest first, at most [limit].
+  Future<List<TransactionWithDetails>> latestWithDetails({
+    required int limit,
+  }) => _selectWithDetails((t) => const Constant(true), limit: limit).get();
+
+  /// Joined rows in [orderBy] (newest first by default), at most [limit].
   Selectable<TransactionWithDetails> _selectWithDetails(
-    Expression<bool> Function($TransactionsTable t) where,
-  ) {
+    Expression<bool> Function($TransactionsTable t) where, {
+    List<OrderingTerm>? orderBy,
+    int? limit,
+  }) {
     final from = alias(accounts, 'from_account');
     final to = alias(accounts, 'to_account');
     final query =
@@ -73,10 +101,14 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
             ),
           ])
           ..where(where(transactions))
-          ..orderBy([
-            OrderingTerm.desc(transactions.date),
-            OrderingTerm.desc(transactions.id),
-          ]);
+          ..orderBy(
+            orderBy ??
+                [
+                  OrderingTerm.desc(transactions.date),
+                  OrderingTerm.desc(transactions.id),
+                ],
+          );
+    if (limit != null) query.limit(limit);
 
     return query.map(
       (row) => (

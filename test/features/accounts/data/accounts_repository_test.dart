@@ -291,6 +291,66 @@ void main() {
     });
   });
 
+  group('total balance', () {
+    test('adds up the accounts that count', () async {
+      final cash = await repo.createAccount(
+        name: 'Cash',
+        type: AccountType.cash,
+        openingBalance: 100000,
+      );
+      await repo.createAccount(
+        name: 'Bank',
+        type: AccountType.bank,
+        openingBalance: 250000,
+      );
+      await addIncome(cash, 50000);
+      await addExpense(cash, 20000);
+
+      expect(await repo.totalBalance(), 100000 + 250000 + 50000 - 20000);
+    });
+
+    test('leaves out archived accounts and accounts not included', () async {
+      await repo.createAccount(
+        name: 'Cash',
+        type: AccountType.cash,
+        openingBalance: 1000,
+      );
+      final old = await repo.createAccount(
+        name: 'Old',
+        type: AccountType.bank,
+        openingBalance: 5000,
+      );
+      await repo.createAccount(
+        name: 'Savings',
+        type: AccountType.bank,
+        openingBalance: 90000,
+        includeInTotal: false,
+      );
+      await repo.archiveAccount(old);
+
+      expect(await repo.totalBalance(), 1000);
+    });
+
+    test('is zero without accounts', () async {
+      expect(await repo.totalBalance(), 0);
+    });
+
+    test('moving money between accounts does not change it', () async {
+      final cash = await repo.createAccount(
+        name: 'Cash',
+        type: AccountType.cash,
+        openingBalance: 100000,
+      );
+      final bkash = await repo.createAccount(
+        name: 'bKash',
+        type: AccountType.mobileBanking,
+      );
+      await addTransfer(cash, bkash, 40000);
+
+      expect(await repo.totalBalance(), 100000);
+    });
+  });
+
   group('archiving', () {
     test('keeps the account and its transactions', () async {
       final id = await repo.createAccount(name: 'Cash', type: AccountType.cash);

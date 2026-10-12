@@ -376,4 +376,58 @@ void main() {
       expect(find.byKey(const ValueKey('overall-budget')), findsOneWidget);
     });
   }
+
+  for (final scale in [1.0, 1.5]) {
+    testWithDatabase('Home and Reports fit a small phone (text x$scale)', (
+      tester,
+      db,
+    ) async {
+      useSmallPhone(tester, textScale: scale);
+      await tester.runAsync(loadRealFonts);
+      final b = await seedBasics(db);
+      await db.budgetsDao.insertBudget(
+        BudgetsCompanion.insert(month: '2026-10', amount: 5000000000),
+      );
+      await addTransaction(
+        db,
+        type: TransactionType.income,
+        amount: 5000000000,
+        accountId: b.cash,
+        categoryId: b.salary,
+        date: DateTime(2026, 10, 1),
+        note: 'A very long note about the salary that must not break a row',
+      );
+      for (final category in [b.food, b.transport]) {
+        await addTransaction(
+          db,
+          type: TransactionType.expense,
+          amount: 123456789,
+          accountId: b.cash,
+          categoryId: category,
+          date: DateTime(2026, 10, 11, 9),
+        );
+      }
+      await pumpAppWithDatabase(tester, db);
+
+      // Home is the first tab.
+      expect(tester.takeException(), isNull);
+      expect(find.byKey(const ValueKey('budget-ring')), findsOneWidget);
+      // Scroll to the bottom of Home, where the recent transactions are.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('Reports'),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+    });
+  }
 }

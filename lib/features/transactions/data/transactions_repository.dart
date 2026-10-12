@@ -31,12 +31,12 @@ class TransactionsRepository {
   Stream<List<TransactionItem>> watchBetween(DateTime start, DateTime end) {
     return _db.transactionsDao
         .watchBetweenWithDetails(start, end)
-        .map((rows) => rows.map(_toItem).toList());
+        .map((rows) => rows.map(toTransactionItem).toList());
   }
 
   Future<TransactionItem?> getTransaction(int id) async {
     final row = await _db.transactionsDao.getWithDetails(id);
-    return row == null ? null : _toItem(row);
+    return row == null ? null : toTransactionItem(row);
   }
 
   /// Saves a new transaction and returns its id.
@@ -255,27 +255,28 @@ class TransactionsRepository {
         date: input.date,
         note: Value(input.note.trim()),
       );
+}
 
-  TransactionItem _toItem(TransactionWithDetails row) {
-    final transaction = row.transaction;
-    final category = row.category;
-    return TransactionItem(
-      id: transaction.id,
-      type: transaction.type,
-      amount: transaction.amount,
-      accountId: transaction.accountId,
-      accountName: row.account.name,
-      toAccountId: transaction.toAccountId,
-      toAccountName: row.toAccount?.name,
-      categoryId: transaction.categoryId,
-      categoryName: category?.name,
-      categoryIcon: category?.icon,
-      categoryColor: category?.color,
-      categoryParentId: category?.parentId,
-      date: transaction.date.toLocal(),
-      note: transaction.note,
-      createdAt: transaction.createdAt.toLocal(),
-      isAdjustment: transaction.isAdjustment,
-    );
-  }
+/// Turns a joined database row into a [TransactionItem].
+TransactionItem toTransactionItem(TransactionWithDetails row) {
+  final transaction = row.transaction;
+  final category = row.category;
+  return TransactionItem(
+    id: transaction.id,
+    type: transaction.type,
+    amount: transaction.amount,
+    accountId: transaction.accountId,
+    accountName: row.account.name,
+    toAccountId: transaction.toAccountId,
+    toAccountName: row.toAccount?.name,
+    categoryId: transaction.categoryId,
+    categoryName: category?.name,
+    categoryIcon: category?.icon,
+    categoryColor: category?.color,
+    categoryParentId: category?.parentId,
+    date: transaction.date.toLocal(),
+    note: transaction.note,
+    createdAt: transaction.createdAt.toLocal(),
+    isAdjustment: transaction.isAdjustment,
+  );
 }

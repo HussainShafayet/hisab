@@ -29,6 +29,13 @@ class AccountsRepository {
         .map((rows) => rows.map(_toAccountWithBalance).toList());
   }
 
+  /// The balance of all accounts that count in the total: active ones that
+  /// are not left out with "include in total". See [calculateTotalBalance].
+  Future<int> totalBalance() async {
+    final rows = await _db.accountsDao.getAllWithFlows(includeArchived: true);
+    return calculateTotalBalance(rows.map(_toAccountWithBalance));
+  }
+
   Future<Account?> getAccount(int id) async {
     final row = await _db.accountsDao.getById(id);
     return row?.toDomain();

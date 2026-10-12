@@ -4,6 +4,9 @@ import 'package:intl/intl.dart';
 /// `October 2026`.
 String monthLabel(DateTime month) => DateFormat('MMMM yyyy').format(month);
 
+/// `Oct`: the short month name, for chart labels.
+String shortMonthLabel(DateTime month) => DateFormat('MMM').format(month);
+
 /// `Today`, `Yesterday`, or a date like `Sun, 11 Oct` (with the year when it
 /// is not the current year). [now] decides what today is.
 String dayLabel(DateTime day, DateTime now) {

@@ -227,6 +227,12 @@ void main() {
 
     final key = await _pump(tester, db);
 
+    await _capture(tester, key, '0_home');
+    // Scroll Home to see the top categories and the recent transactions.
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -700));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, '0_home_scrolled');
+
     await _openTab(tester, 'Transactions');
     await _capture(tester, key, '1_transactions');
 
@@ -255,6 +261,12 @@ void main() {
 
     await _openTab(tester, 'Budget');
     await _capture(tester, key, '8_budget');
+
+    await _openTab(tester, 'Reports');
+    await _capture(tester, key, '9_reports');
+    await tester.drag(find.byType(Scrollable).first, const Offset(0, -560));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, '9_reports_charts');
 
     await _openTab(tester, 'More');
     await tester.tap(listRow('Accounts'));

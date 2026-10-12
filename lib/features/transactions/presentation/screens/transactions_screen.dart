@@ -12,6 +12,7 @@ import 'package:hishab/features/transactions/domain/transaction_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
 import 'package:hishab/core/widgets/month_switcher.dart';
+import 'package:hishab/core/widgets/range_banner.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_filter_sheet.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 
@@ -177,7 +178,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       body: Column(
         children: [
           if (_filter.range case final customRange?)
-            _RangeBanner(
+            RangeBanner(
               range: customRange,
               onClear: () => setState(() => _filter = _filter.withoutRange()),
             )
@@ -303,37 +304,6 @@ class _SwipeBackground extends StatelessWidget {
       alignment: alignment,
       padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Icon(icon, color: iconColor),
-    );
-  }
-}
-
-class _RangeBanner extends StatelessWidget {
-  const _RangeBanner({required this.range, required this.onClear});
-
-  final DateRange range;
-  final VoidCallback onClear;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 4, 4, 0),
-      child: Row(
-        children: [
-          const Icon(Icons.date_range, size: 20),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              rangeLabel(range),
-              style: Theme.of(context).textTheme.titleSmall,
-            ),
-          ),
-          IconButton(
-            tooltip: 'Clear date range',
-            icon: const Icon(Icons.close),
-            onPressed: onClear,
-          ),
-        ],
-      ),
     );
   }
 }

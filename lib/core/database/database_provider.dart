@@ -1,3 +1,4 @@
+import 'package:drift/drift.dart' show TableUpdateQuery;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/database/app_database.dart';
 
@@ -7,4 +8,19 @@ import 'package:hishab/core/database/app_database.dart';
 /// silently opening a second connection to the same file.
 final appDatabaseProvider = Provider<AppDatabase>((ref) {
   throw UnimplementedError('Override appDatabaseProvider in the ProviderScope');
+});
+
+/// Emits whenever transactions, accounts, categories or budgets change.
+/// Screens that calculate several things at once (the dashboard, the reports)
+/// watch it so they calculate again after any change.
+final dataChangesProvider = StreamProvider<void>((ref) {
+  final db = ref.watch(appDatabaseProvider);
+  return db.tableUpdates(
+    TableUpdateQuery.onAllTables([
+      db.transactions,
+      db.accounts,
+      db.categories,
+      db.budgets,
+    ]),
+  );
 });

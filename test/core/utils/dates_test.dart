@@ -91,4 +91,126 @@ void main() {
       expect(daysInMonth(DateTime(2000, 2)), 29);
     });
   });
+
+  group('startOfWeek', () {
+    test('weeks start on Sunday', () {
+      // 11 Oct 2026 is a Sunday.
+      expect(startOfWeek(DateTime(2026, 10, 11, 15)), DateTime(2026, 10, 11));
+      expect(
+        startOfWeek(DateTime(2026, 10, 12)),
+        DateTime(2026, 10, 11),
+      ); // Mon
+      expect(
+        startOfWeek(DateTime(2026, 10, 17, 23, 59)),
+        DateTime(2026, 10, 11),
+      ); // Sat
+      expect(
+        startOfWeek(DateTime(2026, 10, 18)),
+        DateTime(2026, 10, 18),
+      ); // next Sun
+    });
+
+    test('goes back over a month and a year end', () {
+      expect(startOfWeek(DateTime(2026, 10, 1)), DateTime(2026, 9, 27)); // Thu
+      expect(startOfWeek(DateTime(2026, 1, 1)), DateTime(2025, 12, 28)); // Thu
+    });
+
+    test('can start on Monday or Saturday instead', () {
+      expect(
+        startOfWeek(DateTime(2026, 10, 14), firstWeekday: DateTime.monday),
+        DateTime(2026, 10, 12),
+      );
+      expect(
+        startOfWeek(DateTime(2026, 10, 14), firstWeekday: DateTime.saturday),
+        DateTime(2026, 10, 10),
+      );
+    });
+  });
+
+  group('daysBetween', () {
+    test('counts calendar days', () {
+      expect(daysBetween(DateTime(2026, 10, 1), DateTime(2026, 10, 11)), 10);
+      expect(daysBetween(DateTime(2026, 10, 11), DateTime(2026, 10, 11)), 0);
+      expect(daysBetween(DateTime(2026, 10, 11), DateTime(2026, 10, 1)), -10);
+    });
+
+    test('ignores the time of day and crosses month and year ends', () {
+      expect(
+        daysBetween(DateTime(2026, 10, 1, 23, 59), DateTime(2026, 10, 2, 0, 1)),
+        1,
+      );
+      expect(daysBetween(DateTime(2025, 12, 31), DateTime(2026, 1, 1)), 1);
+      expect(daysBetween(DateTime(2026, 1), DateTime(2027, 1)), 365);
+      expect(daysBetween(DateTime(2028, 1), DateTime(2029, 1)), 366);
+    });
+  });
+
+  group('lastMonths', () {
+    test('lists the months ending with the given one, oldest first', () {
+      expect(lastMonths(DateTime(2026, 10, 20), 3), [
+        DateTime(2026, 8),
+        DateTime(2026, 9),
+        DateTime(2026, 10),
+      ]);
+    });
+
+    test('crosses a year end', () {
+      expect(lastMonths(DateTime(2026, 2), 4), [
+        DateTime(2025, 11),
+        DateTime(2025, 12),
+        DateTime(2026, 1),
+        DateTime(2026, 2),
+      ]);
+    });
+
+    test('one month is just that month', () {
+      expect(lastMonths(DateTime(2026, 10, 31), 1), [DateTime(2026, 10)]);
+    });
+  });
+
+  group('previousPeriod', () {
+    test('a whole month is compared with the month before', () {
+      final previous = previousPeriod(monthRange(DateTime(2026, 10)));
+      expect(previous.start, DateTime(2026, 9));
+      expect(previous.end, DateTime(2026, 10));
+    });
+
+    test('January is compared with December', () {
+      final previous = previousPeriod(monthRange(DateTime(2026, 1)));
+      expect(previous.start, DateTime(2025, 12));
+      expect(previous.end, DateTime(2026, 1));
+    });
+
+    test(
+      'any other range is compared with the same number of days before it',
+      () {
+        // 5 to 9 Oct (end is the 10th): 5 days, so 30 Sep to 4 Oct.
+        final previous = previousPeriod((
+          start: DateTime(2026, 10, 5),
+          end: DateTime(2026, 10, 10),
+        ));
+        expect(previous.start, DateTime(2026, 9, 30));
+        expect(previous.end, DateTime(2026, 10, 5));
+      },
+    );
+
+    test('a single day is compared with the day before', () {
+      final previous = previousPeriod((
+        start: DateTime(2026, 10, 5),
+        end: DateTime(2026, 10, 6),
+      ));
+      expect(previous.start, DateTime(2026, 10, 4));
+      expect(previous.end, DateTime(2026, 10, 5));
+    });
+
+    test('part of a month is not mistaken for a whole month', () {
+      final previous = previousPeriod((
+        start: DateTime(2026, 10),
+        end: DateTime(2026, 10, 16),
+      ));
+      // 15 days before 1 Oct.
+      expect(previous.start, DateTime(2026, 9, 16));
+      expect(previous.end, DateTime(2026, 10));
+    });
+  });
 }
