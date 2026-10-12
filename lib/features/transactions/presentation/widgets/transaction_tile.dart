@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
@@ -14,8 +15,12 @@ class TransactionTile extends StatelessWidget {
     required this.item,
     this.onTap,
     this.onLongPress,
+    this.showDate = false,
     super.key,
   });
+
+  /// Put the date before the account, for lists that are not grouped by day.
+  final bool showDate;
 
   final TransactionItem item;
   final VoidCallback? onTap;
@@ -40,6 +45,7 @@ class TransactionTile extends StatelessWidget {
     };
 
     final details = [
+      if (showDate) DateFormat('d MMM').format(item.date),
       isTransfer
           ? '${item.accountName} → ${item.toAccountName ?? '?'}'
           : item.accountName,

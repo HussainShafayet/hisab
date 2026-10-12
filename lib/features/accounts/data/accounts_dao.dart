@@ -39,6 +39,10 @@ class AccountsDao extends DatabaseAccessor<AppDatabase>
     bool includeArchived = false,
   }) => _selectWithFlows(includeArchived: includeArchived).watch();
 
+  Future<List<AccountWithFlows>> getAllWithFlows({
+    bool includeArchived = false,
+  }) => _selectWithFlows(includeArchived: includeArchived).get();
+
   Future<AccountWithFlows?> getWithFlows(int id) =>
       _selectWithFlows(includeArchived: true, id: id).getSingleOrNull();
 

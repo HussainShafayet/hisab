@@ -203,6 +203,31 @@ void main() {
     });
   });
 
+  group('the overall budget', () {
+    test('is read with what was spent', () async {
+      await repo.setBudget(month: october, amount: 100000);
+      await repo.setBudget(month: october, amount: 20000, categoryId: food);
+      await spend(food, 5000, DateTime(2026, 10, 3));
+      await spend(transport, 3000, DateTime(2026, 10, 4));
+
+      final overall = (await repo.overallBudget(DateTime(2026, 10, 20)))!;
+
+      expect(overall.limit, 100000);
+      expect(overall.spent, 8000);
+      expect(overall.categoryId, isNull);
+    });
+
+    test(
+      'is null when only a category budget or another month has one',
+      () async {
+        await repo.setBudget(month: october, amount: 100, categoryId: food);
+        await repo.setBudget(month: september, amount: 100);
+
+        expect(await repo.overallBudget(october), isNull);
+      },
+    );
+  });
+
   group('removing a budget', () {
     test('removes only that budget', () async {
       await repo.setBudget(month: october, amount: 100);

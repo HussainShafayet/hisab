@@ -4,6 +4,7 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/date_range_picker.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
 import 'package:hishab/features/categories/domain/category.dart';
@@ -34,31 +35,12 @@ class _TransactionFilterSheetState
   late DateRange? _range = widget.initial.range;
 
   Future<void> _pickRange() async {
-    final today = dateOnly(ref.read(clockProvider)());
-    final picked = await showDateRangePicker(
-      context: context,
-      firstDate: DateTime(2000),
-      lastDate: today,
-      currentDate: today,
-      initialDateRange: _range == null
-          ? null
-          : DateTimeRange(
-              start: _range!.start,
-              end: DateTime(
-                _range!.end.year,
-                _range!.end.month,
-                _range!.end.day - 1,
-              ),
-            ),
+    final picked = await pickDateRange(
+      context,
+      today: dateOnly(ref.read(clockProvider)()),
+      initial: _range,
     );
-    if (picked == null) return;
-    setState(() {
-      _range = (
-        start: dateOnly(picked.start),
-        // The end of a range is not included, so go to the next midnight.
-        end: DateTime(picked.end.year, picked.end.month, picked.end.day + 1),
-      );
-    });
+    if (picked != null) setState(() => _range = picked);
   }
 
   /// Expense categories first, then income, each parent followed by its

@@ -23,6 +23,21 @@ class BudgetsRepository {
         .map((rows) => _toMonthBudget(range.start, rows));
   }
 
+  /// The overall budget of [month] with what was spent, or null when the month
+  /// has none. A one-off read; see [watchMonth] for one that updates.
+  Future<BudgetItem?> overallBudget(DateTime month) async {
+    final range = monthRange(month);
+    final rows = await _db.budgetsDao.getForMonthWithSpent(
+      monthKey(month),
+      range.start,
+      range.end,
+    );
+    for (final row in rows) {
+      if (row.categoryId == null) return _toBudgetItem(row);
+    }
+    return null;
+  }
+
   /// Sets the limit of [categoryId] in [month], or the overall limit when
   /// [categoryId] is null. Changes the limit if there already is one.
   Future<void> setBudget({
@@ -110,16 +125,18 @@ class BudgetsRepository {
     }
   }
 
+  BudgetItem _toBudgetItem(BudgetWithSpent row) => BudgetItem(
+    id: row.id,
+    categoryId: row.categoryId,
+    categoryName: row.categoryName,
+    categoryIcon: row.categoryIcon,
+    categoryColor: row.categoryColor,
+    limit: row.amount,
+    spent: row.spent,
+  );
+
   MonthBudget _toMonthBudget(DateTime month, List<BudgetWithSpent> rows) {
-    BudgetItem toItem(BudgetWithSpent row) => BudgetItem(
-      id: row.id,
-      categoryId: row.categoryId,
-      categoryName: row.categoryName,
-      categoryIcon: row.categoryIcon,
-      categoryColor: row.categoryColor,
-      limit: row.amount,
-      spent: row.spent,
-    );
+    BudgetItem toItem(BudgetWithSpent row) => _toBudgetItem(row);
 
     BudgetItem? overall;
     final categories = <BudgetItem>[];

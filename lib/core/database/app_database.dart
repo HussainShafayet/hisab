@@ -9,6 +9,7 @@ import 'package:hishab/features/categories/data/categories_dao.dart';
 import 'package:hishab/features/categories/data/categories_table.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
+import 'package:hishab/features/reports/data/reports_dao.dart';
 import 'package:hishab/features/transactions/data/transactions_dao.dart';
 import 'package:hishab/features/transactions/data/transactions_table.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -26,7 +27,7 @@ final _budgetsMonthCategoryUnique = Index(
 
 @DriftDatabase(
   tables: [Accounts, Categories, Transactions, Budgets],
-  daos: [AccountsDao, CategoriesDao, TransactionsDao, BudgetsDao],
+  daos: [AccountsDao, CategoriesDao, TransactionsDao, BudgetsDao, ReportsDao],
 )
 class AppDatabase extends _$AppDatabase {
   /// The real database file on the phone.
