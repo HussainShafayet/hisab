@@ -31,6 +31,15 @@ String poishaToInput(int poisha) {
   return '$sign$taka.${paisa.toString().padLeft(2, '0')}';
 }
 
+/// `123450` -> `1234.50`, always with two decimals, no grouping and no
+/// symbol: the form a spreadsheet reads as a number.
+String poishaToFixed(int poisha) {
+  final sign = poisha < 0 ? '-' : '';
+  final absolute = poisha.abs();
+  final paisa = (absolute % poishaPerTaka).toString().padLeft(2, '0');
+  return '$sign${absolute ~/ poishaPerTaka}.$paisa';
+}
+
 final _amountPattern = RegExp(
   r'^(-)?(\d{1,'
   '$_maxTakaDigits'

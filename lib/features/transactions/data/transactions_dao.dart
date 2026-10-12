@@ -21,6 +21,21 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
     with _$TransactionsDaoMixin {
   TransactionsDao(super.attachedDatabase);
 
+  /// Every transaction, in the order they were saved.
+  Future<List<TransactionRow>> getAll() =>
+      (select(transactions)..orderBy([(t) => OrderingTerm.asc(t.id)])).get();
+
+  /// Every transaction with its accounts and category, oldest first, for
+  /// exporting.
+  Future<List<TransactionWithDetails>> getAllWithDetails() =>
+      _selectWithDetails(
+        (t) => const Constant(true),
+        orderBy: [
+          OrderingTerm.asc(transactions.date),
+          OrderingTerm.asc(transactions.id),
+        ],
+      ).get();
+
   Future<TransactionRow?> getById(int id) =>
       (select(transactions)..where((t) => t.id.equals(id))).getSingleOrNull();
 

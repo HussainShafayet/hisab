@@ -31,6 +31,37 @@ Feature-first, repository pattern. Each feature has `data/` (tables, DAOs,
 repository), `domain/` (models, pure logic) and `presentation/` (screens, widgets,
 providers). Shared code is in `lib/core/` (database, router, theme, utils, widgets).
 
+## Backup and CSV
+
+More → Backup & export:
+
+- **Export backup** writes everything (accounts, categories, transactions,
+  budgets) to one `hishab-backup-YYYY-MM-DD.json`. **Restore** replaces all data
+  with such a file, in one database transaction: if anything is wrong, nothing
+  changes. The format is versioned (`backupFormatVersion`).
+- **Export transactions** writes a CSV (UTF-8 with BOM, so Excel and Google
+  Sheets read it) with `Date,Type,Amount,Account,To account,Category,Note,Correction`.
+- **Import from CSV** works with your own sheet: choose the file, say which
+  column is which, pick the date format, then check a preview. Rows already in
+  the app are skipped (same day, type, amount, account, note), unreadable rows
+  are listed, and nothing is added until you confirm. Missing accounts and
+  categories are created. Amounts accept `৳`, commas, Bengali digits and
+  `-` / brackets for expenses.
+
+Files are saved or shared through the system pickers, so the app needs no storage
+or internet permission. The pure logic is in `features/backup/domain/`.
+
+## Release APK
+
+```sh
+export ANDROID_HOME="$HOME/development/android-sdk" JAVA_HOME="$HOME/development/jdk-21"
+flutter build apk --release   # build/app/outputs/flutter-apk/app-release.apk
+```
+
+The release manifest has no `INTERNET` permission. The APK is signed with the
+debug key, which is fine for installing on your own phone but not for the Play
+Store.
+
 ## Seeing the screens without a phone
 
 ```sh

@@ -20,6 +20,10 @@ typedef BudgetWithSpent = ({
 class BudgetsDao extends DatabaseAccessor<AppDatabase> with _$BudgetsDaoMixin {
   BudgetsDao(super.attachedDatabase);
 
+  /// Every budget of every month.
+  Future<List<BudgetRow>> getAll() =>
+      (select(budgets)..orderBy([(b) => OrderingTerm.asc(b.id)])).get();
+
   /// All budgets of a month (`YYYY-MM`): the overall one (null category) and
   /// the per-category ones.
   Stream<List<BudgetRow>> watchForMonth(String month) =>

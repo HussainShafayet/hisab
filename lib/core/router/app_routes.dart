@@ -13,6 +13,7 @@ abstract final class AppRoutes {
   static const accounts = '/more/accounts';
   static const categories = '/more/categories';
   static const backup = '/more/backup';
+  static const importCsv = '/more/backup/import-csv';
   static const settings = '/more/settings';
 
   static const newAccount = '/more/accounts/new';

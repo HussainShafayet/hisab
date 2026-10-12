@@ -36,6 +36,12 @@ class AccountsRepository {
     return calculateTotalBalance(rows.map(_toAccountWithBalance));
   }
 
+  /// A one-off read of the accounts, without balances.
+  Future<List<Account>> getAccounts({bool includeArchived = false}) async {
+    final rows = await _db.accountsDao.getAll(includeArchived: includeArchived);
+    return [for (final row in rows) row.toDomain()];
+  }
+
   Future<Account?> getAccount(int id) async {
     final row = await _db.accountsDao.getById(id);
     return row?.toDomain();
