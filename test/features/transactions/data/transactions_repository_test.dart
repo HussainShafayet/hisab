@@ -4,6 +4,7 @@ import 'package:hishab/features/accounts/data/accounts_repository.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/transactions/data/transactions_repository.dart';
+import 'package:hishab/features/transactions/domain/add_transaction_options.dart';
 import 'package:hishab/features/transactions/domain/transaction_input.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -592,7 +593,7 @@ void main() {
       expect(options.defaultAccountId, isNull);
     });
 
-    test('list active categories by type, most used first', () async {
+    test('list active categories by type, with the most used apart', () async {
       await repo.addTransaction(expense(categoryId: transport));
       await repo.addTransaction(expense(categoryId: transport));
       await repo.addTransaction(expense(categoryId: food));
@@ -602,12 +603,15 @@ void main() {
 
       final options = await repo.loadAddOptions(now: _now);
 
+      // The list stays in tree order; usage only fills the frequent row.
       expect(options.expenseCategories.map((c) => c.name), [
-        'Transport',
         'Food',
+        'Transport',
         'Rent',
       ]);
+      expect(options.frequentExpenseIds, [transport, food]);
       expect(options.incomeCategories.map((c) => c.name), ['Salary']);
+      expect(options.frequentIncomeIds, isEmpty);
       expect(options.expenseCategories.map((c) => c.id), isNot(contains(gone)));
       expect(rent, isNonZero);
     });
@@ -627,26 +631,43 @@ void main() {
 
       final options = await repo.loadAddOptions(now: _now);
 
+      expect(options.frequentExpenseIds, [food]);
       expect(options.expenseCategories.map((c) => c.name), [
         'Food',
         'Transport',
       ]);
     });
 
-    test(
-      'keep a sub-category right after its parent when nothing was used',
-      () async {
-        await insertTestCategory(db, name: 'Groceries', parentId: food);
+    test('show at most six frequent categories', () async {
+      final ids = <int>[];
+      for (var i = 0; i < 8; i++) {
+        final id = await insertTestCategory(db, name: 'Extra $i');
+        ids.add(id);
+        await repo.addTransaction(expense(categoryId: id));
+      }
 
-        final options = await repo.loadAddOptions(now: _now);
+      final options = await repo.loadAddOptions(now: _now);
 
-        expect(options.expenseCategories.map((c) => c.name), [
-          'Food',
-          'Groceries',
-          'Transport',
-        ]);
-      },
-    );
+      expect(options.frequentExpenseIds, hasLength(maxFrequentCategories));
+    });
+
+    test('list every sub-category right after what it is inside', () async {
+      final groceries = await insertTestCategory(
+        db,
+        name: 'Groceries',
+        parentId: food,
+      );
+      await insertTestCategory(db, name: 'Rice', parentId: groceries);
+
+      final options = await repo.loadAddOptions(now: _now);
+
+      expect(options.expenseCategories.map((c) => c.name), [
+        'Food',
+        'Groceries',
+        'Rice',
+        'Transport',
+      ]);
+    });
 
     test(
       'include the archived account and category of a transaction being edited',

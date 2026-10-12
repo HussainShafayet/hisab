@@ -62,6 +62,12 @@ The release manifest has no `INTERNET` permission. The APK is signed with the
 debug key, which is fine for installing on your own phone but not for the Play
 Store.
 
+## Specs
+
+What each feature is meant to do, and which tests cover it, is written down per
+feature in [docs/specs](docs/specs/README.md) (one folder per feature, like
+`lib/features/`). Update the spec together with the code.
+
 ## Seeing the screens without a phone
 
 ```sh

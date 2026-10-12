@@ -343,26 +343,57 @@ void main() {
       );
     });
 
-    test('categories nested too deep, or inside themselves', () {
-      expectDamaged((j) {
-        (j['categories']! as List).add({
-          'id': 12,
-          'name': 'Rice',
-          'type': 'expense',
-          'parentId': 11,
-          'icon': 'x',
-          'color': 1,
-          'isArchived': false,
-          'sortOrder': 0,
-        });
-      }, 'nested more than one level');
+    test('categories nested in a loop, or deeper than the app allows', () {
+      // Category 10 inside category 11, which is already inside 10.
+      expectDamaged(
+        (j) =>
+            ((j['categories']! as List).first
+                    as Map<String, Object?>)['parentId'] =
+                11,
+        'nested in a loop or too deep',
+      );
+      // A category inside itself.
       expectDamaged(
         (j) =>
             ((j['categories']! as List).first
                     as Map<String, Object?>)['parentId'] =
                 10,
-        'nested more than one level',
+        'nested in a loop or too deep',
       );
+      // Six levels: 10 > 11 > 12 > 13 > 14 > 15.
+      expectDamaged((j) {
+        for (var id = 12; id <= 15; id++) {
+          (j['categories']! as List).add({
+            'id': id,
+            'name': 'L$id',
+            'type': 'expense',
+            'parentId': id - 1,
+            'icon': 'x',
+            'color': 1,
+            'isArchived': false,
+            'sortOrder': 0,
+          });
+        }
+      }, 'nested in a loop or too deep');
+    });
+
+    test('accepts categories nested several levels', () {
+      final json = jsonOf(sample());
+      (json['categories']! as List).add({
+        'id': 12,
+        'name': 'Rice',
+        'type': 'expense',
+        'parentId': 11,
+        'icon': 'x',
+        'color': 1,
+        'isArchived': false,
+        'sortOrder': 0,
+      });
+
+      final data = BackupData.decode(jsonEncode(json));
+
+      expect(data.categories.last.parentId, 11);
+      expect(data.categoriesParentsFirst.map((c) => c.id), [10, 11, 12]);
     });
 
     test('the message says the backup is damaged', () {

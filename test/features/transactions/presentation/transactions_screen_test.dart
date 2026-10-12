@@ -5,6 +5,7 @@ import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 import '../../../helpers/fixtures.dart';
+import '../../../helpers/form_actions.dart';
 import '../../../helpers/pump_app.dart';
 
 /// Opens the Transactions tab with this data (today is Sunday 11 Oct 2026):
@@ -578,18 +579,8 @@ void main() {
       await settle(tester);
 
       expect(appBarTitle('Edit transaction'), findsOneWidget);
-      expect(
-        tester.widget<Text>(find.byKey(const ValueKey('amount-display'))).data,
-        '৳ 250',
-      );
-      expect(
-        tester
-            .widget<ChoiceChip>(
-              find.byKey(ValueKey('category-${d.basics.food}')),
-            )
-            .selected,
-        isTrue,
-      );
+      expect(amountText(tester), '250');
+      expect(categoryShown(tester), 'Food');
       expect(
         tester
             .widget<TextField>(find.widgetWithText(TextField, 'Note'))
@@ -597,15 +588,11 @@ void main() {
             .text,
         'Lunch with Rahim',
       );
-      expect(find.text('Save & add another'), findsNothing);
+      expect(find.text('Save & new'), findsNothing);
 
-      await tester.longPress(find.byKey(const ValueKey('key-⌫')));
-      for (final key in '300'.split('')) {
-        await tester.tap(find.byKey(ValueKey('key-$key')));
-      }
-      await tester.tap(find.byKey(ValueKey('category-${d.basics.transport}')));
-      await tester.tap(find.byKey(ValueKey('account-${d.basics.bkash}')));
-      await tester.pump();
+      await typeAmount(tester, '300');
+      await chooseCategory(tester, d.basics.transport);
+      await chooseAccount(tester, field: 'account-field', id: d.basics.bkash);
       await tapText(tester, 'Save changes');
 
       expect(appBarTitle('Transactions'), findsOneWidget);
@@ -690,16 +677,18 @@ void main() {
       await settle(tester);
 
       expect(
-        tester
-            .widget<ChoiceChip>(find.byKey(ValueKey('from-${d.basics.cash}')))
-            .selected,
-        isTrue,
+        find.descendant(
+          of: find.byKey(const ValueKey('from-field')),
+          matching: find.text('Cash'),
+        ),
+        findsOneWidget,
       );
       expect(
-        tester
-            .widget<ChoiceChip>(find.byKey(ValueKey('to-${d.basics.bkash}')))
-            .selected,
-        isTrue,
+        find.descendant(
+          of: find.byKey(const ValueKey('to-field')),
+          matching: find.text('bKash'),
+        ),
+        findsOneWidget,
       );
       expect(find.text('Fee (optional)'), findsNothing);
     });
@@ -716,8 +705,7 @@ void main() {
       await tester.tap(row(d.lunch));
       await settle(tester);
       await tapText(tester, 'Transfer');
-      await tester.tap(find.byKey(ValueKey('to-${d.basics.bkash}')));
-      await tester.pump();
+      await chooseAccount(tester, field: 'to-field', id: d.basics.bkash);
       await tapText(tester, 'Save changes');
 
       final saved = (await db.transactionsDao.getById(d.lunch))!;
@@ -739,7 +727,7 @@ void main() {
         await tester.tap(row(d.lunch));
         await settle(tester);
 
-        expect(find.text('Cash (archived)'), findsOneWidget);
+        expect(find.text('Cash · Archived'), findsOneWidget);
         expect(find.text('Food (archived)'), findsOneWidget);
         await tapText(tester, 'Save changes');
         expect(appBarTitle('Transactions'), findsOneWidget);
@@ -762,25 +750,14 @@ void main() {
       await tapText(tester, 'Duplicate');
 
       expect(appBarTitle('Add transaction'), findsOneWidget);
+      expect(amountText(tester), '80');
+      expect(categoryShown(tester), 'Transport');
       expect(
-        tester.widget<Text>(find.byKey(const ValueKey('amount-display'))).data,
-        '৳ 80',
-      );
-      expect(
-        tester
-            .widget<ChoiceChip>(
-              find.byKey(ValueKey('category-${d.basics.transport}')),
-            )
-            .selected,
-        isTrue,
-      );
-      expect(
-        tester
-            .widget<ChoiceChip>(
-              find.byKey(ValueKey('account-${d.basics.bkash}')),
-            )
-            .selected,
-        isTrue,
+        find.descendant(
+          of: find.byKey(const ValueKey('account-field')),
+          matching: find.text('bKash'),
+        ),
+        findsOneWidget,
       );
       // The original is from yesterday; the copy is for today.
       expect(
@@ -789,7 +766,7 @@ void main() {
             .selected,
         isTrue,
       );
-      expect(find.text('Save & add another'), findsOneWidget);
+      expect(find.text('Save & new'), findsOneWidget);
 
       await tapText(tester, 'Save');
 
@@ -816,19 +793,8 @@ void main() {
       await settle(tester);
       await tapText(tester, 'Duplicate');
 
-      // The archived category is not offered and nothing is selected.
-      expect(
-        find.byKey(ValueKey('category-${d.basics.transport}')),
-        findsOneWidget,
-      );
-      expect(
-        tester
-            .widget<ChoiceChip>(
-              find.byKey(ValueKey('category-${d.basics.transport}')),
-            )
-            .selected,
-        isFalse,
-      );
+      // The archived category is not selected, so one has to be chosen.
+      expect(categoryShown(tester), 'Choose a category');
     });
   });
 }

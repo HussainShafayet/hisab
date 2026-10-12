@@ -94,11 +94,8 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                   // Room below the last row so the add button never covers it.
                   padding: const EdgeInsets.only(bottom: 96),
                   children: [
-                    for (final node in tree) ...[
-                      _CategoryTile(category: node.category),
-                      for (final child in node.children)
-                        _CategoryTile(category: child, isChild: true),
-                    ],
+                    for (final row in flattenCategoryTreeWithDepth(tree))
+                      _CategoryTile(category: row.category, depth: row.depth),
                   ],
                 );
               },
@@ -113,10 +110,17 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
 enum _CategoryAction { edit, addSub, archive, restore }
 
 class _CategoryTile extends ConsumerWidget {
-  const _CategoryTile({required this.category, this.isChild = false});
+  const _CategoryTile({required this.category, this.depth = 0});
 
   final Category category;
-  final bool isChild;
+
+  /// How many categories this one is inside: 0 for a top-level category.
+  final int depth;
+
+  bool get isChild => depth > 0;
+
+  /// One more level must still fit under [maxCategoryDepth].
+  bool get canHaveChildren => depth + 2 <= maxCategoryDepth;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -124,7 +128,10 @@ class _CategoryTile extends ConsumerWidget {
     final muted = category.isArchived;
 
     return ListTile(
-      contentPadding: EdgeInsets.only(left: isChild ? 48 : 16, right: 4),
+      contentPadding: EdgeInsets.only(
+        left: 16.0 + (depth > 0 ? 16 + 20.0 * depth : 0),
+        right: 4,
+      ),
       leading: CategoryAvatar(
         icon: category.icon,
         color: category.color,
@@ -142,7 +149,7 @@ class _CategoryTile extends ConsumerWidget {
         onSelected: (action) => _onAction(context, ref, action),
         itemBuilder: (context) => [
           const PopupMenuItem(value: _CategoryAction.edit, child: Text('Edit')),
-          if (!isChild && !category.isArchived)
+          if (canHaveChildren && !category.isArchived)
             const PopupMenuItem(
               value: _CategoryAction.addSub,
               child: Text('Add sub-category'),
@@ -193,7 +200,7 @@ class _CategoryTile extends ConsumerWidget {
           isChild
               ? 'It will be hidden when you add transactions. Existing '
                     'transactions keep it, and you can restore it any time.'
-              : 'It and its sub-categories will be hidden when you add '
+              : 'It and everything inside it will be hidden when you add '
                     'transactions. Existing transactions keep them, and you '
                     'can restore them any time.',
         ),

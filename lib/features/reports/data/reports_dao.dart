@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/database/category_tree_sql.dart';
 import 'package:hishab/features/transactions/data/transactions_table.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -43,18 +44,18 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
     return (income: row.read<int>('income'), expense: row.read<int>('expense'));
   }
 
-  /// Expenses grouped by top-level category, biggest first. A sub-category's
-  /// spending counts for its parent.
+  /// Expenses grouped by top-level category, biggest first. The spending of
+  /// a sub-category, at any depth, counts for the top-level category it is in.
   Future<List<CategoryTotalRow>> expenseByCategory(
     DateTime start,
     DateTime end,
   ) async {
     final rows = await customSelect(
-      'SELECT p.id AS category_id, p.name AS name, p.icon AS icon, '
-      'p.color AS color, SUM(t.amount) AS total '
+      '${categoryTreeCte}SELECT p.id AS category_id, p.name AS name, '
+      'p.icon AS icon, p.color AS color, SUM(t.amount) AS total '
       'FROM transactions t '
-      'JOIN categories c ON c.id = t.category_id '
-      'JOIN categories p ON p.id = COALESCE(c.parent_id, c.id) '
+      'JOIN category_tree ct ON ct.id = t.category_id '
+      'JOIN categories p ON p.id = ct.root_id AND p.parent_id IS NULL '
       "WHERE t.type = '${TransactionType.expense.name}' "
       'AND t.is_adjustment = 0 AND t.date >= ? AND t.date < ? '
       'GROUP BY p.id ORDER BY total DESC, p.id',

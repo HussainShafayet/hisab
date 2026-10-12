@@ -25,6 +25,7 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import '../helpers/fake_file_gateway.dart';
 import '../helpers/fixtures.dart';
 import '../helpers/fonts.dart';
+import '../helpers/form_actions.dart';
 import '../helpers/pump_app.dart';
 
 final _enabled = Platform.environment['SCREENSHOTS'] == '1';
@@ -260,14 +261,28 @@ void main() {
 
     await tester.tap(find.byType(FloatingActionButton));
     await tester.pumpAndSettle();
-    for (final k in '1200+350.5×2'.split('')) {
-      await tester.tap(find.byKey(ValueKey('key-$k')));
-    }
+    await typeAmount(tester, '1200');
+    await tester.tap(find.byKey(const ValueKey('category-field')));
+    await tester.pumpAndSettle();
+    await _capture(tester, key, '3_category_picker');
+    // Open Food and take Groceries from inside it.
     await tester.tap(
-      find.byKey(ValueKey('category-${await _categoryId(db, 'Groceries')}')),
+      find.byKey(ValueKey('category-expand-${await _categoryId(db, 'Food')}')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byKey(
+        ValueKey('category-option-${await _categoryId(db, 'Groceries')}'),
+      ),
     );
     await tester.pumpAndSettle();
     await _capture(tester, key, '3_add_transaction');
+
+    await turnCalculatorOn(tester);
+    await tapCalcKeys(tester, '+350.5×2');
+    await _capture(tester, key, '3_add_calculator');
+    await tester.tap(find.byKey(const ValueKey('calculator-toggle')));
+    await tester.pumpAndSettle();
 
     await tester.tap(find.text('Transfer'));
     await tester.pumpAndSettle();

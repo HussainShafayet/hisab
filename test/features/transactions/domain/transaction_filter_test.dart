@@ -146,6 +146,48 @@ void main() {
     });
   });
 
+  group('category scope (deep categories)', () {
+    // Food (10) > Groceries (11) > Rice (12); Rent (30) is elsewhere.
+    final deep = [
+      item(1, categoryId: 10),
+      item(2, categoryId: 11, parentId: 10, categoryName: 'Groceries'),
+      item(3, categoryId: 12, parentId: 11, categoryName: 'Rice'),
+      item(4, categoryId: 30, categoryName: 'Rent'),
+    ];
+
+    test('the scope reaches categories at any depth', () {
+      const filter = TransactionFilter(
+        categoryId: 10,
+        categoryScope: {10, 11, 12},
+      );
+
+      expect(ids(applyTransactionFilter(deep, filter)), [1, 2, 3]);
+    });
+
+    test('a category in the middle matches what is inside it only', () {
+      const filter = TransactionFilter(categoryId: 11, categoryScope: {11, 12});
+
+      expect(ids(applyTransactionFilter(deep, filter)), [2, 3]);
+    });
+
+    test('without a scope the category and its direct children match', () {
+      const filter = TransactionFilter(categoryId: 10);
+
+      expect(ids(applyTransactionFilter(deep, filter)), [1, 2]);
+    });
+
+    test('the scope is kept when the search text or range changes', () {
+      const filter = TransactionFilter(
+        categoryId: 10,
+        categoryScope: {10, 11, 12},
+      );
+
+      expect(filter.withQuery('x').categoryScope, {10, 11, 12});
+      expect(filter.withoutRange().categoryScope, {10, 11, 12});
+      expect(filter.withoutSheetOptions().categoryScope, isEmpty);
+    });
+  });
+
   group('account', () {
     test('matches the account money leaves or arrives in', () {
       expect(

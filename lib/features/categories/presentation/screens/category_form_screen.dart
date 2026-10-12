@@ -6,6 +6,7 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/categories/data/categories_repository.dart';
 import 'package:hishab/features/categories/domain/category.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/category_style.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
@@ -120,8 +121,7 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
 
   bool get _isEditing => widget.initial != null;
 
-  bool get _hasChildren =>
-      _isEditing && widget.all.any((c) => c.parentId == widget.initial!.id);
+  late final Map<int, Category> _byId = {for (final c in widget.all) c.id: c};
 
   @override
   void dispose() {
@@ -138,6 +138,9 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
 
     final repository = ref.read(categoriesRepositoryProvider);
     try {
+      // A new category's id goes back to whoever opened the form, so a
+      // transaction being entered can pick it right away.
+      int? createdId;
       if (_isEditing) {
         await repository.updateCategory(
           widget.initial!.id,
@@ -147,7 +150,7 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
           color: _color,
         );
       } else {
-        await repository.createCategory(
+        createdId = await repository.createCategory(
           name: _name.text,
           type: _type,
           parentId: _parentId,
@@ -155,7 +158,7 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
           color: _color,
         );
       }
-      if (mounted) context.pop();
+      if (mounted) context.pop(createdId);
     } on ValidationException catch (e) {
       if (mounted) {
         setState(() {
@@ -166,19 +169,24 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
     }
   }
 
-  /// Top-level categories of the chosen type that can be a parent, plus the
-  /// current parent even if it has been archived since.
+  /// Categories of the chosen type this one can go inside, in tree order:
+  /// not itself or anything inside it, nothing archived, nothing that would
+  /// make the tree too deep. The current parent stays on the list even if it
+  /// has been archived since.
   List<Category> get _parentOptions {
-    final options = widget.all
-        .where(
-          (c) =>
-              c.parentId == null &&
-              c.type == _type &&
-              c.id != widget.initial?.id &&
-              (!c.isArchived || c.id == _parentId),
-        )
-        .toList();
-    return options..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+    final ofType = widget.all.where((c) => c.type == _type);
+    return [
+      for (final c in flattenCategoryTree(buildCategoryTree(ofType)))
+        if (c.id == _parentId ||
+            categoryParentProblem(
+                  all: widget.all,
+                  type: _type,
+                  parentId: c.id,
+                  categoryId: widget.initial?.id,
+                ) ==
+                null)
+          c,
+    ];
   }
 
   @override
@@ -254,12 +262,8 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
             DropdownButtonFormField<int?>(
               key: ValueKey('parent-$_type-$_parentId'),
               initialValue: _parentId,
-              decoration: InputDecoration(
-                labelText: 'Parent category',
-                helperText: _hasChildren
-                    ? 'This category has sub-categories, so it stays top-level.'
-                    : null,
-              ),
+              isExpanded: true,
+              decoration: const InputDecoration(labelText: 'Parent category'),
               items: [
                 const DropdownMenuItem<int?>(
                   value: null,
@@ -268,12 +272,13 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                 for (final parent in _parentOptions)
                   DropdownMenuItem<int?>(
                     value: parent.id,
-                    child: Text(parent.name),
+                    child: Text(
+                      categoryPathLabel(parent, _byId),
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
               ],
-              onChanged: _hasChildren
-                  ? null
-                  : (value) => setState(() => _parentId = value),
+              onChanged: (value) => setState(() => _parentId = value),
             ),
             const SizedBox(height: 24),
             Text('Icon', style: theme.textTheme.labelLarge),

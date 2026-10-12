@@ -119,13 +119,24 @@ void main() {
       expect(() => create('Food'), throwsValidation('Restore it instead'));
     });
 
-    test('rejects a sub-category of a sub-category', () async {
+    test('allows a sub-category of a sub-category', () async {
       final food = await create('Food');
       final groceries = await create('Groceries', parentId: food);
 
+      final rice = await create('Rice', parentId: groceries);
+
+      expect((await repo.getCategory(rice))!.parentId, groceries);
+    });
+
+    test('rejects going deeper than five levels', () async {
+      var parent = await create('L1');
+      for (final name in ['L2', 'L3', 'L4', 'L5']) {
+        parent = await create(name, parentId: parent);
+      }
+
       expect(
-        () => create('Rice', parentId: groceries),
-        throwsValidation('one level'),
+        () => create('L6', parentId: parent),
+        throwsValidation('5 levels'),
       );
     });
 
@@ -238,25 +249,79 @@ void main() {
       expect((await repo.getCategory(groceries))!.parentId, isNull);
     });
 
-    test(
-      'rejects moving a category that has sub-categories under another',
-      () async {
-        final food = await create('Food');
-        await create('Groceries', parentId: food);
-        final transport = await create('Transport');
+    test('moves a category together with what is inside it', () async {
+      final food = await create('Food');
+      final groceries = await create('Groceries', parentId: food);
+      final transport = await create('Transport');
 
+      await repo.updateCategory(
+        food,
+        name: 'Food',
+        parentId: transport,
+        icon: 'restaurant',
+        color: 0xFFEF5350,
+      );
+
+      expect((await repo.getCategory(food))!.parentId, transport);
+      expect((await repo.getCategory(groceries))!.parentId, food);
+    });
+
+    test('rejects moving a category into its own sub-category', () async {
+      final food = await create('Food');
+      final groceries = await create('Groceries', parentId: food);
+      final rice = await create('Rice', parentId: groceries);
+
+      for (final inside in [groceries, rice]) {
         expect(
           () => repo.updateCategory(
             food,
             name: 'Food',
-            parentId: transport,
+            parentId: inside,
             icon: 'restaurant',
             color: 0xFFEF5350,
           ),
-          throwsValidation('has sub-categories'),
+          throwsValidation('own sub-categories'),
         );
-      },
-    );
+      }
+    });
+
+    test('rejects a move that would make the tree too deep', () async {
+      // Food > Groceries > Rice is three levels tall.
+      final food = await create('Food');
+      final groceries = await create('Groceries', parentId: food);
+      await create('Rice', parentId: groceries);
+      var deep = await create('L1');
+      for (final name in ['L2', 'L3']) {
+        deep = await create(name, parentId: deep);
+      }
+
+      expect(
+        () => repo.updateCategory(
+          food,
+          name: 'Food',
+          parentId: deep,
+          icon: 'restaurant',
+          color: 0xFFEF5350,
+        ),
+        throwsValidation('5 levels'),
+      );
+    });
+
+    test('can rename a sub-category whose parent is archived', () async {
+      final food = await create('Food');
+      final groceries = await create('Groceries', parentId: food);
+      await repo.archiveCategory(food);
+
+      await repo.updateCategory(
+        groceries,
+        name: 'Shopping',
+        parentId: food,
+        icon: 'restaurant',
+        color: 0xFFEF5350,
+      );
+
+      expect((await repo.getCategory(groceries))!.name, 'Shopping');
+    });
 
     test('rejects itself as parent and a parent of another type', () async {
       final food = await create('Food');
@@ -319,6 +384,26 @@ void main() {
       await repo.archiveCategory(food);
 
       expect(await names(), ['Rent']);
+    });
+
+    test('archives everything inside a category, at any depth', () async {
+      final food = await create('Food');
+      final groceries = await create('Groceries', parentId: food);
+      await create('Rice', parentId: groceries);
+      await create('Rent');
+
+      await repo.archiveCategory(food);
+
+      expect(await names(), ['Rent']);
+      expect(await names(includeArchived: true), [
+        'Food',
+        'Groceries',
+        'Rice',
+        'Rent',
+      ]);
+
+      await repo.restoreCategory(food);
+      expect(await names(), ['Food', 'Groceries', 'Rice', 'Rent']);
     });
 
     test('restoring a parent restores its sub-categories', () async {

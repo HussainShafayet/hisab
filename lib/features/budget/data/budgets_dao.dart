@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/database/category_tree_sql.dart';
 import 'package:hishab/features/budget/data/budgets_table.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -57,7 +58,8 @@ class BudgetsDao extends DatabaseAccessor<AppDatabase> with _$BudgetsDaoMixin {
   ///
   /// What counts as spent: expenses only. Transfers are movements between
   /// accounts and balance adjustments are corrections, so both are left out.
-  /// A category budget also counts its sub-categories.
+  /// A category budget also counts everything inside the category, at any
+  /// depth.
   Stream<List<BudgetWithSpent>> watchForMonthWithSpent(
     String month,
     DateTime start,
@@ -83,12 +85,12 @@ class BudgetsDao extends DatabaseAccessor<AppDatabase> with _$BudgetsDaoMixin {
         'AND t.date >= ? AND t.date < ? $extraCondition)';
 
     return customSelect(
-      'SELECT b.id, b.amount, b.category_id, '
+      '${categoryTreeCte}SELECT b.id, b.amount, b.category_id, '
       'c.name AS category_name, c.icon AS category_icon, '
       'c.color AS category_color, '
       'CASE WHEN b.category_id IS NULL THEN ${spent('')} '
-      'ELSE ${spent('AND (t.category_id = b.category_id OR t.category_id IN '
-      '(SELECT id FROM categories WHERE parent_id = b.category_id))')} '
+      'ELSE ${spent('AND t.category_id IN '
+      '(SELECT id FROM category_tree WHERE root_id = b.category_id)')} '
       'END AS spent '
       'FROM budgets b LEFT JOIN categories c ON c.id = b.category_id '
       'WHERE b.month = ? ORDER BY b.id',

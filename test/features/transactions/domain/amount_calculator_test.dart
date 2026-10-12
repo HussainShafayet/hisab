@@ -167,4 +167,64 @@ void main() {
       expect(evaluateAmount(type('1200+350.5×2')), 190100);
     });
   });
+
+  group('sanitizeAmountText', () {
+    test('keeps a plain number as it is', () {
+      expect(sanitizeAmountText('1200'), '1200');
+      expect(sanitizeAmountText('12.5'), '12.5');
+      expect(sanitizeAmountText(''), '');
+    });
+
+    test('allows two decimals at most', () {
+      expect(sanitizeAmountText('12.345'), '12.34');
+    });
+
+    test('drops commas, spaces and letters', () {
+      expect(sanitizeAmountText('1,500.50'), '1500.50');
+      expect(sanitizeAmountText(' 7 5 '), '75');
+      expect(sanitizeAmountText('abc'), '');
+      expect(sanitizeAmountText('৳250'), '250');
+    });
+
+    test('reads Bengali digits', () {
+      expect(sanitizeAmountText('১২৩'), '123');
+      expect(sanitizeAmountText('১২.৫০'), '12.50');
+    });
+
+    test('keeps one dot only', () {
+      expect(sanitizeAmountText('1.2.3'), '1.23');
+      expect(sanitizeAmountText('..'), '0.');
+    });
+
+    test('starts a number with 0 when it starts with a dot', () {
+      expect(sanitizeAmountText('.5'), '0.5');
+    });
+
+    test('has no leading zeros', () {
+      expect(sanitizeAmountText('007'), '7');
+      expect(sanitizeAmountText('00'), '0');
+    });
+
+    test('allows twelve digits before the dot', () {
+      expect(sanitizeAmountText('1234567890123'), '123456789012');
+    });
+
+    test('has no operators: that is for the calculator', () {
+      expect(sanitizeAmountText('5+3'), '53');
+    });
+  });
+
+  group('expressionHasOperator', () {
+    test('is true for a calculation', () {
+      expect(expressionHasOperator('12+3'), isTrue);
+      expect(expressionHasOperator('12×3'), isTrue);
+      expect(expressionHasOperator('12-'), isTrue);
+    });
+
+    test('is false for a plain number', () {
+      expect(expressionHasOperator('12'), isFalse);
+      expect(expressionHasOperator('12.50'), isFalse);
+      expect(expressionHasOperator(''), isFalse);
+    });
+  });
 }

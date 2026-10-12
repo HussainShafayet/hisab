@@ -94,12 +94,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         ),
       ))
         if (!hasBudget.contains(category.id))
-          (
-            id: category.id,
-            label: category.parentId == null
-                ? category.name
-                : '${byId[category.parentId]?.name ?? '?'} › ${category.name}',
-          ),
+          (id: category.id, label: categoryPathLabel(category, byId)),
     ];
     if (!mounted) return;
     if (choices.isEmpty) {

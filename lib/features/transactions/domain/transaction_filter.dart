@@ -9,6 +9,7 @@ class TransactionFilter {
     this.query = '',
     this.type,
     this.categoryId,
+    this.categoryScope = const {},
     this.accountId,
     this.range,
   });
@@ -17,8 +18,13 @@ class TransactionFilter {
   final String query;
   final TransactionType? type;
 
-  /// A top-level category also matches its sub-categories.
+  /// The category chosen. It matches the transactions of the category and of
+  /// everything inside it, which [categoryScope] lists.
   final int? categoryId;
+
+  /// The ids of [categoryId] and every category inside it, at any depth. When
+  /// empty, the category and its direct sub-categories match.
+  final Set<int> categoryScope;
 
   /// Matches transactions from or to this account (transfers included).
   final int? accountId;
@@ -47,6 +53,7 @@ class TransactionFilter {
     query: query,
     type: type,
     categoryId: categoryId,
+    categoryScope: categoryScope,
     accountId: accountId,
     range: range,
   );
@@ -56,6 +63,7 @@ class TransactionFilter {
     query: query,
     type: type,
     categoryId: categoryId,
+    categoryScope: categoryScope,
     accountId: accountId,
   );
 
@@ -71,13 +79,17 @@ List<TransactionItem> applyTransactionFilter(
   final text = filter.query.trim().toLowerCase().replaceAll(',', '');
   final range = filter.range;
 
+  bool inCategory(TransactionItem item) {
+    if (filter.categoryScope.isNotEmpty) {
+      return filter.categoryScope.contains(item.categoryId);
+    }
+    return item.categoryId == filter.categoryId ||
+        item.categoryParentId == filter.categoryId;
+  }
+
   bool matches(TransactionItem item) {
     if (filter.type != null && item.type != filter.type) return false;
-    if (filter.categoryId != null &&
-        item.categoryId != filter.categoryId &&
-        item.categoryParentId != filter.categoryId) {
-      return false;
-    }
+    if (filter.categoryId != null && !inCategory(item)) return false;
     if (filter.accountId != null &&
         item.accountId != filter.accountId &&
         item.toAccountId != filter.accountId) {

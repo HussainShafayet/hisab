@@ -43,8 +43,8 @@ class _TransactionFilterSheetState
     if (picked != null) setState(() => _range = picked);
   }
 
-  /// Expense categories first, then income, each parent followed by its
-  /// sub-categories.
+  /// Expense categories first, then income, each category followed by what
+  /// is inside it, labelled with the whole path (`Food › Restaurant`).
   List<({int id, String label})> _categoryChoices(List<Category> all) {
     final byId = {for (final c in all) c.id: c};
     return [
@@ -52,12 +52,7 @@ class _TransactionFilterSheetState
         for (final c in flattenCategoryTree(
           buildCategoryTree(all.where((c) => c.type == type)),
         ))
-          (
-            id: c.id,
-            label: c.parentId == null
-                ? c.name
-                : '${byId[c.parentId]?.name ?? '?'} › ${c.name}',
-          ),
+          (id: c.id, label: categoryPathLabel(c, byId)),
     ];
   }
 
@@ -181,6 +176,12 @@ class _TransactionFilterSheetState
                               query: widget.initial.query,
                               type: _type,
                               categoryId: _categoryId,
+                              categoryScope: _categoryId == null
+                                  ? const {}
+                                  : categoryAndDescendantIds(
+                                      _categoryId!,
+                                      categories.requireValue,
+                                    ),
                               accountId: _accountId,
                               range: _range,
                             ),
