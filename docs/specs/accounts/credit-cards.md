@@ -34,6 +34,25 @@ still be spent, and when the bill is due, and so paying the bill is one tap.
 - **Home**: the Loans card counts what is owed on cards in "I'll give" and points
   out a bill due within 5 days.
 
+## Dollars (dual currency cards)
+A card such as EBL keeps one limit, part of which can be held in dollars. The
+app stays in taka; dollars are written beside a taka amount, never instead.
+- **Card form**: *Credit limit* is the whole limit in taka. *Part of the limit
+  in dollars* (optional, `$250`) is part of it, not extra.
+- **Spending**: on a credit card account the add form shows a dollar field
+  (*Spent in dollars* / *Refunded in dollars* / *Dollars this payment clears*).
+  The amount field stays the taka the bank charged, so the card's balance is
+  unchanged in kind. For an expense the form shows the rate it implies.
+- **Paying the bill** is a normal transfer from a taka account. "Pay bill"
+  fills the dollars still due; change it to what this payment clears.
+- **Card tile** (Loans, "I'll give"): dollars spent this month, dollars still
+  due, and with a dollar limit what is left: `taka left + dollars left`.
+- A transaction with dollars shows `$25.00` in its row.
+- *Use today's rate* (an expense with dollars): fetches the market rate from the
+  internet and, if the taka amount is still empty, fills it with dollars x rate.
+  The bank's own rate is what is charged, so it is a start; a note says so.
+  Without internet a message says so and the taka can be typed.
+
 ## Rules
 - Only a credit card keeps a limit and a bill day; another kind saves none. The
   limit is above zero; the bill day is 1 to 31.
@@ -42,6 +61,16 @@ still be spent, and when the bill is due, and so paying the bill is one tap.
   counted.
 - The total balance counts a card like any account (what is owed lowers it),
   unless "Include in total balance" is off.
+- Dollars: `due = max(0, spent - refunded - settled)` in US cents, where spent
+  is dollar expenses on the card, refunded dollar income on it and settled the
+  dollars of transfers into it. `usdLeft = usdLimit - due`; `takaLeft =
+  (limit - owed) - usdLeft x rate`, where rate is taka per dollar on the latest
+  dollar expense (null, and so no taka figure, before the first one). Dollars
+  are only accepted on a credit card (the card spent on, or paid into) and
+  must be above zero; the dollar limit too.
+- Schema version 7 adds `transactions.usd_amount` and `accounts.usd_limit`;
+  backup format 5 saves both (older files read as none). CSV export gets a USD
+  column.
 - Schema version 6 adds `accounts.credit_limit` and `accounts.bill_due_day`;
   backup format 4 saves both (older files read as none). A spreadsheet import
   guesses *Credit card* from an account name with "credit" in it.
@@ -52,7 +81,12 @@ still be spent, and when the bill is due, and so paying the bill is one tap.
   validation, spending and paying, backup)
 - `test/features/accounts/presentation/credit_card_ui_test.dart` (the card, the
   form, spending)
+- `test/features/accounts/domain/card_dollars_test.dart`
+- `test/features/accounts/data/card_dollars_repository_test.dart` (saving,
+  validation, the dollar totals, backup)
+- `test/features/accounts/presentation/card_dollars_ui_test.dart` (the tile,
+  the form)
 - `test/features/debts/presentation/debts_screen_test.dart` (cards in Loans, Pay
   bill)
 - `test/features/reminders/reminder_sync_test.dart`
-- `test/core/database/migration_test.dart` (version 5 to 6)
+- `test/core/database/migration_test.dart` (version 5 to 6, 6 to 7)

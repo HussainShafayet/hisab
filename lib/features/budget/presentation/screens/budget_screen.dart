@@ -5,6 +5,7 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/month_switcher.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
@@ -26,15 +27,15 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   late DateTime _month = monthStart(ref.read(clockProvider)());
 
   void _showMessage(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    ScaffoldMessenger.of(context).showMessage(text);
   }
 
   /// Runs [action] and shows its [ValidationException] message, if any.
   Future<void> _run(Future<void> Function() action) async {
     try {
       await action();
-    } on ValidationException catch (e) {
-      if (mounted) _showMessage(e.message);
+    } on Object catch (e) {
+      if (mounted) _showMessage(describeError(e));
     }
   }
 

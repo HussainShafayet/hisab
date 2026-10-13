@@ -3,6 +3,7 @@ import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/accounts/data/account_mapper.dart';
+import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/categories/data/category_mapper.dart';
 import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
@@ -34,6 +35,11 @@ class TransactionsRepository {
         .watchBetweenWithDetails(start, end)
         .map((rows) => rows.map(toTransactionItem).toList());
   }
+
+  /// Every transaction with tag [tagId], newest first.
+  Stream<List<TransactionItem>> watchByTag(int tagId) => _db.transactionsDao
+      .watchByTagWithDetails(tagId)
+      .map((rows) => rows.map(toTransactionItem).toList());
 
   Future<TransactionItem?> getTransaction(int id) async {
     final row = await _db.transactionsDao.getWithDetails(id);
@@ -100,6 +106,8 @@ class TransactionsRepository {
           categoryId: Value(input.categoryId),
           date: input.date,
           note: input.note.trim(),
+          usdAmount: Value(input.usdAmount),
+          tagId: Value(input.tagId),
         ),
       );
     });
@@ -128,6 +136,8 @@ class TransactionsRepository {
         note: Value(item.note),
         createdAt: Value(item.createdAt),
         isAdjustment: Value(item.isAdjustment),
+        usdAmount: Value(item.usdAmount),
+        tagId: Value(item.tagId),
       ),
     );
   }
@@ -217,6 +227,8 @@ class TransactionsRepository {
       input.accountId,
       unchanged: existing?.accountId,
     );
+    await _validateDollars(input);
+    await _validateTag(input);
 
     if (input.type == TransactionType.transfer) {
       final toId = input.toAccountId;
@@ -259,6 +271,37 @@ class TransactionsRepository {
     }
   }
 
+  /// A tag has to exist, and only an income or an expense can have one.
+  Future<void> _validateTag(TransactionInput input) async {
+    final tagId = input.tagId;
+    if (tagId == null) return;
+    if (input.type == TransactionType.transfer) {
+      throw ValidationException(tr('A transfer cannot have a tag.'));
+    }
+    if (await _db.tagsDao.getById(tagId) == null) {
+      throw ValidationException(tr('Tag not found.'));
+    }
+  }
+
+  /// Dollars only make sense on a credit card: the card that is spent on,
+  /// refunded, or paid into.
+  Future<void> _validateDollars(TransactionInput input) async {
+    final usd = input.usdAmount;
+    if (usd == null) return;
+    if (usd <= 0) {
+      throw ValidationException(tr('The dollar amount must be above zero.'));
+    }
+    final cardId = input.type == TransactionType.transfer
+        ? input.toAccountId
+        : input.accountId;
+    final card = cardId == null ? null : await _db.accountsDao.getById(cardId);
+    if (card == null || card.type != AccountType.creditCard) {
+      throw ValidationException(
+        tr('A dollar amount can only be used with a credit card.'),
+      );
+    }
+  }
+
   /// [unchanged] is the account the transaction already uses: an archived
   /// account is fine if it is still that one.
   Future<void> _requireUsableAccount(int id, {int? unchanged}) async {
@@ -280,6 +323,8 @@ class TransactionsRepository {
         categoryId: Value(input.categoryId),
         date: input.date,
         note: Value(input.note.trim()),
+        usdAmount: Value(input.usdAmount),
+        tagId: Value(input.tagId),
       );
 }
 
@@ -304,5 +349,8 @@ TransactionItem toTransactionItem(TransactionWithDetails row) {
     note: transaction.note,
     createdAt: transaction.createdAt.toLocal(),
     isAdjustment: transaction.isAdjustment,
+    usdAmount: transaction.usdAmount,
+    tagId: transaction.tagId,
+    tagName: row.tag?.name,
   );
 }

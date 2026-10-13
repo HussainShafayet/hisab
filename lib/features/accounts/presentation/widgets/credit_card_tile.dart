@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
+import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/accounts/domain/credit_card.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
 import 'package:intl/intl.dart';
@@ -78,7 +79,76 @@ class CreditCardTile extends StatelessWidget {
               ],
             ),
           ),
+          if (card.showsDollars) _DollarLines(card: card),
         ],
+      ),
+    );
+  }
+}
+
+/// The dollar side of a card: spent this month, still due, and what is left
+/// to spend in taka and in dollars.
+class _DollarLines extends StatelessWidget {
+  const _DollarLines({required this.card});
+
+  final CreditCardStatus card;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final id = card.account.id;
+    final style = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    final usdLeft = card.usdLeft;
+    final takaLeft = card.takaLeft;
+
+    Widget line(String key, String text, {bool strong = false}) => Padding(
+      padding: const EdgeInsets.only(top: 2),
+      child: Text(
+        text,
+        key: ValueKey('$key-$id'),
+        style: strong
+            ? style?.copyWith(
+                color: theme.colorScheme.onSurface,
+                fontWeight: FontWeight.w600,
+              )
+            : style,
+      ),
+    );
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            line(
+              'card-usd-spent',
+              tr('Spent in dollars this month: {amount}', {
+                'amount': formatUsd(card.dollars.spentThisMonth),
+              }),
+            ),
+            line(
+              'card-usd-due',
+              tr('Dollars still due: {amount}', {
+                'amount': formatUsd(card.dollars.due),
+              }),
+              strong: card.dollars.due > 0,
+            ),
+            if (usdLeft != null)
+              line(
+                'card-usd-left',
+                takaLeft == null
+                    ? tr('Left in dollars: {usd}', {'usd': formatUsd(usdLeft)})
+                    : tr('Left: {taka} in taka and {usd} in dollars', {
+                        'taka': formatPoisha(takaLeft),
+                        'usd': formatUsd(usdLeft),
+                      }),
+              ),
+          ],
+        ),
       ),
     );
   }

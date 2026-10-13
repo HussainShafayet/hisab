@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/utils/clock.dart';
@@ -23,7 +24,7 @@ Future<void> addLoanPayment(BuildContext context, DebtItem item) async {
     builder: (context) => PaymentDialog(item: item),
   );
   if (saved == true) {
-    messenger.showSnackBar(SnackBar(content: Text(tr('Payment saved.'))));
+    messenger.showMessage(tr('Payment saved.'));
   }
 }
 
@@ -43,17 +44,15 @@ Future<void> markLoanPaid(
       paidOn: combineDayWithTime(dateOnly(now), now),
       accountId: item.debt.accountId,
     );
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(tr('All paid.')),
-        action: SnackBarAction(
-          label: tr('Undo'),
-          onPressed: () => repository.deletePayment(paymentId),
-        ),
+    messenger.showMessage(
+      tr('All paid.'),
+      action: SnackBarAction(
+        label: tr('Undo'),
+        onPressed: () => repository.deletePayment(paymentId),
       ),
     );
-  } on ValidationException catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+  } on Object catch (e) {
+    messenger.showError(describeError(e));
   }
 }
 
@@ -141,19 +140,15 @@ Future<void> setOffWithPerson(
       person.name,
       on: ref.read(clockProvider)(),
     );
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(
-          tr('Set off {amount}.', {'amount': formatPoisha(amount)}),
-        ),
-        action: SnackBarAction(
-          label: tr('Undo'),
-          onPressed: () => repository.deletePayments(ids),
-        ),
+    messenger.showMessage(
+      tr('Set off {amount}.', {'amount': formatPoisha(amount)}),
+      action: SnackBarAction(
+        label: tr('Undo'),
+        onPressed: () => repository.deletePayments(ids),
       ),
     );
-  } on ValidationException catch (e) {
-    messenger.showSnackBar(SnackBar(content: Text(e.message)));
+  } on Object catch (e) {
+    messenger.showError(describeError(e));
   }
 }
 

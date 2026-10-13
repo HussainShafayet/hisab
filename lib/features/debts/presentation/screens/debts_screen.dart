@@ -38,6 +38,14 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(tr('Loans')),
+          actions: [
+            IconButton(
+              key: const ValueKey('split-bill'),
+              tooltip: tr('Split a bill'),
+              icon: const Icon(Icons.call_split),
+              onPressed: () => context.push(AppRoutes.splitBill),
+            ),
+          ],
           bottom: TabBar(
             tabs: [
               Tab(key: const ValueKey('tab-get'), text: tr("I'll get")),
@@ -151,7 +159,11 @@ class _LoanList extends ConsumerWidget {
               today: today,
               onTap: () => context.push(AppRoutes.editAccount(card.account.id)),
               onPay: () => context.push(
-                AppRoutes.payCardBill(card.account.id, card.owed),
+                AppRoutes.payCardBill(
+                  card.account.id,
+                  card.owed,
+                  usd: card.dollars.due,
+                ),
               ),
             ),
           if (shown.isNotEmpty || hasSettled) heading(tr('People')),

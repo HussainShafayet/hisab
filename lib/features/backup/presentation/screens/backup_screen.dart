@@ -4,6 +4,7 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
@@ -27,7 +28,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   bool _busy = false;
 
   void _message(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
+    ScaffoldMessenger.of(context).showMessage(text);
   }
 
   Future<void> _problem(String title, String message) {
@@ -234,14 +235,14 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     final BackupData data;
     try {
       data = BackupData.decode(utf8.decode(picked.bytes));
-    } on ValidationException catch (e) {
-      await _problem(tr('This backup cannot be restored'), e.message);
-      return;
     } on FormatException {
       await _problem(
         tr('This backup cannot be restored'),
         tr('This file is not a Hishab backup.'),
       );
+      return;
+    } on Object catch (e) {
+      await _problem(tr('This backup cannot be restored'), describeError(e));
       return;
     }
     if (!mounted || !await _confirmRestore(data)) return;

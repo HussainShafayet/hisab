@@ -9,6 +9,7 @@ import 'package:hishab/features/accounts/presentation/screens/account_form_scree
 import 'package:hishab/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/backup_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/csv_import_screen.dart';
+import 'package:hishab/features/bazar/presentation/screens/bazar_screen.dart';
 import 'package:hishab/features/budget/presentation/screens/budget_screen.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/screens/categories_screen.dart';
@@ -18,7 +19,14 @@ import 'package:hishab/features/debts/presentation/screens/debt_detail_screen.da
 import 'package:hishab/features/debts/presentation/screens/debt_form_screen.dart';
 import 'package:hishab/features/debts/presentation/screens/debts_screen.dart';
 import 'package:hishab/features/debts/presentation/screens/person_debts_screen.dart';
+import 'package:hishab/features/debts/presentation/screens/split_bill_screen.dart';
+import 'package:hishab/features/goals/presentation/screens/goal_detail_screen.dart';
+import 'package:hishab/features/goals/presentation/screens/goal_form_screen.dart';
+import 'package:hishab/features/goals/presentation/screens/goals_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_form_screen.dart';
+import 'package:hishab/features/tags/presentation/screens/tag_detail_screen.dart';
+import 'package:hishab/features/zakat/presentation/screens/zakat_screen.dart';
+import 'package:hishab/features/tags/presentation/screens/tags_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_screen.dart';
 import 'package:hishab/features/reports/presentation/screens/reports_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/more_screen.dart';
@@ -124,6 +132,67 @@ final routerProvider = Provider<GoRouter>((ref) {
                     ],
                   ),
                   GoRoute(
+                    path: 'zakat',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const ZakatScreen(),
+                  ),
+                  GoRoute(
+                    path: 'bazar',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const BazarScreen(),
+                  ),
+                  GoRoute(
+                    path: 'tags',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const TagsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) {
+                          final id = _idOf(state);
+                          return id == null
+                              ? const _InvalidIdScreen('tag')
+                              : TagDetailScreen(tagId: id);
+                        },
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'goals',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const GoalsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'new',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => const GoalFormScreen(),
+                      ),
+                      GoRoute(
+                        path: ':id',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) {
+                          final id = _idOf(state);
+                          return id == null
+                              ? const _InvalidIdScreen('goal')
+                              : GoalDetailScreen(goalId: id);
+                        },
+                        routes: [
+                          GoRoute(
+                            path: 'edit',
+                            parentNavigatorKey: _rootNavigatorKey,
+                            builder: (context, state) {
+                              final id = _idOf(state);
+                              return id == null
+                                  ? const _InvalidIdScreen('goal')
+                                  : GoalFormScreen(goalId: id);
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  GoRoute(
                     path: 'recurring',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const RecurringScreen(),
@@ -157,6 +226,12 @@ final routerProvider = Provider<GoRouter>((ref) {
                         builder: (context, state) => DebtFormScreen(
                           initialPerson: state.uri.queryParameters['person'],
                         ),
+                      ),
+                      // Before ':id', which would take "split" for an id.
+                      GoRoute(
+                        path: 'split',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => const SplitBillScreen(),
                       ),
                       // Before ':id', which would take "person" for an id.
                       GoRoute(
@@ -251,6 +326,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           payCardId: int.tryParse(state.uri.queryParameters['payCard'] ?? ''),
           payAmount: int.tryParse(state.uri.queryParameters['amount'] ?? ''),
+          payUsd: int.tryParse(state.uri.queryParameters['usd'] ?? ''),
+          prefillAmount: int.tryParse(
+            state.uri.queryParameters['prefillAmount'] ?? '',
+          ),
+          prefillNote: state.uri.queryParameters['prefillNote'],
         ),
       ),
       GoRoute(

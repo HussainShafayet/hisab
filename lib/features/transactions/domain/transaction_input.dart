@@ -12,6 +12,8 @@ class TransactionInput {
     this.toAccountId,
     this.categoryId,
     this.note = '',
+    this.usdAmount,
+    this.tagId,
   });
 
   final TransactionType type;
@@ -26,4 +28,11 @@ class TransactionInput {
   final int? categoryId;
   final DateTime date;
   final String note;
+
+  /// In US cents, only for a credit card entry: the dollars spent (expense),
+  /// refunded (income) or cleared by the payment (transfer into the card).
+  final int? usdAmount;
+
+  /// The trip or event of an income or expense. A transfer has none.
+  final int? tagId;
 }

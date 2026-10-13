@@ -21,6 +21,18 @@ String formatPoisha(int poisha, {bool symbol = true}) {
   return localizeDigits('$sign${symbol ? '৳' : ''}$taka.$paisa');
 }
 
+final _dollarGrouping = NumberFormat.decimalPattern('en_US');
+
+/// US cents as dollars: `12550` -> `$125.50`, `-500` -> `-$5.00`. Dollars are
+/// only ever kept beside a taka amount (see `CardDollars`), as whole cents.
+String formatUsd(int cents) {
+  final absolute = cents.abs();
+  final dollars = _dollarGrouping.format(absolute ~/ 100);
+  final rest = (absolute % 100).toString().padLeft(2, '0');
+  final sign = cents < 0 ? '-' : '';
+  return localizeDigits('$sign\$$dollars.$rest');
+}
+
 /// `123456` -> `1234.56` and `123400` -> `1234`. For filling a text field
 /// that the user will edit, so no symbol and no digit grouping.
 String poishaToInput(int poisha) {

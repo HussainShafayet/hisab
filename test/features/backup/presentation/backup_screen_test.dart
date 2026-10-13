@@ -237,7 +237,7 @@ void main() {
         final lines = const LineSplitter().convert(file.text);
         expect(
           lines.first,
-          'Date,Type,Amount,Account,To account,Category,Note,Correction',
+          'Date,Type,Amount,Account,To account,Category,Note,Correction,USD,Tag',
         );
         expect(lines, hasLength(3));
         expect(lines[1], contains('2026-10-01 09:00,income,50000.00,bKash'));

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/show_archived_chip.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/categories/domain/category.dart';
@@ -310,13 +311,11 @@ class _CategoryTile extends ConsumerWidget {
     final repository = ref.read(categoriesRepositoryProvider);
     await repository.archiveCategory(category.id);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(tr('{name} archived', {'name': category.name})),
-        action: SnackBarAction(
-          label: tr('Undo'),
-          onPressed: () => repository.restoreCategory(category.id),
-        ),
+    ScaffoldMessenger.of(context).showMessage(
+      tr('{name} archived', {'name': category.name}),
+      action: SnackBarAction(
+        label: tr('Undo'),
+        onPressed: () => repository.restoreCategory(category.id),
       ),
     );
   }
@@ -324,10 +323,9 @@ class _CategoryTile extends ConsumerWidget {
   Future<void> _restore(BuildContext context, WidgetRef ref) async {
     try {
       await ref.read(categoriesRepositoryProvider).restoreCategory(category.id);
-    } on ValidationException catch (e) {
+    } on Object catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context).showError(describeError(e));
     }
   }
 }

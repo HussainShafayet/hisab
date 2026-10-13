@@ -12,6 +12,9 @@ class TransactionItem {
     required this.note,
     required this.createdAt,
     this.isAdjustment = false,
+    this.usdAmount,
+    this.tagId,
+    this.tagName,
     this.toAccountId,
     this.toAccountName,
     this.categoryId,
@@ -54,4 +57,11 @@ class TransactionItem {
   /// A correction recorded by "Adjust balance". It counts in the account's
   /// balance but not in income, expense or budget totals.
   final bool isAdjustment;
+
+  /// In US cents: the dollars behind a credit card entry, if any.
+  final int? usdAmount;
+
+  /// The trip or event the transaction belongs to, if any.
+  final int? tagId;
+  final String? tagName;
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/app.dart';
@@ -5,6 +6,8 @@ import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/notifications/reminder_scheduler.dart';
+import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/features/settings/data/settings_repository.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -25,15 +28,27 @@ Future<void> main() async {
   await initializeDateFormatting('en');
   await initializeDateFormatting('bn');
 
-  // ProviderScope holds the state of every Riverpod provider.
+  // The container holds the state of every Riverpod provider.
+  final container = ProviderContainer(
+    overrides: [
+      appDatabaseProvider.overrideWithValue(database),
+      initialPreferencesProvider.overrideWithValue(preferences),
+      reminderSchedulerProvider.overrideWithValue(PluginReminderScheduler()),
+    ],
+  );
+
+  // An error that nothing caught (a failed save in a button's handler, say)
+  // would only reach the log. Say so on screen, in plain words, as well.
+  PlatformDispatcher.instance.onError = (error, stack) {
+    debugPrint('Unhandled error: $error\n$stack');
+    container
+        .read(rootMessengerKeyProvider)
+        .currentState
+        ?.showError(describeError(error));
+    return true;
+  };
+
   runApp(
-    ProviderScope(
-      overrides: [
-        appDatabaseProvider.overrideWithValue(database),
-        initialPreferencesProvider.overrideWithValue(preferences),
-        reminderSchedulerProvider.overrideWithValue(PluginReminderScheduler()),
-      ],
-      child: const HishabApp(),
-    ),
+    UncontrolledProviderScope(container: container, child: const HishabApp()),
   );
 }

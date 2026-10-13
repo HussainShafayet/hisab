@@ -17,6 +17,11 @@ class Accounts extends Table {
   /// A credit card only: the most it may owe, in poisha. Null when not set.
   IntColumn get creditLimit => integer().nullable()();
 
+  /// A credit card only: the part of the limit held in dollars, in US cents.
+  /// Dollar spending is taken from it, and [creditLimit] is the taka part.
+  /// Null when the card has no dollar part.
+  IntColumn get usdLimit => integer().nullable()();
+
   /// A credit card only: the day of the month the bill is due, 1 to 31. In a
   /// shorter month it is the last day. Null when not set.
   IntColumn get billDueDay => integer().nullable()();

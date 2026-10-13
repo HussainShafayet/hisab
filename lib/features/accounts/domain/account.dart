@@ -9,6 +9,7 @@ class Account {
     required this.includeInTotal,
     required this.isArchived,
     this.creditLimit,
+    this.usdLimit,
     this.billDueDay,
   });
 
@@ -27,6 +28,10 @@ class Account {
 
   /// A credit card's limit in poisha, when one was set.
   final int? creditLimit;
+
+  /// The part of a credit card's limit held in dollars, in US cents, if any.
+  /// [creditLimit] is then the taka part.
+  final int? usdLimit;
 
   /// The day of the month a credit card's bill is due (1 to 31), if set.
   final int? billDueDay;

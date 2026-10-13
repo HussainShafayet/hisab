@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/net/rate_service.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
@@ -21,6 +22,9 @@ import 'package:hishab/features/categories/presentation/widgets/category_avatar.
 import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+import 'package:hishab/features/tags/domain/tag.dart';
+import 'package:hishab/features/tags/presentation/providers/tags_providers.dart';
+import 'package:hishab/features/tags/presentation/widgets/tag_name_dialog.dart';
 import 'package:hishab/features/transactions/domain/amount_calculator.dart';
 import 'package:hishab/features/transactions/domain/balance_preview.dart';
 import 'package:hishab/features/transactions/domain/transaction_input.dart';
@@ -39,6 +43,9 @@ class TransactionFormScreen extends ConsumerWidget {
     this.duplicateId,
     this.payCardId,
     this.payAmount,
+    this.payUsd,
+    this.prefillAmount,
+    this.prefillNote,
     super.key,
   });
 
@@ -46,6 +53,14 @@ class TransactionFormScreen extends ConsumerWidget {
   final int? duplicateId;
   final int? payCardId;
   final int? payAmount;
+
+  /// The dollars still due on the card, in US cents, for "Pay bill".
+  final int? payUsd;
+
+  /// An amount (poisha) and a note to start a new transaction with, like the
+  /// total of the bazar list.
+  final int? prefillAmount;
+  final String? prefillNote;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -77,6 +92,9 @@ class TransactionFormScreen extends ConsumerWidget {
             data: data,
             payCardId: payCardId,
             payAmount: payAmount,
+            payUsd: payUsd,
+            prefillAmount: prefillAmount,
+            prefillNote: prefillNote,
           ),
         );
   }
@@ -88,12 +106,18 @@ class _TransactionForm extends ConsumerStatefulWidget {
     required this.data,
     this.payCardId,
     this.payAmount,
+    this.payUsd,
+    this.prefillAmount,
+    this.prefillNote,
   });
 
   final TransactionFormArgs args;
   final TransactionFormData data;
   final int? payCardId;
   final int? payAmount;
+  final int? payUsd;
+  final int? prefillAmount;
+  final String? prefillNote;
 
   @override
   ConsumerState<_TransactionForm> createState() => _TransactionFormState();
@@ -103,14 +127,21 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   final _amount = TextEditingController();
   final _note = TextEditingController();
   final _fee = TextEditingController();
+
+  /// The dollars behind a credit card entry (see [_dollarCard]).
+  final _usd = TextEditingController();
   final _amountFocus = FocusNode();
   final _noteFocus = FocusNode();
   final _feeFocus = FocusNode();
+  final _usdFocus = FocusNode();
 
   late TransactionType _type;
   int? _categoryId;
   int? _accountId;
   int? _toAccountId;
+
+  /// The trip or event of an income or expense.
+  int? _tagId;
   late DateTime _day;
 
   /// Whether the amount is typed with the calculator keypad, so it can be a
@@ -118,6 +149,10 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   bool _calculator = false;
   bool _saving = false;
   String? _error;
+
+  /// Fetching today's dollar rate, and what it said.
+  bool _fetchingRate = false;
+  String? _rateNote;
 
   /// Confirms "Save & new". Shown inline instead of as a snack bar, because a
   /// snack bar would cover the Save buttons.
@@ -141,6 +176,9 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ref.read(preferencesProvider).amountEntry == AmountEntry.calculator;
     _amount.text = source == null ? '' : poishaToInput(source.amount);
     _note.text = source?.note ?? '';
+    _tagId = source?.tagId;
+    final usd = source?.usdAmount;
+    _usd.text = usd == null ? '' : poishaToInput(usd);
     _day = dateOnly(_isEditing ? source!.date : now);
 
     // When copying, only reuse an account or category that can still be used.
@@ -178,9 +216,18 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       }
       final owed = widget.payAmount;
       if (owed != null && owed > 0) _amount.text = poishaToInput(owed);
+      final dollars = widget.payUsd;
+      if (dollars != null && dollars > 0) _usd.text = poishaToInput(dollars);
     }
 
-    for (final node in [_amountFocus, _noteFocus, _feeFocus]) {
+    final prefill = widget.prefillAmount;
+    if (_isAdding && card == null && prefill != null && prefill > 0) {
+      _amount.text = poishaToInput(prefill);
+    }
+    final prefillNote = widget.prefillNote;
+    if (_isAdding && prefillNote != null) _note.text = prefillNote;
+
+    for (final node in [_amountFocus, _noteFocus, _feeFocus, _usdFocus]) {
       node.addListener(_onFocusChanged);
     }
   }
@@ -192,9 +239,11 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     _amount.dispose();
     _note.dispose();
     _fee.dispose();
+    _usd.dispose();
     _amountFocus.dispose();
     _noteFocus.dispose();
     _feeFocus.dispose();
+    _usdFocus.dispose();
     super.dispose();
   }
 
@@ -288,6 +337,17 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       fee = parsed;
     }
 
+    int? usd;
+    if (_dollarCard != null && _usd.text.trim().isNotEmpty) {
+      usd = parseTakaToPoisha(_usd.text);
+      if (usd == null || usd <= 0) {
+        setState(
+          () => _error = tr('Enter a valid dollar amount, like 25 or 25.50.'),
+        );
+        return false;
+      }
+    }
+
     final isTransfer = _type == TransactionType.transfer;
     final time = _isEditing ? _data.source!.date : ref.read(clockProvider)();
     final input = TransactionInput(
@@ -298,6 +358,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       categoryId: isTransfer ? null : _categoryId,
       date: combineDayWithTime(_day, time),
       note: _note.text,
+      usdAmount: usd,
+      tagId: isTransfer ? null : _tagId,
     );
 
     setState(() {
@@ -312,10 +374,10 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         await repository.addTransaction(input, fee: fee);
       }
       return true;
-    } on ValidationException catch (e) {
+    } on Object catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.message;
+          _error = describeError(e);
           _saving = false;
         });
       }
@@ -324,7 +386,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   }
 
   Future<void> _saveAndClose() async {
-    if (await _save() && mounted) context.pop();
+    // The screen that opened the form can tell it was saved (true).
+    if (await _save() && mounted) context.pop(true);
   }
 
   /// Saves, then empties the form for the next one. The account, the type and
@@ -340,6 +403,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       _notice = tr('Saved {amount}. Add the next one.', {'amount': saved});
       _note.clear();
       _fee.clear();
+      _usd.clear();
     });
     if (!_calculator) _amountFocus.requestFocus();
   }
@@ -439,6 +503,44 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     return null;
   }
 
+  /// The credit card this entry is spent on, refunded to, or paid into, which
+  /// is the only case where the dollars can be entered.
+  Account? get _dollarCard {
+    final id = _type == TransactionType.transfer ? _toAccountId : _accountId;
+    final account = _account(id);
+    return account != null && account.isCreditCard ? account : null;
+  }
+
+  /// The label and hint of the dollar field, by what is being entered.
+  ({String label, String? hint}) get _dollarTexts {
+    switch (_type) {
+      case TransactionType.income:
+        return (
+          label: tr('Refunded in dollars (optional)'),
+          hint: tr('Lowers the dollars you owe on the card.'),
+        );
+      case TransactionType.transfer:
+        return (
+          label: tr('Dollars this payment clears (optional)'),
+          hint: tr('Lowers the dollars you owe on the card.'),
+        );
+      case TransactionType.expense:
+        final amount = evaluateAmount(_amount.text);
+        final usd = parseTakaToPoisha(_usd.text);
+        final rate = amount == null || usd == null || usd <= 0
+            ? null
+            : amount / usd;
+        return (
+          label: tr('Spent in dollars (optional)'),
+          hint: rate == null
+              ? tr('The taka above stays what the bank charges.')
+              : tr('About {rate} for each dollar.', {
+                  'rate': localizeDigits('৳${rate.toStringAsFixed(2)}'),
+                }),
+        );
+    }
+  }
+
   /// What saving would do to the accounts, or null while the amount is empty.
   TransactionEffect? get _effect {
     final amount = evaluateAmount(_amount.text);
@@ -532,7 +634,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
 
     final theme = Theme.of(context);
     final colors = context.financeColors;
-    final textFieldFocused = _noteFocus.hasFocus || _feeFocus.hasFocus;
+    final textFieldFocused =
+        _noteFocus.hasFocus || _feeFocus.hasFocus || _usdFocus.hasFocus;
     final amountColor = switch (_type) {
       TransactionType.income => colors.income,
       TransactionType.expense => colors.expense,
@@ -631,6 +734,48 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             onChosen: (id) => _accountId = id,
           ),
         ),
+        const SizedBox(height: 16),
+        _tagSection(context),
+      ],
+      if (_dollarCard != null) ...[
+        const SizedBox(height: 16),
+        MoneyFormField(
+          key: const ValueKey('usd-field'),
+          controller: _usd,
+          focusNode: _usdFocus,
+          label: _dollarTexts.label,
+          prefix: '\$ ',
+          isRequired: false,
+          onChanged: (_) => setState(() {
+            _error = null;
+            _notice = null;
+          }),
+          helperText: _dollarTexts.hint,
+        ),
+        if (_type == TransactionType.expense)
+          Align(
+            alignment: Alignment.centerLeft,
+            child: TextButton.icon(
+              key: const ValueKey('usd-rate'),
+              onPressed: _fetchingRate ? null : _useTodaysRate,
+              icon: _fetchingRate
+                  ? const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.cloud_download_outlined, size: 18),
+              label: Text(tr('Use today\'s rate')),
+            ),
+          ),
+        if (_rateNote != null && _type == TransactionType.expense)
+          Text(
+            _rateNote!,
+            key: const ValueKey('usd-rate-note'),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
       ],
       const SizedBox(height: 16),
       _SectionLabel(tr('Date')),
@@ -802,6 +947,92 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ),
       ],
     ];
+  }
+
+  /// How many tags are shown as chips before the rest are left out. The one
+  /// chosen is always shown.
+  static const _shownTags = 8;
+
+  /// Chips for the trips and events, to tag an income or expense with one.
+  Widget _tagSection(BuildContext context) {
+    final all = ref.watch(tagsProvider).value ?? const <Tag>[];
+    final shown = [
+      for (final tag in all.take(_shownTags)) tag,
+      for (final tag in all.skip(_shownTags))
+        if (tag.id == _tagId) tag,
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionLabel(tr('Trip or event (optional)')),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            for (final tag in shown)
+              FilterChip(
+                key: ValueKey('tag-${tag.id}'),
+                label: Text(tag.name),
+                selected: _tagId == tag.id,
+                onSelected: (on) => setState(() => _tagId = on ? tag.id : null),
+              ),
+            ActionChip(
+              key: const ValueKey('new-tag'),
+              avatar: const Icon(Icons.add, size: 18),
+              label: Text(tr('New tag')),
+              onPressed: _newTag,
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// Looks up today's market rate for a dollar. With the taka amount still
+  /// empty it fills it in from the dollars; the bank's own rate is what is
+  /// charged, so the figure is only a start.
+  Future<void> _useTodaysRate() async {
+    final usd = parseTakaToPoisha(_usd.text);
+    if (usd == null || usd <= 0) {
+      setState(() => _error = tr('Enter the dollar amount first.'));
+      return;
+    }
+    setState(() {
+      _fetchingRate = true;
+      _error = null;
+    });
+    try {
+      final rate = await ref.read(rateServiceProvider).usdToBdt();
+      if (!mounted) return;
+      setState(() {
+        if (_amount.text.trim().isEmpty) {
+          _setAmountText(poishaToInput((usd * rate).round()));
+        }
+        _rateNote = tr(
+          'The market rate today is about {rate} for each dollar. Your '
+          'bank\'s rate may differ.',
+          {'rate': localizeDigits('৳${rate.toStringAsFixed(2)}')},
+        );
+      });
+    } on RateException catch (e) {
+      if (mounted) setState(() => _error = describeError(e));
+    } finally {
+      if (mounted) setState(() => _fetchingRate = false);
+    }
+  }
+
+  Future<void> _newTag() async {
+    int? madeId;
+    final saved = await showTagNameDialog(
+      context,
+      title: tr('New trip or event'),
+      onSave: (name) async {
+        madeId = await ref.read(tagsRepositoryProvider).createTag(name);
+      },
+    );
+    if (saved == true && madeId != null && mounted) {
+      setState(() => _tagId = madeId);
+    }
   }
 
   Widget _categoryTile(BuildContext context) {

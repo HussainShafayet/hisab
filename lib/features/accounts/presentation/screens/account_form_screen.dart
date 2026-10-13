@@ -81,6 +81,11 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
         ? ''
         : poishaToInput(widget.initial!.creditLimit!),
   );
+  late final _usdLimit = TextEditingController(
+    text: widget.initial?.usdLimit == null
+        ? ''
+        : poishaToInput(widget.initial!.usdLimit!),
+  );
   late int? _billDueDay = widget.initial?.billDueDay;
   late AccountType _type = widget.initial?.type ?? AccountType.cash;
   late bool _includeInTotal = widget.initial?.includeInTotal ?? true;
@@ -94,6 +99,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
     _name.dispose();
     _openingBalance.dispose();
     _creditLimit.dispose();
+    _usdLimit.dispose();
     super.dispose();
   }
 
@@ -128,6 +134,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
     final repository = ref.read(accountsRepositoryProvider);
     final openingBalance = _openingPoisha;
     final limit = _isCard ? parseTakaToPoisha(_creditLimit.text) : null;
+    final usdLimit = _isCard ? parseTakaToPoisha(_usdLimit.text) : null;
     final dueDay = _isCard ? _billDueDay : null;
     try {
       if (_isEditing) {
@@ -138,6 +145,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
           openingBalance: openingBalance,
           includeInTotal: _includeInTotal,
           creditLimit: limit,
+          usdLimit: usdLimit,
           billDueDay: dueDay,
         );
       } else {
@@ -147,16 +155,17 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
           openingBalance: openingBalance,
           includeInTotal: _includeInTotal,
           creditLimit: limit,
+          usdLimit: usdLimit,
           billDueDay: dueDay,
         );
       }
       // Bill days set the reminders.
       ref.invalidate(reminderSyncProvider);
       if (mounted) context.pop();
-    } on ValidationException catch (e) {
+    } on Object catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.message;
+          _error = describeError(e);
           _saving = false;
         });
       }
@@ -172,6 +181,7 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
     includeInTotal: _includeInTotal,
     isArchived: false,
     creditLimit: _isCard ? parseTakaToPoisha(_creditLimit.text) : null,
+    usdLimit: _isCard ? parseTakaToPoisha(_usdLimit.text) : null,
     billDueDay: _isCard ? _billDueDay : null,
   );
 
@@ -303,6 +313,19 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                       helperText: tr(
                         'The most this card can owe. It shows how much you '
                         'can still spend.',
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    MoneyFormField(
+                      key: const ValueKey('usd-limit'),
+                      controller: _usdLimit,
+                      label: tr('Part of the limit in dollars (optional)'),
+                      prefix: '\$ ',
+                      isRequired: false,
+                      onChanged: (_) => setState(() {}),
+                      helperText: tr(
+                        'For a dual currency card: the dollar limit, like 250. '
+                        'It is part of the limit above, not extra.',
                       ),
                     ),
                     const SizedBox(height: 16),

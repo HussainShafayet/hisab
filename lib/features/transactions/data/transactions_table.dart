@@ -47,6 +47,18 @@ class Transactions extends Table {
   /// it out.
   BoolColumn get isAdjustment => boolean().withDefault(const Constant(false))();
 
+  /// The trip or event (a row of `tags`) this income or expense belongs to,
+  /// if any. Null for transfers. Not a foreign key, so the column can be added
+  /// to an existing table; deleting a tag clears it here (see `TagsDao`).
+  IntColumn get tagId => integer().nullable()();
+
+  /// In US cents: the dollars behind a credit card entry. On an expense it is
+  /// what was spent in dollars, on an income what was refunded in dollars, and
+  /// on a transfer into the card what part of the payment cleared dollar
+  /// spending. [amount] stays the taka the bank charged. Null when the entry
+  /// has nothing to do with dollars.
+  IntColumn get usdAmount => integer().nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

@@ -19,6 +19,21 @@ class MoreScreen extends StatelessWidget {
             route: AppRoutes.accounts,
           ),
           _MoreTile(
+            icon: Icons.savings_outlined,
+            title: tr('Savings goals'),
+            route: AppRoutes.goals,
+          ),
+          _MoreTile(
+            icon: Icons.shopping_basket_outlined,
+            title: tr('Bazar list'),
+            route: AppRoutes.bazar,
+          ),
+          _MoreTile(
+            icon: Icons.luggage_outlined,
+            title: tr('Trips & events'),
+            route: AppRoutes.tags,
+          ),
+          _MoreTile(
             icon: Icons.repeat,
             title: tr('Recurring'),
             route: AppRoutes.recurring,
@@ -27,6 +42,16 @@ class MoreScreen extends StatelessWidget {
             icon: Icons.handshake_outlined,
             title: tr('Loans'),
             route: AppRoutes.debts,
+          ),
+          _MoreTile(
+            icon: Icons.call_split,
+            title: tr('Split a bill'),
+            route: AppRoutes.splitBill,
+          ),
+          _MoreTile(
+            icon: Icons.volunteer_activism_outlined,
+            title: tr('Zakat'),
+            route: AppRoutes.zakat,
           ),
           _MoreTile(
             icon: Icons.category_outlined,

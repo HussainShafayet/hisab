@@ -3,6 +3,8 @@ import 'package:drift_flutter/drift_flutter.dart';
 import 'package:hishab/features/accounts/data/accounts_dao.dart';
 import 'package:hishab/features/accounts/data/accounts_table.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
+import 'package:hishab/features/bazar/data/bazar_dao.dart';
+import 'package:hishab/features/bazar/data/bazar_table.dart';
 import 'package:hishab/features/budget/data/budgets_dao.dart';
 import 'package:hishab/features/budget/data/budgets_table.dart';
 import 'package:hishab/features/categories/data/categories_dao.dart';
@@ -12,12 +14,16 @@ import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/debts/data/debts_dao.dart';
 import 'package:hishab/features/debts/data/debts_table.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/goals/data/goals_dao.dart';
+import 'package:hishab/features/goals/data/goals_table.dart';
 import 'package:hishab/features/recurring/data/recurring_dao.dart';
 import 'package:hishab/features/recurring/data/recurring_table.dart';
 import 'package:hishab/features/recurring/domain/recurring.dart';
 import 'package:hishab/features/reports/data/reports_dao.dart';
 import 'package:hishab/features/settings/data/app_settings_table.dart';
 import 'package:hishab/features/settings/data/settings_dao.dart';
+import 'package:hishab/features/tags/data/tags_dao.dart';
+import 'package:hishab/features/tags/data/tags_table.dart';
 import 'package:hishab/features/transactions/data/transactions_dao.dart';
 import 'package:hishab/features/transactions/data/transactions_table.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -43,6 +49,11 @@ final _budgetsMonthCategoryUnique = Index(
     Debts,
     DebtPayments,
     RecurringRules,
+    SavingsGoals,
+    GoalEntries,
+    Tags,
+    ShoppingItems,
+    ItemPrices,
   ],
   daos: [
     AccountsDao,
@@ -53,6 +64,9 @@ final _budgetsMonthCategoryUnique = Index(
     SettingsDao,
     DebtsDao,
     RecurringDao,
+    GoalsDao,
+    TagsDao,
+    BazarDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -71,8 +85,13 @@ class AppDatabase extends _$AppDatabase {
   /// 4: the `debts` and `debt_payments` tables (dhar / baki).
   /// 5: the `recurring_rules` table.
   /// 6: `accounts.credit_limit` and `accounts.bill_due_day` (credit cards).
+  /// 10: the `shopping_items` and `item_prices` tables (bazar list).
+  /// 9: the `tags` table and `transactions.tag_id` (trips and events).
+  /// 8: the `savings_goals` and `goal_entries` tables.
+  /// 7: `transactions.usd_amount` and `accounts.usd_limit` (dollar spending
+  /// on credit cards).
   @override
-  int get schemaVersion => 6;
+  int get schemaVersion => 10;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -109,6 +128,22 @@ class AppDatabase extends _$AppDatabase {
       if (from < 6) {
         await migrator.addColumn(accounts, accounts.creditLimit);
         await migrator.addColumn(accounts, accounts.billDueDay);
+      }
+      if (from < 7) {
+        await migrator.addColumn(transactions, transactions.usdAmount);
+        await migrator.addColumn(accounts, accounts.usdLimit);
+      }
+      if (from < 8) {
+        await migrator.createTable(savingsGoals);
+        await migrator.createTable(goalEntries);
+      }
+      if (from < 9) {
+        await migrator.createTable(tags);
+        await migrator.addColumn(transactions, transactions.tagId);
+      }
+      if (from < 10) {
+        await migrator.createTable(shoppingItems);
+        await migrator.createTable(itemPrices);
       }
     },
     beforeOpen: (details) async {

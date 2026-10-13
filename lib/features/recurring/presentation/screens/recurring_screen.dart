@@ -6,6 +6,7 @@ import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/recurring/domain/recurring.dart';
 import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
@@ -81,7 +82,7 @@ class RecurringScreen extends ConsumerWidget {
       ),
       body: rules.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: '$error'),
+        error: (error, _) => ErrorView(message: describeError(error)),
         data: (list) {
           if (list.isEmpty) {
             return EmptyState(

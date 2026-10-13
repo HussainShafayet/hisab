@@ -17,10 +17,17 @@ behaviour.
 | [categories](categories/) | [Add / edit category](categories/category-form.md) | 9 |
 | [settings](settings/) | [Settings](settings/settings.md) | 10a |
 | [core](core/) | [Bangla UI](core/bangla-ui.md) | 10a |
+| [core](core/) | [Messages and errors](core/messages-and-errors.md) | 19 |
 | [debts](debts/) | [Loans (dhar / baki)](debts/loans.md) | 10b, 11 |
+| [debts](debts/) | [Split a bill](debts/split-bill.md) | 17 |
 | [recurring](recurring/) | [Recurring transactions and reminders](recurring/recurring.md) | 10c |
 | [insights](insights/) | [Insights, the new Home, budget pace and reports](insights/insights.md) | 10d |
 | [accounts](accounts/) | [Credit cards](accounts/credit-cards.md) | 11 |
+| [goals](goals/) | [Savings goals](goals/savings-goals.md) | 13 |
+| [budget](budget/) | [Safe to spend today](budget/safe-to-spend.md) | 14 |
+| [tags](tags/) | [Trips and events](tags/trips-and-events.md) | 15 |
+| [bazar](bazar/) | [Bazar list](bazar/bazar-list.md) | 16 |
+| [zakat](zakat/) | [Zakat](zakat/zakat.md) | 18 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

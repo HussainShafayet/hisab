@@ -26,6 +26,11 @@ class BackupRepository {
     final debts = await _db.debtsDao.getAllDebts();
     final debtPayments = await _db.debtsDao.getAllPayments();
     final recurringRules = await _db.recurringDao.getAll();
+    final goals = await _db.goalsDao.getAllGoals();
+    final goalEntries = await _db.goalsDao.getAllEntries();
+    final tags = await _db.tagsDao.getAll();
+    final shoppingItems = await _db.bazarDao.getAllItems();
+    final itemPrices = await _db.bazarDao.getAllPrices();
     return BackupData(
       exportedAt: now.toUtc(),
       accounts: [
@@ -39,6 +44,7 @@ class BackupRepository {
             isArchived: a.isArchived,
             createdAt: a.createdAt.toUtc(),
             creditLimit: a.creditLimit,
+            usdLimit: a.usdLimit,
             billDueDay: a.billDueDay,
           ),
       ],
@@ -67,6 +73,8 @@ class BackupRepository {
             date: t.date.toUtc(),
             note: t.note,
             isAdjustment: t.isAdjustment,
+            usdAmount: t.usdAmount,
+            tagId: t.tagId,
             createdAt: t.createdAt.toUtc(),
             updatedAt: t.updatedAt.toUtc(),
           ),
@@ -127,6 +135,53 @@ class BackupRepository {
             createdAt: r.createdAt.toUtc(),
           ),
       ],
+      shoppingItems: [
+        for (final i in shoppingItems)
+          BackupShoppingItem(
+            id: i.id,
+            name: i.name,
+            quantity: i.quantity,
+            price: i.price,
+            isDone: i.isDone,
+            createdAt: i.createdAt.toUtc(),
+          ),
+      ],
+      itemPrices: [
+        for (final p in itemPrices)
+          BackupItemPrice(
+            id: p.id,
+            nameKey: p.nameKey,
+            name: p.name,
+            price: p.price,
+            updatedAt: p.updatedAt.toUtc(),
+          ),
+      ],
+      tags: [
+        for (final t in tags)
+          BackupTag(id: t.id, name: t.name, createdAt: t.createdAt.toUtc()),
+      ],
+      goals: [
+        for (final g in goals)
+          BackupGoal(
+            id: g.id,
+            name: g.name,
+            target: g.target,
+            targetDate: g.targetDate?.toUtc(),
+            icon: g.icon,
+            createdAt: g.createdAt.toUtc(),
+          ),
+      ],
+      goalEntries: [
+        for (final e in goalEntries)
+          BackupGoalEntry(
+            id: e.id,
+            goalId: e.goalId,
+            amount: e.amount,
+            date: e.date.toUtc(),
+            note: e.note,
+            createdAt: e.createdAt.toUtc(),
+          ),
+      ],
     );
   }
 
@@ -148,6 +203,7 @@ class BackupRepository {
                 isArchived: Value(a.isArchived),
                 createdAt: Value(a.createdAt),
                 creditLimit: Value(a.creditLimit),
+                usdLimit: Value(a.usdLimit),
                 billDueDay: Value(a.billDueDay),
               ),
           ]);
@@ -185,6 +241,57 @@ class BackupRepository {
                 createdAt: Value(r.createdAt),
               ),
           ]);
+          batch.insertAll(_db.shoppingItems, [
+            for (final i in data.shoppingItems)
+              ShoppingItemsCompanion.insert(
+                id: Value(i.id),
+                name: i.name,
+                quantity: Value(i.quantity),
+                price: Value(i.price),
+                isDone: Value(i.isDone),
+                createdAt: Value(i.createdAt),
+              ),
+          ]);
+          batch.insertAll(_db.itemPrices, [
+            for (final p in data.itemPrices)
+              ItemPricesCompanion.insert(
+                id: Value(p.id),
+                nameKey: p.nameKey,
+                name: p.name,
+                price: p.price,
+                updatedAt: Value(p.updatedAt),
+              ),
+          ]);
+          batch.insertAll(_db.tags, [
+            for (final t in data.tags)
+              TagsCompanion.insert(
+                id: Value(t.id),
+                name: t.name,
+                createdAt: Value(t.createdAt),
+              ),
+          ]);
+          batch.insertAll(_db.savingsGoals, [
+            for (final g in data.goals)
+              SavingsGoalsCompanion.insert(
+                id: Value(g.id),
+                name: g.name,
+                target: g.target,
+                targetDate: Value(g.targetDate),
+                icon: Value(g.icon),
+                createdAt: Value(g.createdAt),
+              ),
+          ]);
+          batch.insertAll(_db.goalEntries, [
+            for (final e in data.goalEntries)
+              GoalEntriesCompanion.insert(
+                id: Value(e.id),
+                goalId: e.goalId,
+                amount: e.amount,
+                date: e.date,
+                note: Value(e.note),
+                createdAt: Value(e.createdAt),
+              ),
+          ]);
           batch.insertAll(_db.transactions, [
             for (final t in data.transactions)
               TransactionsCompanion.insert(
@@ -197,6 +304,8 @@ class BackupRepository {
                 date: t.date,
                 note: Value(t.note),
                 isAdjustment: Value(t.isAdjustment),
+                usdAmount: Value(t.usdAmount),
+                tagId: Value(t.tagId),
                 createdAt: Value(t.createdAt),
                 updatedAt: Value(t.updatedAt),
               ),
@@ -256,11 +365,16 @@ class BackupRepository {
   /// Rows that others point at go last: transactions and budgets first, then
   /// categories from the innermost out, then accounts.
   Future<void> _deleteEverything() async {
+    await _db.delete(_db.shoppingItems).go();
+    await _db.delete(_db.itemPrices).go();
+    await _db.delete(_db.goalEntries).go();
+    await _db.delete(_db.savingsGoals).go();
     await _db.delete(_db.recurringRules).go();
     await _db.delete(_db.debtPayments).go();
     await _db.delete(_db.debts).go();
     await _db.delete(_db.budgets).go();
     await _db.delete(_db.transactions).go();
+    await _db.delete(_db.tags).go();
     // A category that has others inside it cannot go before them, so remove
     // the ones nothing is inside, over and over, until none are left. Each
     // round takes one level off the bottom of the tree.
@@ -306,6 +420,8 @@ class BackupRepository {
         'Category',
         'Note',
         'Correction',
+        'USD',
+        'Tag',
       ],
       for (final row in rows)
         [
@@ -319,6 +435,10 @@ class BackupRepository {
           categoryPath(row.category),
           row.transaction.note,
           row.transaction.isAdjustment ? 'yes' : '',
+          row.transaction.usdAmount == null
+              ? ''
+              : poishaToFixed(row.transaction.usdAmount!),
+          row.tag?.name ?? '',
         ],
     ];
     // A byte order mark lets Excel and Sheets read Bangla text correctly.

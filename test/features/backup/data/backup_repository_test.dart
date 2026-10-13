@@ -417,6 +417,8 @@ void main() {
         'Category',
         'Note',
         'Correction',
+        'USD',
+        'Tag',
       ]);
     });
 

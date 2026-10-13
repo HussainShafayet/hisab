@@ -16,12 +16,20 @@ abstract final class AppRoutes {
   static const importCsv = '/more/backup/import-csv';
   static const settings = '/more/settings';
   static const debts = '/more/debts';
+  static const tags = '/more/tags';
+  static String tag(int id) => '/more/tags/$id';
+  static const goals = '/more/goals';
+  static const newGoal = '/more/goals/new';
+  static String goal(int id) => '/more/goals/$id';
+  static String editGoal(int id) => '/more/goals/$id/edit';
+
   static const recurring = '/more/recurring';
 
   static const newRecurring = '/more/recurring/new';
   static String editRecurring(int id) => '/more/recurring/$id';
 
   static const newDebt = '/more/debts/new';
+  static const splitBill = '/more/debts/split';
   static String debt(int id) => '/more/debts/$id';
   static String editDebt(int id) => '/more/debts/$id/edit';
 
@@ -51,8 +59,17 @@ abstract final class AppRoutes {
   static String duplicateTransaction(int id) => '/add?duplicate=$id';
 
   /// A transfer into a credit card, for [owed] poisha: paying its bill.
-  static String payCardBill(int cardId, int owed) =>
-      '/add?payCard=$cardId&amount=$owed';
+  /// [usd] is the dollars still due on it, in US cents.
+  static String payCardBill(int cardId, int owed, {int usd = 0}) =>
+      '/add?payCard=$cardId&amount=$owed${usd > 0 ? '&usd=$usd' : ''}';
+
+  /// A new transaction that starts with [amount] poisha and [note], like the
+  /// total of the bazar list. The form pops `true` once it is saved.
+  static String addWithPrefill({required int amount, required String note}) =>
+      '/add?prefillAmount=$amount&prefillNote=${Uri.encodeQueryComponent(note)}';
+
+  static const bazar = '/more/bazar';
+  static const zakat = '/more/zakat';
 
   static String editTransaction(int id) => '/transaction/$id';
 }

@@ -7,6 +7,7 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/transaction_filter.dart';
@@ -81,20 +82,18 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     } on Object catch (error) {
       if (!mounted) return;
       setState(() => _hiddenIds.remove(item.id));
-      messenger.showSnackBar(SnackBar(content: Text(describeError(error))));
+      messenger.showError(describeError(error));
       return;
     }
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(tr('Transaction deleted')),
-        action: SnackBarAction(
-          label: tr('Undo'),
-          onPressed: () async {
-            await repository.restoreTransaction(deleted ?? item);
-            if (mounted) setState(() => _hiddenIds.remove(item.id));
-          },
-        ),
+    messenger.showMessage(
+      tr('Transaction deleted'),
+      action: SnackBarAction(
+        label: tr('Undo'),
+        onPressed: () async {
+          await repository.restoreTransaction(deleted ?? item);
+          if (mounted) setState(() => _hiddenIds.remove(item.id));
+        },
       ),
     );
   }

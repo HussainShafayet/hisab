@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
@@ -83,8 +84,8 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
     final CsvTable table;
     try {
       table = parseCsvTable(_text, hasHeader: _hasHeader);
-    } on ValidationException catch (e) {
-      _error = e.message;
+    } on Object catch (e) {
+      _error = describeError(e);
       _step = _Step.choose;
       return;
     }
@@ -163,14 +164,10 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
       });
     } on Object catch (error) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              tr('Nothing was imported. {reason}', {
-                'reason': describeError(error),
-              }),
-            ),
-          ),
+        ScaffoldMessenger.of(context).showError(
+          tr('Nothing was imported. {reason}', {
+            'reason': describeError(error),
+          }),
         );
       }
     } finally {

@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/database/database_provider.dart';
+import 'package:hishab/features/debts/data/bill_splitter.dart';
 import 'package:hishab/features/debts/data/debts_repository.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 
@@ -22,3 +23,7 @@ final debtPaymentsProvider = StreamProvider.autoDispose
     .family<List<DebtPayment>, int>(
       (ref, id) => ref.watch(debtsRepositoryProvider).watchPayments(id),
     );
+
+final billSplitterProvider = Provider<BillSplitter>(
+  (ref) => BillSplitter(ref.watch(appDatabaseProvider)),
+);
