@@ -57,10 +57,10 @@ class _AdjustBalanceDialogState extends ConsumerState<AdjustBalanceDialog> {
             targetBalance: parseTakaToPoisha(_controller.text)!,
           );
       if (mounted) Navigator.of(context).pop(adjustment);
-    } on ValidationException catch (e) {
+    } on Object catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.message;
+          _error = describeError(e);
           _saving = false;
         });
       }

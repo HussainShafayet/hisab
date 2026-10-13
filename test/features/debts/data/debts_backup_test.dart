@@ -81,8 +81,8 @@ void main() {
 
       final json = jsonOf(await BackupRepository(db).buildBackup(now));
 
-      expect(backupFormatVersion, 4);
-      expect(json['formatVersion'], 4);
+      expect(backupFormatVersion, 8);
+      expect(json['formatVersion'], 8);
       expect(json['debts'], hasLength(2));
       expect(json['debtPayments'], hasLength(1));
     });

@@ -7,6 +7,7 @@ import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
@@ -47,7 +48,7 @@ class DebtDetailScreen extends ConsumerWidget {
       loading: () => Scaffold(appBar: AppBar(), body: const LoadingView()),
       error: (error, _) => Scaffold(
         appBar: AppBar(),
-        body: ErrorView(message: '$error'),
+        body: ErrorView(message: describeError(error)),
       ),
       data: (debt) {
         if (debt == null) {

@@ -10,6 +10,28 @@ import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
+/// A test database is made at the current version. This takes the columns that
+/// were added after [version] back out, so the file looks as that version left
+/// it and the upgrade can add them again.
+Future<void> dropColumnsAfter(AppDatabase db, int version) async {
+  if (version < 6) {
+    await db.customStatement('ALTER TABLE accounts DROP COLUMN credit_limit');
+    await db.customStatement('ALTER TABLE accounts DROP COLUMN bill_due_day');
+  }
+  if (version < 7) {
+    await db.customStatement('ALTER TABLE accounts DROP COLUMN usd_limit');
+    await db.customStatement('ALTER TABLE transactions DROP COLUMN usd_amount');
+  }
+  if (version < 9) {
+    await db.customStatement('ALTER TABLE transactions DROP COLUMN tag_id');
+    await db.customStatement('DROP TABLE tags');
+  }
+  if (version < 10) {
+    await db.customStatement('DROP TABLE shopping_items');
+    await db.customStatement('DROP TABLE item_prices');
+  }
+}
+
 void main() {
   test(
     'upgrading from version 1 adds is_adjustment and marks old corrections',
@@ -51,6 +73,7 @@ void main() {
       await db.customStatement(
         'ALTER TABLE transactions DROP COLUMN is_adjustment',
       );
+      await dropColumnsAfter(db, 1);
       await db.customStatement('PRAGMA user_version = 1');
       await db.close();
 
@@ -69,7 +92,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').getSingle();
       // Every upgrade step ran, up to the current version.
-      expect(version.read<int>('user_version'), 6);
+      expect(version.read<int>('user_version'), 10);
     },
   );
 
@@ -87,6 +110,7 @@ void main() {
       AccountsCompanion.insert(name: 'Cash', type: AccountType.cash),
     );
     await db.customStatement('DROP TABLE app_settings');
+    await dropColumnsAfter(db, 2);
     await db.customStatement('PRAGMA user_version = 2');
     await db.close();
 
@@ -98,7 +122,7 @@ void main() {
     expect(await db.settingsDao.getAll(), {'language': 'bangla'});
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 6);
+    expect(version.read<int>('user_version'), 10);
   });
 
   test('upgrading from version 3 adds the loan tables', () async {
@@ -115,6 +139,7 @@ void main() {
     );
     await db.customStatement('DROP TABLE debt_payments');
     await db.customStatement('DROP TABLE debts');
+    await dropColumnsAfter(db, 3);
     await db.customStatement('PRAGMA user_version = 3');
     await db.close();
 
@@ -140,7 +165,7 @@ void main() {
     expect((await db.debtsDao.getWithPaid(debt))!.paid, 400);
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 6);
+    expect(version.read<int>('user_version'), 10);
   });
 
   test('upgrading from version 5 adds the credit card columns', () async {
@@ -155,8 +180,7 @@ void main() {
     final account = await db.accountsDao.insertAccount(
       AccountsCompanion.insert(name: 'Cash', type: AccountType.cash),
     );
-    await db.customStatement('ALTER TABLE accounts DROP COLUMN credit_limit');
-    await db.customStatement('ALTER TABLE accounts DROP COLUMN bill_due_day');
+    await dropColumnsAfter(db, 5);
     await db.customStatement('PRAGMA user_version = 5');
     await db.close();
 
@@ -181,7 +205,178 @@ void main() {
     expect(saved.creditLimit, 5000000);
     expect(saved.billDueDay, 15);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 6);
+    expect(version.read<int>('user_version'), 10);
+  });
+
+  test('upgrading from version 6 adds the dollar columns', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    final card = await db.accountsDao.insertAccount(
+      AccountsCompanion.insert(name: 'EBL', type: AccountType.creditCard),
+    );
+    final shopping = await db.categoriesDao.insertCategory(
+      CategoriesCompanion.insert(name: 'Shopping', type: CategoryType.expense),
+    );
+    final before = await db.transactionsDao.insertTransaction(
+      TransactionsCompanion.insert(
+        type: TransactionType.expense,
+        amount: 1000,
+        accountId: card,
+        categoryId: Value(shopping),
+        date: DateTime(2026, 10, 1),
+      ),
+    );
+    await dropColumnsAfter(db, 6);
+    await db.customStatement('PRAGMA user_version = 6');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    // What was there has no dollars.
+    expect((await db.accountsDao.getById(card))!.usdLimit, isNull);
+    expect((await db.transactionsDao.getById(before))!.usdAmount, isNull);
+    // And both can hold them now.
+    await db.accountsDao.updateAccount(
+      (await db.accountsDao.getById(card))!
+          .copyWith(usdLimit: const Value(25000)),
+    );
+    final after = await db.transactionsDao.insertTransaction(
+      TransactionsCompanion.insert(
+        type: TransactionType.expense,
+        amount: 305000,
+        accountId: card,
+        categoryId: Value(shopping),
+        date: DateTime(2026, 10, 2),
+        usdAmount: const Value(2500),
+      ),
+    );
+    expect((await db.accountsDao.getById(card))!.usdLimit, 25000);
+    expect((await db.transactionsDao.getById(after))!.usdAmount, 2500);
+    final version = await db.customSelect('PRAGMA user_version').getSingle();
+    expect(version.read<int>('user_version'), 10);
+  });
+
+  test('upgrading from version 7 adds the savings goal tables', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    await db.customStatement('DROP TABLE goal_entries');
+    await db.customStatement('DROP TABLE savings_goals');
+    await dropColumnsAfter(db, 7);
+    await db.customStatement('PRAGMA user_version = 7');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    final goal = await db.goalsDao.insertGoal(
+      SavingsGoalsCompanion.insert(name: 'Laptop', target: 8000000),
+    );
+    await db.goalsDao.insertEntry(
+      GoalEntriesCompanion.insert(
+        goalId: goal,
+        amount: 1500,
+        date: DateTime(2026, 10, 1),
+      ),
+    );
+    expect((await db.goalsDao.getWithSaved(goal))!.saved, 1500);
+    final version = await db.customSelect('PRAGMA user_version').getSingle();
+    expect(version.read<int>('user_version'), 10);
+  });
+
+  test('upgrading from version 8 adds tags', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    final cash = await db.accountsDao.insertAccount(
+      AccountsCompanion.insert(name: 'Cash', type: AccountType.cash),
+    );
+    final food = await db.categoriesDao.insertCategory(
+      CategoriesCompanion.insert(name: 'Food', type: CategoryType.expense),
+    );
+    final before = await db.transactionsDao.insertTransaction(
+      TransactionsCompanion.insert(
+        type: TransactionType.expense,
+        amount: 1000,
+        accountId: cash,
+        categoryId: Value(food),
+        date: DateTime(2026, 10, 1),
+      ),
+    );
+    await dropColumnsAfter(db, 8);
+    await db.customStatement('PRAGMA user_version = 8');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    // What was there has no tag.
+    expect((await db.transactionsDao.getById(before))!.tagId, isNull);
+    // And a transaction can have one now.
+    final trip = await db.tagsDao.insertTag(
+      TagsCompanion.insert(name: 'Cox\'s Bazar'),
+    );
+    final after = await db.transactionsDao.insertTransaction(
+      TransactionsCompanion.insert(
+        type: TransactionType.expense,
+        amount: 2000,
+        accountId: cash,
+        categoryId: Value(food),
+        date: DateTime(2026, 10, 2),
+        tagId: Value(trip),
+      ),
+    );
+    expect((await db.transactionsDao.getById(after))!.tagId, trip);
+    final version = await db.customSelect('PRAGMA user_version').getSingle();
+    expect(version.read<int>('user_version'), 10);
+  });
+
+  test('upgrading from version 9 adds the bazar list tables', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    await dropColumnsAfter(db, 9);
+    await db.customStatement('PRAGMA user_version = 9');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    final id = await db.bazarDao.insertItem(
+      ShoppingItemsCompanion.insert(name: 'Rice'),
+    );
+    await db.bazarDao.rememberPrice(
+      key: 'rice',
+      name: 'Rice',
+      price: 12000,
+      at: DateTime(2026, 10, 1),
+    );
+    expect((await db.bazarDao.getItem(id))!.quantity, 1);
+    expect((await db.bazarDao.priceFor('rice'))!.price, 12000);
+    final version = await db.customSelect('PRAGMA user_version').getSingle();
+    expect(version.read<int>('user_version'), 10);
   });
 
   test(
@@ -208,7 +403,7 @@ void main() {
         contains('app_settings'),
       );
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 6);
+      expect(version.read<int>('user_version'), 10);
       expect(
         tables.map((t) => t.read<String>('name')),
         containsAll(['debts', 'debt_payments', 'recurring_rules']),

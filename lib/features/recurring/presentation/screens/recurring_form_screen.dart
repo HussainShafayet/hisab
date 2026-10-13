@@ -8,6 +8,7 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/money_form_field.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
@@ -42,7 +43,7 @@ class RecurringFormScreen extends ConsumerWidget {
       ),
       error: (error, _) => Scaffold(
         appBar: AppBar(title: Text(tr('Edit recurring'))),
-        body: ErrorView(message: '$error'),
+        body: ErrorView(message: describeError(error)),
       ),
       data: (list) {
         final rule = list.where((r) => r.id == id).firstOrNull;
@@ -157,13 +158,9 @@ class _RecurringFormState extends ConsumerState<_RecurringForm> {
         .read(reminderSchedulerProvider)
         .requestPermission();
     if (!allowed && mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            tr(
-              'Notifications are off for Hishab. Turn them on in the phone settings to get reminders.',
-            ),
-          ),
+      ScaffoldMessenger.of(context).showMessage(
+        tr(
+          'Notifications are off for Hishab. Turn them on in the phone settings to get reminders.',
         ),
       );
     }
@@ -216,10 +213,10 @@ class _RecurringFormState extends ConsumerState<_RecurringForm> {
         );
       }
       if (mounted) context.pop();
-    } on ValidationException catch (e) {
+    } on Object catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.message;
+          _error = describeError(e);
           _saving = false;
         });
       }

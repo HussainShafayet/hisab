@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
@@ -23,9 +24,9 @@ class DueRecurringCard extends ConsumerWidget {
     final messenger = ScaffoldMessenger.of(context);
     try {
       await action();
-      messenger.showSnackBar(SnackBar(content: Text(done)));
-    } on ValidationException catch (e) {
-      messenger.showSnackBar(SnackBar(content: Text(e.message)));
+      messenger.showMessage(done);
+    } on Object catch (e) {
+      messenger.showError(describeError(e));
     }
   }
 

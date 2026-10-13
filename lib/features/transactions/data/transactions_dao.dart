@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/accounts/data/accounts_table.dart';
 import 'package:hishab/features/categories/data/categories_table.dart';
+import 'package:hishab/features/tags/data/tags_table.dart';
 import 'package:hishab/features/transactions/data/transactions_table.dart';
 import 'package:hishab/features/transactions/domain/category_usage.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -14,9 +15,10 @@ typedef TransactionWithDetails = ({
   AccountRow account,
   AccountRow? toAccount,
   CategoryRow? category,
+  TagRow? tag,
 });
 
-@DriftAccessor(tables: [Transactions, Accounts, Categories])
+@DriftAccessor(tables: [Transactions, Accounts, Categories, Tags])
 class TransactionsDao extends DatabaseAccessor<AppDatabase>
     with _$TransactionsDaoMixin {
   TransactionsDao(super.attachedDatabase);
@@ -70,6 +72,11 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
     (t) => t.date.isBiggerOrEqualValue(start) & t.date.isSmallerThanValue(end),
   ).watch();
 
+  /// Every transaction with tag [tagId], newest first, with its accounts and
+  /// category.
+  Stream<List<TransactionWithDetails>> watchByTagWithDetails(int tagId) =>
+      _selectWithDetails((t) => t.tagId.equals(tagId)).watch();
+
   Future<TransactionWithDetails?> getWithDetails(int id) =>
       _selectWithDetails((t) => t.id.equals(id)).getSingleOrNull();
 
@@ -114,6 +121,7 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
               categories,
               categories.id.equalsExp(transactions.categoryId),
             ),
+            leftOuterJoin(tags, tags.id.equalsExp(transactions.tagId)),
           ])
           ..where(where(transactions))
           ..orderBy(
@@ -131,6 +139,7 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
         account: row.readTable(from),
         toAccount: row.readTableOrNull(to),
         category: row.readTableOrNull(categories),
+        tag: row.readTableOrNull(tags),
       ),
     );
   }

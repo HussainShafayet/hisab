@@ -6,6 +6,7 @@ import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/show_archived_chip.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
@@ -272,14 +273,10 @@ class _AccountCardTile extends ConsumerWidget {
       'amount': formatPoisha(adjustment.amount),
       'account': _account.name,
     };
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          adjustment.type == TransactionType.income
-              ? tr('Recorded {amount} income on {account}', args)
-              : tr('Recorded {amount} expense on {account}', args),
-        ),
-      ),
+    ScaffoldMessenger.of(context).showMessage(
+      adjustment.type == TransactionType.income
+          ? tr('Recorded {amount} income on {account}', args)
+          : tr('Recorded {amount} expense on {account}', args),
     );
   }
 
@@ -311,13 +308,11 @@ class _AccountCardTile extends ConsumerWidget {
     final repository = ref.read(accountsRepositoryProvider);
     await repository.archiveAccount(_account.id);
     if (!context.mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(tr('{name} archived', {'name': _account.name})),
-        action: SnackBarAction(
-          label: tr('Undo'),
-          onPressed: () => repository.restoreAccount(_account.id),
-        ),
+    ScaffoldMessenger.of(context).showMessage(
+      tr('{name} archived', {'name': _account.name}),
+      action: SnackBarAction(
+        label: tr('Undo'),
+        onPressed: () => repository.restoreAccount(_account.id),
       ),
     );
   }
@@ -325,10 +320,9 @@ class _AccountCardTile extends ConsumerWidget {
   Future<void> _restore(BuildContext context, WidgetRef ref) async {
     try {
       await ref.read(accountsRepositoryProvider).restoreAccount(_account.id);
-    } on ValidationException catch (e) {
+    } on Object catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(e.message)));
+      ScaffoldMessenger.of(context).showError(describeError(e));
     }
   }
 }

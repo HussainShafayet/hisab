@@ -159,10 +159,10 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
         );
       }
       if (mounted) context.pop(createdId);
-    } on ValidationException catch (e) {
+    } on Object catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.message;
+          _error = describeError(e);
           _saving = false;
         });
       }

@@ -9,11 +9,15 @@ import 'package:hishab/features/accounts/presentation/providers/accounts_provide
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
+import 'package:hishab/features/zakat/data/zakat_settings_repository.dart';
+import 'package:hishab/features/zakat/domain/zakat.dart';
+import 'package:hishab/features/zakat/presentation/providers/zakat_providers.dart';
 
 /// Notification ids: a recurring rule uses `rule * 10 + n`, a loan and a card
 /// start from their own bases so the three never meet.
 const _loanIdBase = 100000000;
 const _cardIdBase = 200000000;
+const _zakatId = 300000000;
 
 /// The most loan reminders kept on the phone's schedule.
 const _maxLoanReminders = 60;
@@ -88,6 +92,21 @@ List<Reminder> cardRemindersFor(Iterable<Account> accounts, DateTime now) {
   return reminders;
 }
 
+/// The yearly zakat reminder, or none when no day was chosen: the next time
+/// the day comes, at the usual hour.
+List<Reminder> zakatReminderFor(ZakatSettings settings, DateTime now) {
+  if (!settings.hasReminder) return const [];
+  final day = nextZakatDay(settings.remindMonth!, settings.remindDay!, now);
+  return [
+    Reminder(
+      id: _zakatId,
+      title: tr('Zakat day'),
+      body: tr('Check how much zakat is due, under More > Zakat.'),
+      when: _at(day),
+    ),
+  ];
+}
+
 /// Keeps everything that reminds up to date: adds what is due for the recurring
 /// rules that add themselves, then sets the reminders of recurring items,
 /// loans and credit card bills. It runs again when a rule or a loan changes,
@@ -96,6 +115,8 @@ List<Reminder> cardRemindersFor(Iterable<Account> accounts, DateTime now) {
 final reminderSyncProvider = FutureProvider<void>((ref) async {
   final rules = ref.watch(recurringRulesProvider).value;
   final debts = ref.watch(debtsProvider).value;
+  // Runs again when the zakat day changes.
+  ref.watch(zakatSettingsProvider);
   if (rules == null || debts == null) return;
   final repository = ref.read(recurringRepositoryProvider);
   final now = ref.read(clockProvider)();
@@ -105,5 +126,9 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
     ...remindersFor(await repository.getRules(), now),
     ...loanRemindersFor(debts, now),
     ...cardRemindersFor(accounts, now),
+    ...zakatReminderFor(
+      ref.read(zakatSettingsProvider).value ?? ZakatSettings.defaults,
+      now,
+    ),
   ]);
 });

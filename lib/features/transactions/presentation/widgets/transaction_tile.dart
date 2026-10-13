@@ -51,6 +51,8 @@ class TransactionTile extends StatelessWidget {
       isTransfer
           ? '${item.accountName} → ${item.toAccountName ?? '?'}'
           : item.accountName,
+      if (item.usdAmount != null) formatUsd(item.usdAmount!),
+      if (item.tagName != null) '#${item.tagName}',
       // A correction is not real income or spending, so it is drawn in the
       // neutral color and says why the day and month totals skip it.
       if (item.isAdjustment)

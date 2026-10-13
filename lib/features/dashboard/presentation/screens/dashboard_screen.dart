@@ -7,11 +7,14 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/features/budget/domain/safe_to_spend.dart';
 import 'package:hishab/features/dashboard/domain/dashboard_data.dart';
 import 'package:hishab/features/dashboard/presentation/providers/dashboard_providers.dart';
 import 'package:hishab/features/dashboard/presentation/widgets/dashboard_cards.dart';
+import 'package:hishab/features/dashboard/presentation/widgets/safe_to_spend_card.dart';
 import 'package:hishab/features/debts/presentation/widgets/loans_home_card.dart';
 import 'package:hishab/features/insights/presentation/widgets/insights_card.dart';
+import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
 import 'package:hishab/features/recurring/presentation/widgets/due_recurring_card.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 
@@ -46,6 +49,14 @@ class _DashboardContent extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final now = ref.read(clockProvider)();
     final totals = data.monthTotals;
+    final budget = data.overallBudget;
+    final safeToSpend = safeToSpendOf(
+      budget: budget?.limit,
+      spentThisMonth: budget?.spent ?? 0,
+      spentToday: data.todayExpense,
+      rules: ref.watch(recurringRulesProvider).value ?? const [],
+      today: now,
+    );
 
     return ListView(
       // Room below the last row so the add button never covers it.
@@ -54,6 +65,7 @@ class _DashboardContent extends ConsumerWidget {
         const DueRecurringCard(),
         TotalBalanceCard(balance: data.totalBalance),
         const WalletStrip(),
+        SafeToSpendCard(figures: safeToSpend),
         DashboardHeading(
           tr('This month · {month}', {'month': monthLabel(data.month)}),
         ),

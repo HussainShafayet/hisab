@@ -5,6 +5,7 @@ import 'package:hishab/core/l10n/app_language.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_router.dart';
 import 'package:hishab/core/theme/app_theme.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/features/reminders/reminder_sync.dart';
 import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
@@ -45,6 +46,7 @@ class _HishabAppState extends ConsumerState<HishabApp> {
       // Texts are looked up while building, not through the context, so a new
       // language needs the whole tree to be built again. A new key does that.
       key: ValueKey(preferences.language),
+      scaffoldMessengerKey: ref.watch(rootMessengerKeyProvider),
       onGenerateTitle: (_) => tr('Hishab'),
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light(),

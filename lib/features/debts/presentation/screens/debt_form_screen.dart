@@ -40,7 +40,7 @@ class DebtFormScreen extends ConsumerWidget {
           ),
           error: (error, _) => Scaffold(
             appBar: AppBar(title: Text(tr('Edit loan'))),
-            body: ErrorView(message: '$error'),
+            body: ErrorView(message: describeError(error)),
           ),
           data: (item) => item == null
               ? Scaffold(
@@ -156,10 +156,10 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         await ref.read(reminderSchedulerProvider).requestPermission();
       }
       if (mounted) context.pop();
-    } on ValidationException catch (e) {
+    } on Object catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.message;
+          _error = describeError(e);
           _saving = false;
         });
       }

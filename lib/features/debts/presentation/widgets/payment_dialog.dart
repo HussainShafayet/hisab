@@ -60,10 +60,10 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
             accountId: _accountId,
           );
       if (mounted) Navigator.of(context).pop(true);
-    } on ValidationException catch (e) {
+    } on Object catch (e) {
       if (mounted) {
         setState(() {
-          _error = e.message;
+          _error = describeError(e);
           _saving = false;
         });
       }

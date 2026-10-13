@@ -1,12 +1,20 @@
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
+import 'package:hishab/features/accounts/domain/card_dollars.dart';
 
 /// Where a credit card stands. A card's balance is zero or below: spending
 /// takes it under zero, and what is below zero is what is owed to the bank.
 class CreditCardStatus {
-  const CreditCardStatus({required this.account, required this.balance});
+  const CreditCardStatus({
+    required this.account,
+    required this.balance,
+    this.dollars = CardDollars.none,
+  });
 
   final Account account;
+
+  /// The dollar spending on the card.
+  final CardDollars dollars;
 
   /// The balance now, in poisha.
   final int balance;
@@ -30,6 +38,28 @@ class CreditCardStatus {
   double? get usage =>
       limit == null ? null : (owed / limit!).clamp(0.0, 1.0).toDouble();
 
+  /// The part of the limit held in dollars, in US cents, if the card has one.
+  /// The limit above is the whole limit, in taka.
+  int? get usdLimit => account.usdLimit;
+
+  /// Dollars still free to spend, in US cents. Below zero when the dollar
+  /// part is used up. Null without a dollar limit.
+  int? get usdLeft => usdLimit == null ? null : usdLimit! - dollars.due;
+
+  /// What is left of the taka part, in poisha: all that is left to spend less
+  /// the dollars still free (at the latest dollar rate, so it is a close
+  /// figure, not exact). Null without a limit, a dollar limit or a rate.
+  int? get takaLeft {
+    final all = available;
+    final usd = usdLeft;
+    if (all == null || usd == null) return null;
+    final usdAsTaka = dollars.toPoisha(usd);
+    return usdAsTaka == null ? null : all - usdAsTaka;
+  }
+
+  /// Whether the card has anything to show about dollars.
+  bool get showsDollars => usdLimit != null || dollars.isUsed;
+
   /// Something is owed, so there is a bill to pay.
   bool get hasBill => owed > 0;
 
@@ -44,11 +74,18 @@ class CreditCardStatus {
 }
 
 /// The open credit cards among [accounts], the ones that owe most first.
-List<CreditCardStatus> creditCardsOf(Iterable<AccountWithBalance> accounts) {
+List<CreditCardStatus> creditCardsOf(
+  Iterable<AccountWithBalance> accounts, {
+  Map<int, CardDollars> dollars = const {},
+}) {
   final cards = [
     for (final item in accounts)
       if (item.account.isCreditCard && !item.account.isArchived)
-        CreditCardStatus(account: item.account, balance: item.balance),
+        CreditCardStatus(
+          account: item.account,
+          balance: item.balance,
+          dollars: dollars[item.account.id] ?? CardDollars.none,
+        ),
   ];
   cards.sort((a, b) {
     final byOwed = b.owed.compareTo(a.owed);

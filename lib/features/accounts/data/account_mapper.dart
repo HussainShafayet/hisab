@@ -10,6 +10,7 @@ extension AccountRowToDomain on AccountRow {
     includeInTotal: includeInTotal,
     isArchived: isArchived,
     creditLimit: creditLimit,
+    usdLimit: usdLimit,
     billDueDay: billDueDay,
   );
 }

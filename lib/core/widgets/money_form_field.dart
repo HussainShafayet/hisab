@@ -3,8 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/money.dart';
 
-/// A text field for an amount in taka. Typed text is read back with
-/// `parseTakaToPoisha`.
+/// A text field for an amount in taka (or dollars, with [prefix]). Typed text
+/// is read back with `parseTakaToPoisha`, which reads any amount with two
+/// decimals.
 class MoneyFormField extends StatelessWidget {
   const MoneyFormField({
     required this.controller,
@@ -15,6 +16,7 @@ class MoneyFormField extends StatelessWidget {
     this.onChanged,
     this.helperText,
     this.focusNode,
+    this.prefix = '৳ ',
     super.key,
   });
 
@@ -28,6 +30,9 @@ class MoneyFormField extends StatelessWidget {
   final ValueChanged<String>? onChanged;
   final String? helperText;
   final FocusNode? focusNode;
+
+  /// Shown before the number: the taka sign, or `\$ ` for dollars.
+  final String prefix;
 
   @override
   Widget build(BuildContext context) {
@@ -47,7 +52,7 @@ class MoneyFormField extends StatelessWidget {
       ],
       decoration: InputDecoration(
         labelText: label,
-        prefixText: '৳ ',
+        prefixText: prefix,
         helperText: helperText,
       ),
       validator: (value) {

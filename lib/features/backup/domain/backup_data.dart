@@ -15,9 +15,14 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 ///
 /// 1: accounts, categories, transactions, budgets.
 /// 2: also loans (`debts`) and their payments (`debtPayments`).
-/// 3: also recurring items (`recurringRules`). An older file has none of what
-/// came after it, and is read as having none.
-const backupFormatVersion = 4;
+/// 3: also recurring items (`recurringRules`).
+/// 4: credit card limit and bill day.
+/// 5: dollars on credit cards (`usdLimit`, `usdAmount`).
+/// 6: savings goals (`goals`, `goalEntries`).
+/// 7: trips and events (`tags`, `tagId` on a transaction).
+/// 8: the bazar list (`shoppingItems`, `itemPrices`). An older file has none
+/// of what came after it, and is read as having none.
+const backupFormatVersion = 8;
 
 const _appId = 'hishab';
 
@@ -106,6 +111,7 @@ class BackupAccount {
     required this.isArchived,
     required this.createdAt,
     this.creditLimit,
+    this.usdLimit,
     this.billDueDay,
   });
 
@@ -120,6 +126,7 @@ class BackupAccount {
       isArchived: _bool(json, 'isArchived', where),
       createdAt: _date(json, 'createdAt', where),
       creditLimit: _intOrNull(json, 'creditLimit', where),
+      usdLimit: _intOrNull(json, 'usdLimit', where),
       billDueDay: _intOrNull(json, 'billDueDay', where),
     );
   }
@@ -134,6 +141,9 @@ class BackupAccount {
 
   /// Credit cards only (format 4 and later).
   final int? creditLimit;
+
+  /// In US cents (format 5 and later).
+  final int? usdLimit;
   final int? billDueDay;
 
   Map<String, Object?> toJson() => {
@@ -145,6 +155,7 @@ class BackupAccount {
     'isArchived': isArchived,
     'createdAt': _iso(createdAt),
     'creditLimit': creditLimit,
+    'usdLimit': usdLimit,
     'billDueDay': billDueDay,
   };
 }
@@ -209,6 +220,8 @@ class BackupTransaction {
     required this.isAdjustment,
     required this.createdAt,
     required this.updatedAt,
+    this.usdAmount,
+    this.tagId,
   });
 
   factory BackupTransaction.fromJson(Map<String, Object?> json) {
@@ -223,6 +236,8 @@ class BackupTransaction {
       date: _date(json, 'date', where),
       note: _string(json, 'note', where),
       isAdjustment: _bool(json, 'isAdjustment', where, orElse: false),
+      usdAmount: _intOrNull(json, 'usdAmount', where),
+      tagId: _intOrNull(json, 'tagId', where),
       createdAt: _date(json, 'createdAt', where),
       updatedAt: _date(json, 'updatedAt', where),
     );
@@ -239,6 +254,12 @@ class BackupTransaction {
   final DateTime date;
   final String note;
   final bool isAdjustment;
+
+  /// In US cents (format 5 and later).
+  final int? usdAmount;
+
+  /// A trip or event (format 7 and later).
+  final int? tagId;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -252,6 +273,8 @@ class BackupTransaction {
     'date': _iso(date),
     'note': note,
     'isAdjustment': isAdjustment,
+    'usdAmount': usdAmount,
+    'tagId': tagId,
     'createdAt': _iso(createdAt),
     'updatedAt': _iso(updatedAt),
   };
@@ -343,6 +366,193 @@ class BackupDebt {
     'note': note,
     'accountId': accountId,
     'transactionId': transactionId,
+    'createdAt': _iso(createdAt),
+  };
+}
+
+class BackupShoppingItem {
+  const BackupShoppingItem({
+    required this.id,
+    required this.name,
+    required this.quantity,
+    required this.price,
+    required this.isDone,
+    required this.createdAt,
+  });
+
+  factory BackupShoppingItem.fromJson(Map<String, Object?> json) {
+    const where = 'A bazar list item';
+    return BackupShoppingItem(
+      id: _int(json, 'id', where),
+      name: _string(json, 'name', where),
+      quantity: _int(json, 'quantity', where),
+      price: _intOrNull(json, 'price', where),
+      isDone: _bool(json, 'isDone', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final String name;
+  final int quantity;
+
+  /// In poisha, the price of one.
+  final int? price;
+  final bool isDone;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'quantity': quantity,
+    'price': price,
+    'isDone': isDone,
+    'createdAt': _iso(createdAt),
+  };
+}
+
+class BackupItemPrice {
+  const BackupItemPrice({
+    required this.id,
+    required this.nameKey,
+    required this.name,
+    required this.price,
+    required this.updatedAt,
+  });
+
+  factory BackupItemPrice.fromJson(Map<String, Object?> json) {
+    const where = 'A remembered price';
+    return BackupItemPrice(
+      id: _int(json, 'id', where),
+      nameKey: _string(json, 'nameKey', where),
+      name: _string(json, 'name', where),
+      price: _int(json, 'price', where),
+      updatedAt: _date(json, 'updatedAt', where),
+    );
+  }
+
+  final int id;
+  final String nameKey;
+  final String name;
+
+  /// In poisha, the price of one.
+  final int price;
+  final DateTime updatedAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'nameKey': nameKey,
+    'name': name,
+    'price': price,
+    'updatedAt': _iso(updatedAt),
+  };
+}
+
+class BackupTag {
+  const BackupTag({
+    required this.id,
+    required this.name,
+    required this.createdAt,
+  });
+
+  factory BackupTag.fromJson(Map<String, Object?> json) {
+    const where = 'A tag';
+    return BackupTag(
+      id: _int(json, 'id', where),
+      name: _string(json, 'name', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final String name;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'createdAt': _iso(createdAt),
+  };
+}
+
+class BackupGoal {
+  const BackupGoal({
+    required this.id,
+    required this.name,
+    required this.target,
+    required this.targetDate,
+    required this.icon,
+    required this.createdAt,
+  });
+
+  factory BackupGoal.fromJson(Map<String, Object?> json) {
+    const where = 'A savings goal';
+    return BackupGoal(
+      id: _int(json, 'id', where),
+      name: _string(json, 'name', where),
+      target: _int(json, 'target', where),
+      targetDate: _dateOrNull(json, 'targetDate', where),
+      icon: _string(json, 'icon', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final String name;
+
+  /// In poisha.
+  final int target;
+  final DateTime? targetDate;
+  final String icon;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'target': target,
+    'targetDate': targetDate == null ? null : _iso(targetDate!),
+    'icon': icon,
+    'createdAt': _iso(createdAt),
+  };
+}
+
+class BackupGoalEntry {
+  const BackupGoalEntry({
+    required this.id,
+    required this.goalId,
+    required this.amount,
+    required this.date,
+    required this.note,
+    required this.createdAt,
+  });
+
+  factory BackupGoalEntry.fromJson(Map<String, Object?> json) {
+    const where = 'A savings goal entry';
+    return BackupGoalEntry(
+      id: _int(json, 'id', where),
+      goalId: _int(json, 'goalId', where),
+      amount: _int(json, 'amount', where),
+      date: _date(json, 'date', where),
+      note: _string(json, 'note', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final int goalId;
+
+  /// In poisha; below zero for money taken out.
+  final int amount;
+  final DateTime date;
+  final String note;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'goalId': goalId,
+    'amount': amount,
+    'date': _iso(date),
+    'note': note,
     'createdAt': _iso(createdAt),
   };
 }
@@ -478,6 +688,11 @@ class BackupData {
     this.debts = const [],
     this.debtPayments = const [],
     this.recurringRules = const [],
+    this.goals = const [],
+    this.goalEntries = const [],
+    this.tags = const [],
+    this.shoppingItems = const [],
+    this.itemPrices = const [],
   });
 
   /// Reads and checks backup text. Throws a [ValidationException] that says
@@ -541,6 +756,26 @@ class BackupData {
         for (final item in _optionalList(json, 'recurringRules'))
           BackupRecurringRule.fromJson(_object(item, 'A recurring item')),
       ],
+      goals: [
+        for (final item in _optionalList(json, 'goals'))
+          BackupGoal.fromJson(_object(item, 'A savings goal')),
+      ],
+      goalEntries: [
+        for (final item in _optionalList(json, 'goalEntries'))
+          BackupGoalEntry.fromJson(_object(item, 'A savings goal entry')),
+      ],
+      tags: [
+        for (final item in _optionalList(json, 'tags'))
+          BackupTag.fromJson(_object(item, 'A tag')),
+      ],
+      shoppingItems: [
+        for (final item in _optionalList(json, 'shoppingItems'))
+          BackupShoppingItem.fromJson(_object(item, 'A bazar list item')),
+      ],
+      itemPrices: [
+        for (final item in _optionalList(json, 'itemPrices'))
+          BackupItemPrice.fromJson(_object(item, 'A remembered price')),
+      ],
     );
     data._checkLinks();
     return data;
@@ -554,6 +789,11 @@ class BackupData {
   final List<BackupDebt> debts;
   final List<BackupDebtPayment> debtPayments;
   final List<BackupRecurringRule> recurringRules;
+  final List<BackupGoal> goals;
+  final List<BackupGoalEntry> goalEntries;
+  final List<BackupTag> tags;
+  final List<BackupShoppingItem> shoppingItems;
+  final List<BackupItemPrice> itemPrices;
 
   Map<String, Object?> toJson() => {
     'app': _appId,
@@ -566,6 +806,11 @@ class BackupData {
     'debts': [for (final d in debts) d.toJson()],
     'debtPayments': [for (final p in debtPayments) p.toJson()],
     'recurringRules': [for (final r in recurringRules) r.toJson()],
+    'goals': [for (final g in goals) g.toJson()],
+    'goalEntries': [for (final e in goalEntries) e.toJson()],
+    'tags': [for (final t in tags) t.toJson()],
+    'shoppingItems': [for (final i in shoppingItems) i.toJson()],
+    'itemPrices': [for (final p in itemPrices) p.toJson()],
   };
 
   /// The categories with every category after the one it is inside, so they
@@ -619,6 +864,34 @@ class BackupData {
       }
     }
 
+    uniqueIds(shoppingItems.map((i) => i.id), 'bazar list items');
+    uniqueIds(itemPrices.map((p) => p.id), 'remembered prices');
+    final priceKeys = <String>{};
+    for (final p in itemPrices) {
+      if (!priceKeys.add(p.nameKey)) {
+        _damaged('the remembered price "${p.nameKey}" is there twice.');
+      }
+    }
+    uniqueIds(tags.map((t) => t.id), 'tags');
+    final tagIds = {for (final t in tags) t.id};
+    for (final t in transactions) {
+      final tag = t.tagId;
+      if (tag != null && !tagIds.contains(tag)) {
+        _damaged(
+          'transaction ${t.id} points to a tag that is not in the file.',
+        );
+      }
+    }
+    uniqueIds(goals.map((g) => g.id), 'savings goals');
+    uniqueIds(goalEntries.map((e) => e.id), 'savings goal entries');
+    final goalIds = {for (final g in goals) g.id};
+    for (final e in goalEntries) {
+      if (!goalIds.contains(e.goalId)) {
+        _damaged(
+          'savings goal entry ${e.id} points to a goal that is not in the file.',
+        );
+      }
+    }
     uniqueIds(recurringRules.map((r) => r.id), 'recurring items');
     for (final r in recurringRules) {
       if (!accountIds.contains(r.accountId)) {
