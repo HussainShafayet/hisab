@@ -28,6 +28,7 @@ behaviour.
 | [tags](tags/) | [Trips and events](tags/trips-and-events.md) | 15 |
 | [bazar](bazar/) | [Bazar list](bazar/bazar-list.md) | 16 |
 | [zakat](zakat/) | [Zakat](zakat/zakat.md) | 18 |
+| [accounts](accounts/) | [Below-zero warning](accounts/negative-balance.md) | 20 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

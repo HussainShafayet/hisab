@@ -19,7 +19,7 @@ class MoreScreen extends StatelessWidget {
             route: AppRoutes.accounts,
           ),
           _MoreTile(
-            icon: Icons.savings_outlined,
+            icon: Icons.flag_outlined,
             title: tr('Savings goals'),
             route: AppRoutes.goals,
           ),

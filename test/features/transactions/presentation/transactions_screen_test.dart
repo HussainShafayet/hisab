@@ -182,7 +182,7 @@ void main() {
 
       await tester.tap(find.byTooltip('Previous month'));
       await settle(tester);
-      expect(find.text('No transactions in August 2026'), findsOneWidget);
+      expect(find.text('Nothing recorded in August 2026'), findsOneWidget);
 
       await tester.tap(find.byTooltip('Next month'));
       await tester.tap(find.byTooltip('Next month'));
@@ -199,7 +199,7 @@ void main() {
       await pumpAppWithDatabase(tester, db);
       await openTab(tester);
 
-      expect(find.text('No transactions in October 2026'), findsOneWidget);
+      expect(find.text('Nothing recorded in October 2026'), findsOneWidget);
 
       await tapText(tester, 'Add transaction');
 

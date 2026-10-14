@@ -191,7 +191,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
 
   Widget _buildEmpty() {
     return EmptyState(
-      icon: Icons.savings_outlined,
+      icon: Icons.account_balance_wallet_outlined,
       title: tr('No budget for {month}', {'month': monthLabel(_month)}),
       message: tr('Set how much you want to spend this month.'),
       action: Column(
@@ -230,7 +230,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
             child: ListTile(
               key: const ValueKey('set-overall-budget'),
-              leading: const Icon(Icons.savings_outlined),
+              leading: const Icon(Icons.account_balance_wallet_outlined),
               title: Text(tr('Set a monthly budget')),
               subtitle: Text(tr('One limit for all your spending')),
               trailing: const Icon(Icons.chevron_right),

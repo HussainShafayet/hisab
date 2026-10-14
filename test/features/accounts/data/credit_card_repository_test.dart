@@ -123,6 +123,7 @@ void main() {
       () async {
         final card = await makeCard(opening: -20000);
         final bank = await insertTestAccount(db, name: 'Bank');
+        final shopping = await insertTestCategory(db, name: 'Shopping');
         Future<void> add(
           TransactionType type,
           int amount,
@@ -135,6 +136,7 @@ void main() {
               amount: amount,
               accountId: account,
               toAccountId: Value(to),
+              categoryId: Value(to == null ? shopping : null),
               date: now,
             ),
           );

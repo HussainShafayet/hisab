@@ -38,7 +38,7 @@ class GoalsRepository {
     required int target,
     DateTime? targetDate,
     String icon = defaultGoalIcon,
-  }) {
+  }) async {
     final clean = _validated(name, target);
     return _db.goalsDao.insertGoal(
       SavingsGoalsCompanion.insert(

@@ -3,6 +3,7 @@ import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
+import 'package:hishab/features/accounts/domain/overdrawn.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_type_ui.dart';
 
 /// An account as a colored wallet card: its name and kind on the left, its
@@ -49,6 +50,10 @@ class AccountCard extends StatelessWidget {
         : account.type.color;
     final after = balanceAfter;
     final card = account.isCreditCard;
+    // A wallet below zero is marked; a card owes by design, so it is not.
+    final low =
+        balance != null &&
+        isOverdrawn(AccountWithBalance(account: account, balance: balance!));
     final limit = account.creditLimit;
     final tail =
         trailing ??
@@ -125,22 +130,46 @@ class AccountCard extends StatelessWidget {
                       ),
                       if (balance != null) ...[
                         const SizedBox(width: 8),
-                        ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.sizeOf(context).width * 0.42,
-                          ),
+                        // Half of the row, whatever the card's width (a card can
+                        // sit in a narrow place): a long amount shrinks to fit.
+                        Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              Text(
-                                card
-                                    ? (balance! > 0
-                                          ? tr('In credit')
-                                          : tr('Owed'))
-                                    : tr('Balance'),
-                                style: theme.textTheme.labelSmall?.copyWith(
-                                  color: _whiteSoft,
-                                ),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (low) ...[
+                                    const Icon(
+                                      Icons.warning_amber_rounded,
+                                      size: 14,
+                                      color: Color(0xFFFFE082),
+                                    ),
+                                    const SizedBox(width: 2),
+                                  ],
+                                  Flexible(
+                                    child: Text(
+                                      card
+                                          ? (balance! > 0
+                                                ? tr('In credit')
+                                                : tr('Owed'))
+                                          : low
+                                          ? tr('Below zero')
+                                          : tr('Balance'),
+                                      key: ValueKey(
+                                        'balance-label-${account.id}',
+                                      ),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: theme.textTheme.labelSmall
+                                          ?.copyWith(
+                                            color: low
+                                                ? const Color(0xFFFFE082)
+                                                : _whiteSoft,
+                                          ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               FittedBox(
                                 fit: BoxFit.scaleDown,
@@ -152,7 +181,9 @@ class AccountCard extends StatelessWidget {
                                   key: ValueKey('balance-${account.id}'),
                                   style: theme.textTheme.titleMedium?.tabular
                                       .copyWith(
-                                        color: _white,
+                                        color: low
+                                            ? const Color(0xFFFFE082)
+                                            : _white,
                                         fontWeight: FontWeight.w600,
                                       ),
                                 ),
@@ -164,7 +195,23 @@ class AccountCard extends StatelessWidget {
                       if (tail != null) ...[const SizedBox(width: 8), tail],
                     ],
                   ),
-                  if (card && limit != null && balance != null) ...[
+                  if (card && account.usdLimit != null) ...[
+                    const SizedBox(height: 8),
+                    Text(
+                      limit == null
+                          ? tr('Limit {amount}', {
+                              'amount': formatUsd(account.usdLimit!),
+                            })
+                          : tr('Limits {taka} and {usd}', {
+                              'taka': formatPoisha(limit),
+                              'usd': formatUsd(account.usdLimit!),
+                            }),
+                      key: ValueKey('card-limits-${account.id}'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: _whiteSoft,
+                      ),
+                    ),
+                  ] else if (card && limit != null && balance != null) ...[
                     const SizedBox(height: 10),
                     _LimitBar(owed: balance! < 0 ? -balance! : 0, limit: limit),
                   ],
@@ -182,7 +229,9 @@ class AccountCard extends StatelessWidget {
                         ),
                         const Spacer(),
                         if (card
-                            ? (limit != null && -after > limit)
+                            ? (limit != null &&
+                                  account.usdLimit == null &&
+                                  -after > limit)
                             : after < 0) ...[
                           const Icon(
                             Icons.warning_amber_rounded,
@@ -202,7 +251,9 @@ class AccountCard extends StatelessWidget {
                                   .copyWith(
                                     color:
                                         (card
-                                            ? (limit != null && -after > limit)
+                                            ? (limit != null &&
+                                                  account.usdLimit == null &&
+                                                  -after > limit)
                                             : after < 0)
                                         ? const Color(0xFFFFE082)
                                         : _white,
@@ -287,9 +338,14 @@ class _LimitBar extends StatelessWidget {
                 overflow: TextOverflow.ellipsis,
               ),
             ),
-            Text(
-              tr('Limit {amount}', {'amount': formatPoisha(limit)}),
-              style: style,
+            Expanded(
+              child: Text(
+                tr('Limit {amount}', {'amount': formatPoisha(limit)}),
+                style: style,
+                textAlign: TextAlign.end,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),

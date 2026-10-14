@@ -84,6 +84,16 @@ Future<void> openFromMore(WidgetTester tester, String title) async {
     ),
   );
   await tester.pumpAndSettle();
+  await tapMoreRow(tester, title);
+}
+
+/// Taps a row of the More list. The list is long, so it scrolls down to rows
+/// that are not built yet, and all the way into view (not half under the
+/// bottom bar).
+Future<void> tapMoreRow(WidgetTester tester, String title) async {
+  await tester.scrollUntilVisible(listRow(title), 200);
+  await tester.ensureVisible(listRow(title));
+  await tester.pumpAndSettle();
   await tester.tap(listRow(title));
   await tester.pumpAndSettle();
 }

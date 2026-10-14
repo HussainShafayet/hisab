@@ -142,7 +142,7 @@ class BudgetRingCard extends StatelessWidget {
               ? Row(
                   children: [
                     Icon(
-                      Icons.savings_outlined,
+                      Icons.account_balance_wallet_outlined,
                       size: 40,
                       color: theme.colorScheme.onSurfaceVariant,
                     ),
@@ -511,12 +511,14 @@ class WalletStrip extends ConsumerWidget {
         const <AccountWithBalance>[];
     if (accounts.isEmpty) return const SizedBox.shrink();
 
-    // Taller when the text is larger, so a card never overflows.
+    // Taller when the text is larger, so a card never overflows. A credit card
+    // has a limit bar under its name, so it needs more room.
     final scale = MediaQuery.textScalerOf(context).scale(1).clamp(1.0, 2.0);
+    final hasCard = accounts.any((item) => item.account.isCreditCard);
 
     return SizedBox(
       key: const ValueKey('wallet-strip'),
-      height: 72 * scale,
+      height: (hasCard ? 132 : 80) * scale,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),

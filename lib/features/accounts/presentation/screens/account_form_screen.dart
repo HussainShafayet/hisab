@@ -304,6 +304,25 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                   ),
                   if (_isCard) ...[
                     const SizedBox(height: 16),
+                    Container(
+                      key: const ValueKey('card-guide'),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context)
+                            .colorScheme
+                            .surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: Text(
+                        tr(
+                          'To spend on this card, add an expense with it. For '
+                          'a purchase in dollars, fill in the dollar box too. '
+                          'When the bill comes, tap Pay bill under the card.',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     MoneyFormField(
                       key: const ValueKey('credit-limit'),
                       controller: _creditLimit,
@@ -319,13 +338,14 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
                     MoneyFormField(
                       key: const ValueKey('usd-limit'),
                       controller: _usdLimit,
-                      label: tr('Part of the limit in dollars (optional)'),
+                      label: tr('Limit in dollars (optional)'),
                       prefix: '\$ ',
                       isRequired: false,
                       onChanged: (_) => setState(() {}),
                       helperText: tr(
-                        'For a dual currency card: the dollar limit, like 250. '
-                        'It is part of the limit above, not extra.',
+                        'For a dual currency card: the dollar limit your bank '
+                        'shows, like 74. Then the limit above is the taka '
+                        'limit only, like 111200.',
                       ),
                     ),
                     const SizedBox(height: 16),

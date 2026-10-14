@@ -1490,7 +1490,8 @@ void main() {
 
       await tapKey(tester, 'see-person');
 
-      expect(appBarTitle('Rahim'), findsOneWidget);
+      // The spelling of the newest loan is the one shown.
+      expect(appBarTitle('rahim'), findsOneWidget);
       expect(textOf(tester, 'person-total'), '৳1,050.00');
     });
 

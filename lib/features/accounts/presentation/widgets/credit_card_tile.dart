@@ -36,12 +36,6 @@ class CreditCardTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = context.financeColors;
-    final due = cardDueText(card, today);
-    final days = card.daysUntilDue(today);
-    final soon = card.hasBill && days != null && days <= 3;
-
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       child: Column(
@@ -51,37 +45,68 @@ class CreditCardTile extends StatelessWidget {
             balance: card.balance,
             onTap: onTap,
           ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
-            child: Row(
-              children: [
-                Expanded(
-                  child: Text(
-                    card.hasBill
-                        ? (due ?? tr('Set a bill day to get reminders'))
-                        : tr('Nothing owed'),
-                    key: ValueKey('card-due-${card.account.id}'),
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: soon
-                          ? colors.expense
-                          : theme.colorScheme.onSurfaceVariant,
-                      fontWeight: soon ? FontWeight.w600 : null,
-                    ),
-                  ),
-                ),
-                if (card.hasBill)
-                  FilledButton.tonalIcon(
-                    key: ValueKey('pay-bill-${card.account.id}'),
-                    onPressed: onPay,
-                    icon: const Icon(Icons.payments_outlined, size: 18),
-                    label: Text(tr('Pay bill')),
-                  ),
-              ],
-            ),
-          ),
-          if (card.showsDollars) _DollarLines(card: card),
+          CreditCardDetails(card: card, today: today, onPay: onPay),
         ],
       ),
+    );
+  }
+}
+
+/// What goes under a credit card's wallet card: the day the bill is due, the
+/// "Pay bill" button, and, for a card with dollars, the dollars spent, what is
+/// still due in dollars and what is left to spend.
+class CreditCardDetails extends StatelessWidget {
+  const CreditCardDetails({
+    required this.card,
+    required this.today,
+    required this.onPay,
+    super.key,
+  });
+
+  final CreditCardStatus card;
+  final DateTime today;
+  final VoidCallback onPay;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = context.financeColors;
+    final due = cardDueText(card, today);
+    final days = card.daysUntilDue(today);
+    final soon = card.hasBill && days != null && days <= 3;
+
+    return Column(
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 6, 4, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  card.hasBill
+                      ? (due ?? tr('Set a bill day to get reminders'))
+                      : tr('Nothing owed'),
+                  key: ValueKey('card-due-${card.account.id}'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: soon
+                        ? colors.expense
+                        : theme.colorScheme.onSurfaceVariant,
+                    fontWeight: soon ? FontWeight.w600 : null,
+                  ),
+                ),
+              ),
+              if (card.hasBill)
+                FilledButton.tonalIcon(
+                  key: ValueKey('pay-bill-${card.account.id}'),
+                  onPressed: onPay,
+                  icon: const Icon(Icons.payments_outlined, size: 18),
+                  label: Text(tr('Pay bill')),
+                ),
+            ],
+          ),
+        ),
+        if (card.showsDollars) _DollarLines(card: card),
+      ],
     );
   }
 }
@@ -102,6 +127,7 @@ class _DollarLines extends StatelessWidget {
     );
     final usdLeft = card.usdLeft;
     final takaLeft = card.takaLeft;
+    final totalLeft = card.totalLeft;
 
     Widget line(String key, String text, {bool strong = false}) => Padding(
       padding: const EdgeInsets.only(top: 2),
@@ -146,6 +172,13 @@ class _DollarLines extends StatelessWidget {
                         'taka': formatPoisha(takaLeft),
                         'usd': formatUsd(usdLeft),
                       }),
+              ),
+            if (totalLeft != null)
+              line(
+                'card-usd-total',
+                tr('About {amount} left in all', {
+                  'amount': formatPoisha(totalLeft),
+                }),
               ),
           ],
         ),

@@ -59,7 +59,7 @@ void main() {
       await account(db, 'Cash', 10000000);
       await openZakat(tester, db);
 
-      expect(textOf(tester, 'zakat-assets'), '৳100,000.00');
+      expect(textOf(tester, 'zakat-assets'), '৳1,00,000.00');
       expect(textOf(tester, 'zakat-nisab'), '-');
       expect(
         find.text('Enter the price of a gram to see if zakat is due.'),
@@ -78,9 +78,9 @@ void main() {
       await enter(tester, 'zakat-gram', '100');
 
       expect(textOf(tester, 'zakat-nisab'), '৳61,236.00');
-      expect(textOf(tester, 'zakat-net'), '৳100,000.00');
+      expect(textOf(tester, 'zakat-net'), '৳1,00,000.00');
       expect(textOf(tester, 'zakat-due'), '৳2,500.00');
-      expect(textOf(tester, 'zakat-result'), '2.5% of ৳100,000.00');
+      expect(textOf(tester, 'zakat-result'), '2.5% of ৳1,00,000.00');
     });
 
     testWithDatabase('says when the wealth is under the nisab', (
@@ -108,7 +108,7 @@ void main() {
       await account(db, 'Cash', 6000000);
       final bank = await account(db, 'Bank', 4000000, type: AccountType.bank);
       await openZakat(tester, db);
-      expect(textOf(tester, 'zakat-assets'), '৳100,000.00');
+      expect(textOf(tester, 'zakat-assets'), '৳1,00,000.00');
 
       await tapKey(tester, 'zakat-account-$bank');
 
@@ -133,14 +133,14 @@ void main() {
       await openZakat(tester, db);
 
       expect(find.byKey(ValueKey('zakat-account-$card')), findsNothing);
-      expect(textOf(tester, 'zakat-assets'), '৳100,000.00');
+      expect(textOf(tester, 'zakat-assets'), '৳1,00,000.00');
       expect(textOf(tester, 'zakat-liabilities'), '৳20,000.00');
       expect(textOf(tester, 'zakat-net'), '৳80,000.00');
 
       await tapKey(tester, 'zakat-subtract-debts');
 
       expect(textOf(tester, 'zakat-liabilities'), '৳0.00');
-      expect(textOf(tester, 'zakat-net'), '৳100,000.00');
+      expect(textOf(tester, 'zakat-net'), '৳1,00,000.00');
     });
 
     testWithDatabase('adds what people owe you, and takes off what you owe', (
@@ -213,7 +213,7 @@ void main() {
       // The price of a gram is for the other metal, so it is cleared.
       expect(textOf(tester, 'zakat-nisab'), '-');
       await enter(tester, 'zakat-gram', '10000');
-      expect(textOf(tester, 'zakat-nisab'), '৳874,800.00');
+      expect(textOf(tester, 'zakat-nisab'), '৳8,74,800.00');
     });
   });
 
@@ -258,8 +258,8 @@ void main() {
 
       await tapKey(tester, 'zakat-fetch');
 
-      // $4,000 an ounce at ৳120 is ৳15,432.30 a gram.
-      expect((await ZakatSettingsRepository(db).load()).gramPrice, 1543230);
+      // $4,000 an ounce at ৳120 is ৳15,432.36 a gram.
+      expect((await ZakatSettingsRepository(db).load()).gramPrice, 1543236);
     });
 
     testWithDatabase('says so when the internet is not there', (

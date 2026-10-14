@@ -247,8 +247,9 @@ void main() {
       await pumpAppWithDatabase(tester, db);
 
       expect(inside('total-balance', '৳200.00'), findsOneWidget);
-      // Income and expense stay at zero; the balance cell is zero too.
-      expect(find.text('৳0.00'), findsNWidgets(5));
+      // Income and expense stay at zero; the balance cell is zero too, and
+      // so is the other wallet in the strip.
+      expect(find.text('৳0.00'), findsNWidgets(6));
     },
   );
 

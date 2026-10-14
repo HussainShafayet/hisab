@@ -52,66 +52,115 @@ void main() {
     });
   });
 
-  group('a card with a dollar part', () {
-    // ৳120,000 limit of which $250 is in dollars; $100 was spent in dollars at
-    // ৳122 (৳12,200) and ৳30,000 in taka.
+  group('a card with a taka limit and a dollar limit', () {
+    // The bank shows ৳111,200 and $74. ৳20,000 is owed, of which $50 was spent
+    // in dollars at ৳122 (৳6,100).
     final card = status(
-      -4220000,
-      limit: 12000000,
-      usdLimit: 25000,
-      dollars: const CardDollars(spent: 10000, lastRate: 122),
+      -2000000,
+      limit: 11120000,
+      usdLimit: 7400,
+      dollars: const CardDollars(spent: 5000, lastRate: 122),
     );
 
-    test('has the dollars left of the dollar limit', () {
-      expect(card.usdLeft, 15000);
+    test('owes the dollars apart from the taka', () {
+      expect(card.dollarsOwedAsTaka, 610000);
+      expect(card.takaOwed, 1390000);
     });
 
-    test('has the taka left once the dollars are kept apart', () {
-      // 120,000 - 42,200 = 77,800 left in all; $150 of it is dollars, which is
-      // ৳18,300 at 122, so ৳59,500 is left in taka.
-      expect(card.available, 7780000);
-      expect(card.takaLeft, 5950000);
+    test('has what is left in each money', () {
+      expect(card.takaLeft, 9730000);
+      expect(card.usdLeft, 2400);
+    });
+
+    test('has what is left in all, with the dollars at the latest rate', () {
+      expect(card.totalLeft, 10022800);
+      expect(card.available, 10022800);
+      expect(card.isOverLimit, isFalse);
     });
 
     test('shows the dollar lines', () {
+      expect(card.hasDollarLimit, isTrue);
       expect(card.showsDollars, isTrue);
     });
 
-    test('has no taka figure without a rate', () {
-      final fresh = status(-3000000, limit: 12000000, usdLimit: 25000);
+    test('has no total before the first dollar expense, but both parts', () {
+      final fresh = status(-300000, limit: 11120000, usdLimit: 7400);
 
-      expect(fresh.usdLeft, 25000);
-      expect(fresh.takaLeft, isNull);
+      expect(fresh.takaOwed, 300000);
+      expect(fresh.takaLeft, 10820000);
+      expect(fresh.usdLeft, 7400);
+      expect(fresh.totalLeft, isNull);
+      expect(fresh.available, isNull);
     });
 
-    test('goes below zero when the dollar part is used up', () {
+    test('passes the dollar limit on its own', () {
       final over = status(
-        -4000000,
-        limit: 12000000,
-        usdLimit: 10000,
-        dollars: const CardDollars(spent: 12000, lastRate: 120),
+        -1200000,
+        limit: 11120000,
+        usdLimit: 7400,
+        dollars: const CardDollars(spent: 8000, lastRate: 122),
       );
 
-      expect(over.usdLeft, -2000);
+      expect(over.usdLeft, -600);
+      expect(over.isOverLimit, isTrue);
+      expect(over.takaLeft, isNonNegative);
+    });
+
+    test('passes the taka limit on its own', () {
+      final over = status(
+        -12000000,
+        limit: 11120000,
+        usdLimit: 7400,
+        dollars: const CardDollars(spent: 1000, lastRate: 122),
+      );
+
+      expect(over.takaLeft, isNegative);
+      expect(over.usdLeft, 6400);
+      expect(over.isOverLimit, isTrue);
+    });
+
+    test('counts money paid in beyond the bill towards the taka', () {
+      final paid = status(30000, limit: 11120000, usdLimit: 7400);
+
+      expect(paid.takaLeft, 11150000);
     });
   });
 
-  group('a card without a dollar part', () {
+  group('a card with only a dollar limit', () {
+    test('has dollars left but no taka figure', () {
+      final card = status(
+        -610000,
+        usdLimit: 7400,
+        dollars: const CardDollars(spent: 5000, lastRate: 122),
+      );
+
+      expect(card.takaLeft, isNull);
+      expect(card.usdLeft, 2400);
+      expect(card.totalLeft, isNull);
+    });
+  });
+
+  group('a card without a dollar limit', () {
     test('has no dollar figures', () {
       final card = status(-100000, limit: 500000);
 
       expect(card.usdLeft, isNull);
-      expect(card.takaLeft, isNull);
+      expect(card.hasDollarLimit, isFalse);
       expect(card.showsDollars, isFalse);
+      expect(card.takaLeft, 400000);
+      expect(card.available, 400000);
     });
 
-    test('still shows dollars once there is dollar spending', () {
+    test('lets dollars use the one limit', () {
       final card = status(
         -100000,
+        limit: 500000,
         dollars: const CardDollars(spent: 1000, lastRate: 120),
       );
 
       expect(card.showsDollars, isTrue);
+      expect(card.takaOwed, 100000);
+      expect(card.available, 400000);
       expect(card.usdLeft, isNull);
     });
   });

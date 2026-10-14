@@ -198,6 +198,12 @@ void main() {
         find.widgetWithText(TextFormField, 'Name'),
         'A savings account with a rather long name indeed',
       );
+      // The balance is below the preview and the kind tiles.
+      await tester.scrollUntilVisible(
+        find.widgetWithText(TextFormField, 'Opening balance'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Opening balance'),
         '99999999999.99',
@@ -303,8 +309,7 @@ void main() {
           'ব্যাকআপ ও এক্সপোর্ট',
           'সেটিংস',
         ]) {
-          await tester.tap(listRow(title));
-          await tester.pumpAndSettle();
+          await tapMoreRow(tester, title);
           expect(tester.takeException(), isNull, reason: title);
           await tester.tap(find.byType(BackButton));
           await tester.pumpAndSettle();
@@ -362,7 +367,12 @@ void main() {
       await pumpAppWithDatabase(tester, db);
       expect(tester.takeException(), isNull);
 
-      // Home has the Loans card.
+      // Home has the Loans card, below the first screenful.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('loans-home-card')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.byKey(const ValueKey('loans-home-card')), findsOneWidget);
 
       await openFromMore(tester, 'Loans');
@@ -397,11 +407,22 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('tab-get')));
       await tester.pumpAndSettle();
 
+      await tester.ensureVisible(find.byKey(ValueKey('debt-$id')));
+      await tester.pumpAndSettle();
+      // Up out of the way of the add button.
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -120));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('debt-$id')));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
       // The payment dialog has the account as a card.
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('add-payment')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('add-payment')));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -414,8 +435,17 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       // The account card and the extra details fit too.
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('loan-account-switch')),
+      );
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('loan-account-switch')));
       await tester.pumpAndSettle();
+      await tester.scrollUntilVisible(
+        find.text('More details'),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       await tester.tap(find.text('More details'));
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
@@ -449,6 +479,11 @@ void main() {
         await tester.tap(find.byKey(ValueKey('balance-$card')));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('credit-limit')),
+          300,
+          scrollable: find.byType(Scrollable).first,
+        );
         expect(find.byKey(const ValueKey('credit-limit')), findsOneWidget);
         await tester.tap(find.byType(BackButton));
         await tester.pumpAndSettle();
@@ -777,6 +812,11 @@ void main() {
 
       // Home is the first tab.
       expect(tester.takeException(), isNull);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('budget-ring')),
+        300,
+        scrollable: find.byType(Scrollable).first,
+      );
       expect(find.byKey(const ValueKey('budget-ring')), findsOneWidget);
       // Scroll to the bottom of Home, where the recent transactions are.
       await tester.drag(find.byType(Scrollable).first, const Offset(0, -2000));

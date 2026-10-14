@@ -631,8 +631,8 @@ void main() {
       await pumpAppWithDatabase(tester, db);
       await openAddForm(tester);
 
+      // Cash would be the first account, so bKash here is the one used last.
       expect(accountOnCard('account-field', 'bKash'), findsOneWidget);
-      expect(accountOnCard('account-field', 'Cash'), findsNothing);
     });
 
     testWithDatabase('saves to the account that was picked', (

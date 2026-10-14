@@ -61,8 +61,7 @@ void main() {
 
     // Accounts and Categories have real screens with their own tests.
     for (final title in ['Backup & export', 'Settings']) {
-      await tester.tap(listRow(title));
-      await tester.pumpAndSettle();
+      await tapMoreRow(tester, title);
       expect(appBarTitle(title), findsOneWidget, reason: title);
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.byType(FloatingActionButton), findsNothing);
