@@ -94,28 +94,26 @@ class CategoriesDao extends DatabaseAccessor<AppDatabase>
     CategoryType type,
     List<DefaultCategory> defaults,
   ) async {
-    for (final (index, category) in defaults.indexed) {
-      final parentId = await into(categories).insert(
+    // Parents come before the categories inside them, so each one's id is
+    // known when its children are made.
+    final ids = <String, int>{};
+    final nextOrder = <int?, int>{};
+    for (final entry in flattenDefaults(defaults)) {
+      final parentId = entry.parentPath.isEmpty
+          ? null
+          : ids[entry.parentPath.join('\u0000')];
+      final order = nextOrder[parentId] ?? 0;
+      nextOrder[parentId] = order + 1;
+      ids[entry.path.join('\u0000')] = await into(categories).insert(
         CategoriesCompanion.insert(
-          name: category.name,
+          name: entry.name,
           type: type,
-          icon: Value(category.icon),
-          color: Value(category.color),
-          sortOrder: Value(index),
+          parentId: Value(parentId),
+          icon: Value(entry.icon),
+          color: Value(entry.color),
+          sortOrder: Value(order),
         ),
       );
-      for (final (childIndex, childName) in category.children.indexed) {
-        await into(categories).insert(
-          CategoriesCompanion.insert(
-            name: childName,
-            type: type,
-            parentId: Value(parentId),
-            icon: Value(category.icon),
-            color: Value(category.color),
-            sortOrder: Value(childIndex),
-          ),
-        );
-      }
     }
   }
 }

@@ -3,6 +3,7 @@ import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/categories/data/category_mapper.dart';
+import 'package:hishab/features/categories/data/category_pack.dart';
 import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
@@ -65,6 +66,50 @@ class CategoriesRepository {
           sortOrder: Value(_nextSortOrder(all, type: type, parentId: parentId)),
         ),
       );
+    });
+  }
+
+  /// Adds the default categories this install is missing (the Bangladesh
+  /// daily-life ones) and returns how many were added. Nothing that exists is
+  /// changed or brought back.
+  Future<int> addMissingDefaults() {
+    return _db.transaction(() async {
+      final rows = await _db.categoriesDao.getAll(includeArchived: true);
+      final domain = [for (final row in rows) row.toDomain()];
+      final byId = {for (final c in domain) c.id: c};
+      final planned = missingDefaults(domain);
+      // Ids by type and path of names, the new ones added as they are made.
+      final ids = <(CategoryType, String), int>{};
+      for (final category in domain) {
+        ids.putIfAbsent((
+          category.type,
+          pathKey(pathOf(category, byId)),
+        ), () => category.id);
+      }
+      final nextOrder = <(CategoryType, int?), int>{};
+
+      for (final item in planned) {
+        final parentId = item.parentPath.isEmpty
+            ? null
+            : ids[(item.type, pathKey(item.parentPath))];
+        final slot = (item.type, parentId);
+        final order =
+            nextOrder[slot] ??
+            _nextSortOrder(rows, type: item.type, parentId: parentId);
+        nextOrder[slot] = order + 1;
+        final id = await _db.categoriesDao.insertCategory(
+          CategoriesCompanion.insert(
+            name: item.name,
+            type: item.type,
+            parentId: Value(parentId),
+            icon: Value(item.icon),
+            color: Value(item.color),
+            sortOrder: Value(order),
+          ),
+        );
+        ids[(item.type, pathKey([...item.parentPath, item.name]))] = id;
+      }
+      return planned.length;
     });
   }
 

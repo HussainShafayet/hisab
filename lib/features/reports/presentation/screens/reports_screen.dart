@@ -11,6 +11,7 @@ import 'package:hishab/core/widgets/range_banner.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/reports/domain/report_data.dart';
 import 'package:hishab/features/reports/presentation/providers/reports_providers.dart';
+import 'package:hishab/features/reports/presentation/widgets/category_tree_card.dart';
 import 'package:hishab/features/reports/presentation/widgets/report_cards.dart';
 
 /// Where the money went: totals, spending by category, income against expense
@@ -109,6 +110,10 @@ class _ReportContent extends StatelessWidget {
         CategoryPieCard(
           categories: data.categories,
           incomeCategories: data.incomeCategories,
+        ),
+        CategoryTreeCard(
+          expense: data.expenseBranches,
+          income: data.incomeBranches,
         ),
         AccountBreakdownCard(accounts: data.accounts),
         IncomeExpenseBarCard(months: data.months),

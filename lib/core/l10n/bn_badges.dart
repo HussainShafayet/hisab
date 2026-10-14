@@ -1,0 +1,36 @@
+/// Bangla for the writing streak and Takka's badges.
+const bnBadges = <String, String>{
+  'Badges': 'ব্যাজ',
+  '{n} of {total} badges': '{total}টির মধ্যে {n}টি ব্যাজ',
+  '1 day in a row': 'টানা 1 দিন',
+  '{n} days in a row': 'টানা {n} দিন',
+  'Best: {n} days in a row': 'সেরা: টানা {n} দিন',
+  'Write an entry today to start a streak!':
+      'আজ একটা এন্ট্রি লিখুন, স্ট্রিক শুরু হবে!',
+  '1 spend-free day this month': 'এই মাসে 1 দিন খরচ ছাড়া',
+  '{n} spend-free days this month': 'এই মাসে {n} দিন খরচ ছাড়া',
+  'First step': 'প্রথম পদক্ষেপ',
+  'Three in a row': 'টানা তিন',
+  'A week of hishab': 'এক সপ্তাহের হিসাব',
+  'Hishab master': 'হিসাব ওস্তাদ',
+  'Pocket rest': 'পকেটের বিশ্রাম',
+  'Saver in the making': 'ভবিষ্যৎ সঞ্চয়ী',
+  'Honest with myself': 'নিজের কাছে সৎ',
+  'Clear mind': 'পরিষ্কার মন',
+  'Dream come true': 'স্বপ্ন পূরণ',
+  'Clean slate': 'পরিষ্কার খাতা',
+  'Gold keeper': 'সোনার রক্ষক',
+  'Write your first entry.': 'আপনার প্রথম এন্ট্রি লিখুন।',
+  'Write entries 3 days in a row.': 'টানা 3 দিন এন্ট্রি লিখুন।',
+  'Write entries 7 days in a row.': 'টানা 7 দিন এন্ট্রি লিখুন।',
+  'Write entries 30 days in a row.': 'টানা 30 দিন এন্ট্রি লিখুন।',
+  'Have a day with no spending.': 'একটা দিন কোনো খরচ ছাড়া কাটান।',
+  'Have 10 days with no spending.': '10 দিন কোনো খরচ ছাড়া কাটান।',
+  'Mark 5 expenses as needed, wanted or regret.':
+      '5টি খরচকে দরকারি, শখের বা পস্তাচ্ছি হিসেবে চিহ্নিত করুন।',
+  'Go 7 days without a regret, after marking 5 expenses.':
+      '5টি খরচ চিহ্নিত করার পর 7 দিন কোনো আফসোস ছাড়া কাটান।',
+  'Reach a savings goal.': 'একটা জমানোর লক্ষ্যে পৌঁছান।',
+  'Settle a loan completely.': 'একটা ধার পুরোপুরি মিটিয়ে দিন।',
+  'Add a piece of gold or silver.': 'একটা সোনা বা রুপার জিনিস যোগ করুন।',
+};

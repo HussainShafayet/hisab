@@ -5,7 +5,9 @@ import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
+import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/metals/domain/metals.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -29,6 +31,16 @@ Future<void> dropColumnsAfter(AppDatabase db, int version) async {
   if (version < 10) {
     await db.customStatement('DROP TABLE shopping_items');
     await db.customStatement('DROP TABLE item_prices');
+  }
+  if (version < 11) {
+    await db.customStatement('DROP TABLE metal_holdings');
+  }
+  if (version < 12) {
+    await db.customStatement('ALTER TABLE transactions DROP COLUMN feeling');
+  }
+  if (version < 13) {
+    await db.customStatement('DROP TABLE investment_entries');
+    await db.customStatement('DROP TABLE investments');
   }
 }
 
@@ -92,7 +104,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').getSingle();
       // Every upgrade step ran, up to the current version.
-      expect(version.read<int>('user_version'), 10);
+      expect(version.read<int>('user_version'), 13);
     },
   );
 
@@ -122,7 +134,7 @@ void main() {
     expect(await db.settingsDao.getAll(), {'language': 'bangla'});
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 10);
+    expect(version.read<int>('user_version'), 13);
   });
 
   test('upgrading from version 3 adds the loan tables', () async {
@@ -165,7 +177,7 @@ void main() {
     expect((await db.debtsDao.getWithPaid(debt))!.paid, 400);
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 10);
+    expect(version.read<int>('user_version'), 13);
   });
 
   test('upgrading from version 5 adds the credit card columns', () async {
@@ -205,7 +217,7 @@ void main() {
     expect(saved.creditLimit, 5000000);
     expect(saved.billDueDay, 15);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 10);
+    expect(version.read<int>('user_version'), 13);
   });
 
   test('upgrading from version 6 adds the dollar columns', () async {
@@ -260,7 +272,7 @@ void main() {
     expect((await db.accountsDao.getById(card))!.usdLimit, 25000);
     expect((await db.transactionsDao.getById(after))!.usdAmount, 2500);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 10);
+    expect(version.read<int>('user_version'), 13);
   });
 
   test('upgrading from version 7 adds the savings goal tables', () async {
@@ -293,7 +305,7 @@ void main() {
     );
     expect((await db.goalsDao.getWithSaved(goal))!.saved, 1500);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 10);
+    expect(version.read<int>('user_version'), 13);
   });
 
   test('upgrading from version 8 adds tags', () async {
@@ -345,7 +357,7 @@ void main() {
     );
     expect((await db.transactionsDao.getById(after))!.tagId, trip);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 10);
+    expect(version.read<int>('user_version'), 13);
   });
 
   test('upgrading from version 9 adds the bazar list tables', () async {
@@ -376,7 +388,7 @@ void main() {
     expect((await db.bazarDao.getItem(id))!.quantity, 1);
     expect((await db.bazarDao.priceFor('rice'))!.price, 12000);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 10);
+    expect(version.read<int>('user_version'), 13);
   });
 
   test(
@@ -403,11 +415,84 @@ void main() {
         contains('app_settings'),
       );
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 10);
+      expect(version.read<int>('user_version'), 13);
       expect(
         tables.map((t) => t.read<String>('name')),
         containsAll(['debts', 'debt_payments', 'recurring_rules']),
       );
     },
   );
+
+  test('upgrading from version 10 adds the gold and silver table', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    await dropColumnsAfter(db, 10);
+    await db.customStatement('PRAGMA user_version = 10');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    final id = await db.metalsDao.insertHolding(
+      MetalHoldingsCompanion.insert(
+        metal: Metal.gold,
+        name: 'Necklace',
+        milligrams: 23328,
+        purity: 917,
+      ),
+    );
+    expect((await db.metalsDao.getById(id))!.name, 'Necklace');
+    final version = await db.customSelect('PRAGMA user_version').getSingle();
+    expect(version.read<int>('user_version'), 13);
+  });
+
+  test('upgrading from version 12 adds the investment tables', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    await dropColumnsAfter(db, 12);
+    await db.customStatement('PRAGMA user_version = 12');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    final id = await db.investmentsDao.insertInvestment(
+      InvestmentsCompanion.insert(
+        name: 'Poultry farm',
+        startedOn: DateTime(2026, 10, 1),
+      ),
+    );
+    await db.investmentsDao.insertEntry(
+      InvestmentEntriesCompanion.insert(
+        investmentId: id,
+        kind: InvestmentEntryKind.putIn,
+        amount: 500000,
+        date: DateTime(2026, 10, 1),
+      ),
+    );
+    final item = (await db.investmentsDao.getWithSums(id))!;
+    expect(item.putIn, 500000);
+    // The index came with the table.
+    final indexes = await db
+        .customSelect(
+          "SELECT name FROM sqlite_master WHERE type = 'index' "
+          "AND name = 'idx_investment_entries_investment_id'",
+        )
+        .get();
+    expect(indexes, hasLength(1));
+    final version = await db.customSelect('PRAGMA user_version').getSingle();
+    expect(version.read<int>('user_version'), 13);
+  });
 }

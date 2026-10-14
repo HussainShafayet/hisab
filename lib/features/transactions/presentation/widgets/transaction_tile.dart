@@ -7,6 +7,7 @@ import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
 import 'package:hishab/features/transactions/domain/day_groups.dart';
+import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -53,6 +54,7 @@ class TransactionTile extends StatelessWidget {
           : item.accountName,
       if (item.usdAmount != null) formatUsd(item.usdAmount!),
       if (item.tagName != null) '#${item.tagName}',
+      if (item.feeling == Feeling.regret) tr('Regret'),
       // A correction is not real income or spending, so it is drawn in the
       // neutral color and says why the day and month totals skip it.
       if (item.isAdjustment)

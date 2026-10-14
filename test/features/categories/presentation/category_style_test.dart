@@ -5,7 +5,10 @@ import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/categories/presentation/category_style.dart';
 
 void main() {
-  final seeded = [...defaultExpenseCategories, ...defaultIncomeCategories];
+  final seeded = flattenDefaults([
+    ...defaultExpenseCategories,
+    ...defaultIncomeCategories,
+  ]);
 
   test('every seeded category icon can be shown and picked', () {
     for (final category in seeded) {

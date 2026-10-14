@@ -12,6 +12,7 @@ import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/transactions/data/transactions_dao.dart';
 import 'package:hishab/features/transactions/domain/add_transaction_options.dart';
 import 'package:hishab/features/transactions/domain/category_usage.dart';
+import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_input.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -108,6 +109,7 @@ class TransactionsRepository {
           note: input.note.trim(),
           usdAmount: Value(input.usdAmount),
           tagId: Value(input.tagId),
+          feeling: Value(_feelingOf(input)),
         ),
       );
     });
@@ -138,6 +140,7 @@ class TransactionsRepository {
         isAdjustment: Value(item.isAdjustment),
         usdAmount: Value(item.usdAmount),
         tagId: Value(item.tagId),
+        feeling: Value(item.feeling),
       ),
     );
   }
@@ -325,7 +328,12 @@ class TransactionsRepository {
         note: Value(input.note.trim()),
         usdAmount: Value(input.usdAmount),
         tagId: Value(input.tagId),
+        feeling: Value(_feelingOf(input)),
       );
+
+  /// Only an expense keeps how it felt.
+  Feeling? _feelingOf(TransactionInput input) =>
+      input.type == TransactionType.expense ? input.feeling : null;
 }
 
 /// Turns a joined database row into a [TransactionItem].
@@ -352,5 +360,6 @@ TransactionItem toTransactionItem(TransactionWithDetails row) {
     usdAmount: transaction.usdAmount,
     tagId: transaction.tagId,
     tagName: row.tag?.name,
+    feeling: transaction.feeling,
   );
 }

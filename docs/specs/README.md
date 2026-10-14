@@ -29,6 +29,18 @@ behaviour.
 | [bazar](bazar/) | [Bazar list](bazar/bazar-list.md) | 16 |
 | [zakat](zakat/) | [Zakat](zakat/zakat.md) | 18 |
 | [accounts](accounts/) | [Below-zero warning](accounts/negative-balance.md) | 20 |
+| [categories](categories/) | [Everyday Bangladesh categories](categories/bangladesh-categories.md) | 21 |
+| [core](core/) | [Fun mode: Takka, jokes, motion](core/fun-mode.md) | 21 |
+| [reports](reports/) | [Where the money went (category tree)](reports/category-tree.md) | 21 |
+| [investments](investments/) | [Business investments](investments/investments.md) | 26 |
+| [transactions](transactions/) | [Quick type](transactions/quick-type.md) | 22 |
+| [dashboard](dashboard/) | [Loans up front (Home shortcuts)](dashboard/home-shortcuts.md) | 22 |
+| [metals](metals/) | [Gold & silver](metals/gold-and-silver.md) | 23 |
+| [goals](goals/) | [Eid and festival funds](goals/festival-funds.md) | 24 |
+| [transactions](transactions/) | [How it felt, and the regret meter](transactions/feelings-and-regret.md) | 25 |
+| [core](core/) | [Streaks and badges](core/badges-and-streaks.md) | 26 |
+| [budget](budget/) | [Can I afford it?](budget/can-i-afford-it.md) | 27 |
+| [core](core/) | [Month wrapped](core/month-wrapped.md) | 27 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

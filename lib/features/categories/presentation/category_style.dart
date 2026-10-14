@@ -73,6 +73,10 @@ const categoryColors = <int>[
   0xFF8D6E63,
   0xFF78909C,
   0xFF9E9E9E,
+  0xFFD81B60,
+  0xFF6D4C41,
+  0xFF43A047,
+  0xFF7CB342,
 ];
 
 /// Color used for a brand-new category.

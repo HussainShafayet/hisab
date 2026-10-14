@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/features/fun/presentation/celebrate.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
@@ -44,6 +45,7 @@ Future<void> markLoanPaid(
       paidOn: combineDayWithTime(dateOnly(now), now),
       accountId: item.debt.accountId,
     );
+    if (context.mounted) celebrate(context, ref);
     messenger.showMessage(
       tr('All paid.'),
       action: SnackBarAction(

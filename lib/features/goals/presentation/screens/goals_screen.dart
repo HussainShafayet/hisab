@@ -8,8 +8,10 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/features/goals/domain/festival.dart';
 import 'package:hishab/features/goals/domain/goal.dart';
 import 'package:hishab/features/goals/presentation/providers/goals_providers.dart';
+import 'package:hishab/features/goals/presentation/widgets/festival_tile.dart';
 import 'package:hishab/features/goals/presentation/widgets/goal_tile.dart';
 
 /// The things being saved up for, with how far each one has come.
@@ -32,23 +34,34 @@ class GoalsScreen extends ConsumerWidget {
         loading: () => const LoadingView(),
         error: (error, _) => ErrorView(message: describeError(error)),
         data: (list) {
+          final festivals = upcomingFestivals(today, list);
           if (list.isEmpty) {
-            return EmptyState(
-              icon: Icons.flag_outlined,
-              title: tr('No goals yet'),
-              message: tr(
-                'Save up for a laptop, a trip or Eid. Set a target and put '
-                'money aside a little at a time.',
-              ),
-              action: FilledButton(
-                onPressed: () => context.push(AppRoutes.newGoal),
-                child: Text(tr('New goal')),
-              ),
+            return ListView(
+              padding: const EdgeInsets.only(top: 8, bottom: 96),
+              children: [
+                _Festivals(festivals: festivals, today: today),
+                SizedBox(
+                  height: 320,
+                  child: EmptyState(
+                    icon: Icons.flag_outlined,
+                    title: tr('No goals yet'),
+                    message: tr(
+                      'Save up for a laptop, a trip or Eid. Set a target and '
+                      'put money aside a little at a time.',
+                    ),
+                    action: FilledButton(
+                      onPressed: () => context.push(AppRoutes.newGoal),
+                      child: Text(tr('New goal')),
+                    ),
+                  ),
+                ),
+              ],
             );
           }
           return ListView(
             padding: const EdgeInsets.only(top: 8, bottom: 96),
             children: [
+              _Festivals(festivals: festivals, today: today),
               _Summary(goals: list),
               for (final item in list)
                 GoalTile(
@@ -61,6 +74,38 @@ class GoalsScreen extends ConsumerWidget {
           );
         },
       ),
+    );
+  }
+}
+
+/// The festivals coming up, each with its fund or a button to start one.
+class _Festivals extends StatelessWidget {
+  const _Festivals({required this.festivals, required this.today});
+
+  final List<UpcomingFestival> festivals;
+  final DateTime today;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+          child: Text(tr('Coming up'), style: theme.textTheme.titleSmall),
+        ),
+        for (final item in festivals) FestivalTile(item: item, today: today),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          child: Text(
+            tr('The days of Eid are a guess: the moon decides.'),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

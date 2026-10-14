@@ -10,6 +10,7 @@ class ZakatSettings {
     this.excludedAccountIds = const {},
     this.countOwedToYou = true,
     this.subtractDebts = true,
+    this.countMetals = true,
     this.remindMonth,
     this.remindDay,
   });
@@ -29,6 +30,9 @@ class ZakatSettings {
   final bool countOwedToYou;
   final bool subtractDebts;
 
+  /// Whether the gold and silver of Gold & silver are counted.
+  final bool countMetals;
+
   /// The yearly zakat day, if a reminder is wanted.
   final int? remindMonth;
   final int? remindDay;
@@ -42,6 +46,7 @@ class ZakatSettings {
     Set<int>? excludedAccountIds,
     bool? countOwedToYou,
     bool? subtractDebts,
+    bool? countMetals,
     ({int month, int day})? Function()? remindOn,
   }) => ZakatSettings(
     basis: basis ?? this.basis,
@@ -50,6 +55,7 @@ class ZakatSettings {
     excludedAccountIds: excludedAccountIds ?? this.excludedAccountIds,
     countOwedToYou: countOwedToYou ?? this.countOwedToYou,
     subtractDebts: subtractDebts ?? this.subtractDebts,
+    countMetals: countMetals ?? this.countMetals,
     remindMonth: remindOn == null ? remindMonth : remindOn()?.month,
     remindDay: remindOn == null ? remindDay : remindOn()?.day,
   );
@@ -60,6 +66,7 @@ class ZakatSettings {
   static const _excluded = 'zakat.excluded_accounts';
   static const _owedToYou = 'zakat.count_owed_to_you';
   static const _debts = 'zakat.subtract_debts';
+  static const _metals = 'zakat.count_metals';
   static const _remind = 'zakat.remind_on';
 
   /// Reads the settings from the saved key / value pairs; anything missing or
@@ -85,6 +92,7 @@ class ZakatSettings {
       },
       countOwedToYou: map[_owedToYou] != 'false',
       subtractDebts: map[_debts] != 'false',
+      countMetals: map[_metals] != 'false',
       remindMonth: validDay ? month : null,
       remindDay: validDay ? day : null,
     );
@@ -100,6 +108,7 @@ class ZakatSettings {
         : (excludedAccountIds.toList()..sort()).join(','),
     _owedToYou: countOwedToYou ? null : 'false',
     _debts: subtractDebts ? null : 'false',
+    _metals: countMetals ? null : 'false',
     _remind: hasReminder ? '$remindMonth-$remindDay' : null,
   };
 }

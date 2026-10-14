@@ -15,14 +15,31 @@ import 'package:hishab/features/goals/presentation/widgets/goal_icons.dart';
 
 /// Makes a goal, or edits the one with [goalId].
 class GoalFormScreen extends ConsumerWidget {
-  const GoalFormScreen({this.goalId, super.key});
+  const GoalFormScreen({
+    this.goalId,
+    this.prefillName,
+    this.prefillDay,
+    this.prefillIcon,
+    super.key,
+  });
 
   final int? goalId;
+
+  /// For a new goal: the name, the day and the icon to start with.
+  final String? prefillName;
+  final DateTime? prefillDay;
+  final String? prefillIcon;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final id = goalId;
-    if (id == null) return const _GoalForm();
+    if (id == null) {
+      return _GoalForm(
+        prefillName: prefillName,
+        prefillDay: prefillDay,
+        prefillIcon: prefillIcon,
+      );
+    }
     final title = Text(tr('Edit goal'));
     return ref
         .watch(goalsProvider)
@@ -49,9 +66,17 @@ class GoalFormScreen extends ConsumerWidget {
 }
 
 class _GoalForm extends ConsumerStatefulWidget {
-  const _GoalForm({this.initial});
+  const _GoalForm({
+    this.initial,
+    this.prefillName,
+    this.prefillDay,
+    this.prefillIcon,
+  });
 
   final SavingsGoal? initial;
+  final String? prefillName;
+  final DateTime? prefillDay;
+  final String? prefillIcon;
 
   @override
   ConsumerState<_GoalForm> createState() => _GoalFormState();
@@ -59,12 +84,18 @@ class _GoalForm extends ConsumerStatefulWidget {
 
 class _GoalFormState extends ConsumerState<_GoalForm> {
   final _formKey = GlobalKey<FormState>();
-  late final _name = TextEditingController(text: widget.initial?.name ?? '');
+  late final _name = TextEditingController(
+    text: widget.initial?.name ?? widget.prefillName ?? '',
+  );
   late final _target = TextEditingController(
     text: widget.initial == null ? '' : poishaToInput(widget.initial!.target),
   );
-  late DateTime? _day = widget.initial?.targetDate;
-  late String _icon = widget.initial?.icon ?? defaultGoalIcon;
+  late DateTime? _day = widget.initial?.targetDate ?? widget.prefillDay;
+  late String _icon =
+      widget.initial?.icon ??
+      (goalIcons.contains(widget.prefillIcon)
+          ? widget.prefillIcon!
+          : defaultGoalIcon);
   bool _saving = false;
   String? _error;
 

@@ -32,6 +32,7 @@ abstract final class PreferenceKeys {
   static const defaultAccount = 'default_account';
   static const amountEntry = 'amount_entry';
   static const weekStart = 'week_start';
+  static const funMode = 'fun_mode';
 }
 
 /// What the user chose in Settings.
@@ -42,6 +43,7 @@ class AppPreferences {
     this.defaultAccountId,
     this.amountEntry = AmountEntry.keyboard,
     this.weekStart = WeekStart.sunday,
+    this.funMode = true,
   });
 
   static const defaults = AppPreferences();
@@ -54,12 +56,16 @@ class AppPreferences {
   final AmountEntry amountEntry;
   final WeekStart weekStart;
 
+  /// Takka the coin, little jokes and celebrations. Off makes a plain app.
+  final bool funMode;
+
   AppPreferences copyWith({
     ThemePreference? theme,
     AppLanguage? language,
     int? Function()? defaultAccountId,
     AmountEntry? amountEntry,
     WeekStart? weekStart,
+    bool? funMode,
   }) => AppPreferences(
     theme: theme ?? this.theme,
     language: language ?? this.language,
@@ -68,6 +74,7 @@ class AppPreferences {
         : defaultAccountId(),
     amountEntry: amountEntry ?? this.amountEntry,
     weekStart: weekStart ?? this.weekStart,
+    funMode: funMode ?? this.funMode,
   );
 
   /// Reads saved preferences. Anything missing or not understood (a value
@@ -101,6 +108,8 @@ class AppPreferences {
         PreferenceKeys.weekStart,
         defaults.weekStart,
       ),
+      // Only an explicit "false" turns it off.
+      funMode: saved[PreferenceKeys.funMode] != 'false',
     );
   }
 
@@ -112,6 +121,7 @@ class AppPreferences {
     PreferenceKeys.defaultAccount: defaultAccountId?.toString(),
     PreferenceKeys.amountEntry: amountEntry.name,
     PreferenceKeys.weekStart: weekStart.name,
+    PreferenceKeys.funMode: funMode.toString(),
   };
 
   @override
@@ -121,9 +131,16 @@ class AppPreferences {
       other.language == language &&
       other.defaultAccountId == defaultAccountId &&
       other.amountEntry == amountEntry &&
-      other.weekStart == weekStart;
+      other.weekStart == weekStart &&
+      other.funMode == funMode;
 
   @override
-  int get hashCode =>
-      Object.hash(theme, language, defaultAccountId, amountEntry, weekStart);
+  int get hashCode => Object.hash(
+    theme,
+    language,
+    defaultAccountId,
+    amountEntry,
+    weekStart,
+    funMode,
+  );
 }

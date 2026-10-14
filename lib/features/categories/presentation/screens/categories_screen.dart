@@ -3,6 +3,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
+import 'package:hishab/core/theme/tabular_figures.dart';
+import 'package:hishab/core/utils/clock.dart';
+import 'package:hishab/core/utils/date_labels.dart';
+import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/features/reports/presentation/providers/reports_providers.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/show_archived_chip.dart';
@@ -26,8 +31,27 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   CategoryType _type = CategoryType.expense;
   bool _showArchived = false;
 
-  /// The categories that are closed. Everything starts open.
+  /// The categories that are closed. A small tree starts fully open. A big
+  /// one (the Bangladesh defaults) starts with the top level open, showing
+  /// what is directly inside each group, and the groups inside those closed,
+  /// so Food > Kacha bazar > Fish is not one endless list.
   final Set<int> _closed = {};
+  var _closedSeeded = false;
+
+  /// A tree with more rows than this starts with its deep groups closed.
+  static const _bigTree = 40;
+
+  /// The ids of the groups that start closed: none for a small tree, else every
+  /// one with others inside it, below the top level.
+  Set<int> _deepGroupIds(List<CategoryNode> tree) {
+    final nodes = flattenNodes(tree);
+    if (nodes.length <= _bigTree) return {};
+    return {
+      for (final node in nodes)
+        if (node.children.isNotEmpty && node.category.parentId != null)
+          node.category.id,
+    };
+  }
 
   /// The rows to draw: a closed category hides what is inside it.
   List<({CategoryNode node, int depth})> _visibleRows(List<CategoryNode> tree) {
@@ -56,6 +80,13 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(categoriesProvider(_showArchived));
+    final amounts =
+        ref.watch(categoryMonthTotalsProvider).value ?? const <int, int>{};
+    final month = ref.read(clockProvider)();
+    if (!_closedSeeded && categories.hasValue) {
+      _closedSeeded = true;
+      _closed.addAll(_deepGroupIds(buildCategoryTree(categories.value!)));
+    }
     final tree = buildCategoryTree(
       (categories.value ?? const <Category>[]).where((c) => c.type == _type),
     );
@@ -114,6 +145,23 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
               onChanged: (value) => setState(() => _showArchived = value),
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                tr(
+                  'Amounts are for {month}. A group counts everything inside '
+                  'it.',
+                  {'month': monthLabel(month)},
+                ),
+                key: const ValueKey('amounts-note'),
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+          ),
           Expanded(
             child: categories.when(
               loading: () => const LoadingView(),
@@ -146,9 +194,11 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
                         category: row.node.category,
                         depth: row.depth,
                         childCount: row.node.children.length,
+                        monthTotal: amounts[row.node.category.id],
                         isClosed: _closed.contains(row.node.category.id),
                         onToggle: () => _toggle(row.node.category.id),
                       ),
+                    const _AddDefaultsTile(),
                   ],
                 );
               },
@@ -157,6 +207,78 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         ],
       ),
     );
+  }
+}
+
+/// Under the list: adds the everyday Bangladesh categories this install does
+/// not have yet (kacha bazar, rickshaw, tuition, salami, fitra...). Hidden when
+/// nothing is missing.
+class _AddDefaultsTile extends ConsumerWidget {
+  const _AddDefaultsTile();
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final missing = ref.watch(missingDefaultCountProvider);
+    if (missing == 0) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+
+    return Card(
+      key: const ValueKey('add-defaults'),
+      margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(Icons.auto_awesome, color: theme.colorScheme.primary),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Text(
+                    tr('Everyday Bangladesh categories'),
+                    style: theme.textTheme.titleSmall,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(
+              tr(
+                '{count} more are ready: kacha bazar, rickshaw, tuition, '
+                'salami, fitra and more. What you have is not changed.',
+                {'count': missing},
+              ),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                key: const ValueKey('add-defaults-button'),
+                onPressed: () => _add(context, ref, missing),
+                child: Text(tr('Add them')),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _add(BuildContext context, WidgetRef ref, int missing) async {
+    try {
+      final added = await ref
+          .read(categoriesRepositoryProvider)
+          .addMissingDefaults();
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context)
+          .showMessage(tr('{count} categories added', {'count': added}));
+    } on Object catch (e) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showError(describeError(e));
+    }
   }
 }
 
@@ -169,6 +291,7 @@ class _CategoryTile extends ConsumerWidget {
     required this.childCount,
     required this.isClosed,
     required this.onToggle,
+    this.monthTotal,
   });
 
   final Category category;
@@ -180,6 +303,10 @@ class _CategoryTile extends ConsumerWidget {
   final int childCount;
   final bool isClosed;
   final VoidCallback onToggle;
+
+  /// What this category and everything inside it came to this month, in
+  /// poisha. Null or 0 shows nothing.
+  final int? monthTotal;
 
   bool get isChild => depth > 0;
 
@@ -231,25 +358,49 @@ class _CategoryTile extends ConsumerWidget {
       ),
       subtitle: notes.isEmpty ? null : Text(notes.join(' · ')),
       onTap: () => context.push(AppRoutes.editCategory(category.id)),
-      trailing: PopupMenuButton<_CategoryAction>(
-        onSelected: (action) => _onAction(context, ref, action),
-        itemBuilder: (context) => [
-          PopupMenuItem(value: _CategoryAction.edit, child: Text(tr('Edit'))),
-          if (canHaveChildren && !category.isArchived)
-            PopupMenuItem(
-              value: _CategoryAction.addSub,
-              child: Text(tr('Add sub-category')),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if ((monthTotal ?? 0) != 0)
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 104),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerRight,
+                child: Text(
+                  formatPoisha(monthTotal!),
+                  key: ValueKey('category-amount-${category.id}'),
+                  style: theme.textTheme.bodyMedium?.tabular.copyWith(
+                    fontWeight: depth == 0 ? FontWeight.w700 : null,
+                    color: muted ? theme.colorScheme.onSurfaceVariant : null,
+                  ),
+                ),
+              ),
             ),
-          if (category.isArchived)
-            PopupMenuItem(
-              value: _CategoryAction.restore,
-              child: Text(tr('Restore')),
-            )
-          else
-            PopupMenuItem(
-              value: _CategoryAction.archive,
-              child: Text(tr('Archive')),
-            ),
+          PopupMenuButton<_CategoryAction>(
+            onSelected: (action) => _onAction(context, ref, action),
+            itemBuilder: (context) => [
+              PopupMenuItem(
+                value: _CategoryAction.edit,
+                child: Text(tr('Edit')),
+              ),
+              if (canHaveChildren && !category.isArchived)
+                PopupMenuItem(
+                  value: _CategoryAction.addSub,
+                  child: Text(tr('Add sub-category')),
+                ),
+              if (category.isArchived)
+                PopupMenuItem(
+                  value: _CategoryAction.restore,
+                  child: Text(tr('Restore')),
+                )
+              else
+                PopupMenuItem(
+                  value: _CategoryAction.archive,
+                  child: Text(tr('Archive')),
+                ),
+            ],
+          ),
         ],
       ),
     );

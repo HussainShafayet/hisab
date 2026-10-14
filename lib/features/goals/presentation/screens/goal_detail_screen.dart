@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/features/fun/presentation/celebrate.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
@@ -78,14 +79,19 @@ class GoalDetailScreen extends ConsumerWidget {
     );
     if (money == null) return;
     try {
-      await ref
-          .read(goalsRepositoryProvider)
-          .addEntry(
-            goalId,
-            amount: putIn ? money.amount : -money.amount,
-            date: money.date,
-            note: money.note,
-          );
+      final repository = ref.read(goalsRepositoryProvider);
+      final wasReached = (await repository.getGoal(goalId))?.isReached ?? false;
+      await repository.addEntry(
+        goalId,
+        amount: putIn ? money.amount : -money.amount,
+        date: money.date,
+        note: money.note,
+      );
+      // The money that makes the goal: a little celebration.
+      final isReached = (await repository.getGoal(goalId))?.isReached ?? false;
+      if (putIn && isReached && !wasReached && context.mounted) {
+        celebrate(context, ref);
+      }
     } on Object catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showError(describeError(e));
