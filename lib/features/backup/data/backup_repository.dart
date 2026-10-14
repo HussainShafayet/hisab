@@ -1,5 +1,6 @@
 import 'package:csv/csv.dart';
 import 'package:drift/drift.dart';
+import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/money.dart';
@@ -7,6 +8,7 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/backup/domain/backup_data.dart';
 import 'package:hishab/features/categories/data/category_mapper.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
+import 'package:hishab/features/metals/domain/metals.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// Saving everything to a file and bringing it back, and exporting the
@@ -30,6 +32,9 @@ class BackupRepository {
     final tags = await _db.tagsDao.getAll();
     final shoppingItems = await _db.bazarDao.getAllItems();
     final itemPrices = await _db.bazarDao.getAllPrices();
+    final metalHoldings = await _db.metalsDao.getAll();
+    final investments = await _db.investmentsDao.getAllInvestments();
+    final investmentEntries = await _db.investmentsDao.getAllEntries();
     return BackupData(
       exportedAt: now.toUtc(),
       accounts: [
@@ -74,6 +79,7 @@ class BackupRepository {
             isAdjustment: t.isAdjustment,
             usdAmount: t.usdAmount,
             tagId: t.tagId,
+            feeling: t.feeling,
             createdAt: t.createdAt.toUtc(),
             updatedAt: t.updatedAt.toUtc(),
           ),
@@ -145,6 +151,18 @@ class BackupRepository {
             createdAt: i.createdAt.toUtc(),
           ),
       ],
+      metalHoldings: [
+        for (final m in metalHoldings)
+          BackupMetalHolding(
+            id: m.id,
+            metal: m.metal.name,
+            name: m.name,
+            milligrams: m.milligrams,
+            purity: m.purity,
+            cost: m.cost,
+            createdAt: m.createdAt.toUtc(),
+          ),
+      ],
       itemPrices: [
         for (final p in itemPrices)
           BackupItemPrice(
@@ -178,6 +196,32 @@ class BackupRepository {
             amount: e.amount,
             date: e.date.toUtc(),
             note: e.note,
+            createdAt: e.createdAt.toUtc(),
+          ),
+      ],
+      investments: [
+        for (final i in investments)
+          BackupInvestment(
+            id: i.id,
+            name: i.name,
+            note: i.note,
+            startedOn: i.startedOn.toUtc(),
+            currentValue: i.currentValue,
+            isClosed: i.isClosed,
+            createdAt: i.createdAt.toUtc(),
+          ),
+      ],
+      investmentEntries: [
+        for (final e in investmentEntries)
+          BackupInvestmentEntry(
+            id: e.id,
+            investmentId: e.investmentId,
+            kind: e.kind.name,
+            amount: e.amount,
+            date: e.date.toUtc(),
+            note: e.note,
+            accountId: e.accountId,
+            transactionId: e.transactionId,
             createdAt: e.createdAt.toUtc(),
           ),
       ],
@@ -251,6 +295,18 @@ class BackupRepository {
                 createdAt: Value(i.createdAt),
               ),
           ]);
+          batch.insertAll(_db.metalHoldings, [
+            for (final m in data.metalHoldings)
+              MetalHoldingsCompanion.insert(
+                id: Value(m.id),
+                metal: Metal.values.byName(m.metal),
+                name: m.name,
+                milligrams: m.milligrams,
+                purity: m.purity,
+                cost: Value(m.cost),
+                createdAt: Value(m.createdAt),
+              ),
+          ]);
           batch.insertAll(_db.itemPrices, [
             for (final p in data.itemPrices)
               ItemPricesCompanion.insert(
@@ -305,6 +361,7 @@ class BackupRepository {
                 isAdjustment: Value(t.isAdjustment),
                 usdAmount: Value(t.usdAmount),
                 tagId: Value(t.tagId),
+                feeling: Value(t.feeling),
                 createdAt: Value(t.createdAt),
                 updatedAt: Value(t.updatedAt),
               ),
@@ -337,6 +394,32 @@ class BackupRepository {
                 createdAt: Value(p.createdAt),
               ),
           ]);
+          batch.insertAll(_db.investments, [
+            for (final i in data.investments)
+              InvestmentsCompanion.insert(
+                id: Value(i.id),
+                name: i.name,
+                note: Value(i.note),
+                startedOn: i.startedOn,
+                currentValue: Value(i.currentValue),
+                isClosed: Value(i.isClosed),
+                createdAt: Value(i.createdAt),
+              ),
+          ]);
+          batch.insertAll(_db.investmentEntries, [
+            for (final e in data.investmentEntries)
+              InvestmentEntriesCompanion.insert(
+                id: Value(e.id),
+                investmentId: e.investmentId,
+                kind: InvestmentEntryKind.values.byName(e.kind),
+                amount: e.amount,
+                date: e.date,
+                note: Value(e.note),
+                accountId: Value(e.accountId),
+                transactionId: Value(e.transactionId),
+                createdAt: Value(e.createdAt),
+              ),
+          ]);
           batch.insertAll(_db.budgets, [
             for (final b in data.budgets)
               BudgetsCompanion.insert(
@@ -364,6 +447,9 @@ class BackupRepository {
   /// Rows that others point at go last: transactions and budgets first, then
   /// categories from the innermost out, then accounts.
   Future<void> _deleteEverything() async {
+    await _db.delete(_db.investmentEntries).go();
+    await _db.delete(_db.investments).go();
+    await _db.delete(_db.metalHoldings).go();
     await _db.delete(_db.shoppingItems).go();
     await _db.delete(_db.itemPrices).go();
     await _db.delete(_db.goalEntries).go();

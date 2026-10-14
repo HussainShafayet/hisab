@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
@@ -7,7 +8,9 @@ import 'package:hishab/features/categories/domain/category_tree.dart'
     show maxCategoryDepth;
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/metals/domain/metals.dart';
 import 'package:hishab/features/recurring/domain/recurring.dart';
+import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// The version of the backup file format. Raise it when the format changes in
@@ -20,9 +23,12 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 /// 5: dollars on credit cards (`usdLimit`, `usdAmount`).
 /// 6: savings goals (`goals`, `goalEntries`).
 /// 7: trips and events (`tags`, `tagId` on a transaction).
-/// 8: the bazar list (`shoppingItems`, `itemPrices`). An older file has none
-/// of what came after it, and is read as having none.
-const backupFormatVersion = 8;
+/// 8: the bazar list (`shoppingItems`, `itemPrices`).
+/// 9: gold and silver (`metalHoldings`).
+/// 10: how an expense felt (`feeling` on a transaction). An older file has
+/// none of what came after it, and is read as having none.
+/// 11: business investments (`investments`, `investmentEntries`).
+const backupFormatVersion = 11;
 
 const _appId = 'hishab';
 
@@ -222,6 +228,7 @@ class BackupTransaction {
     required this.updatedAt,
     this.usdAmount,
     this.tagId,
+    this.feeling,
   });
 
   factory BackupTransaction.fromJson(Map<String, Object?> json) {
@@ -238,6 +245,9 @@ class BackupTransaction {
       isAdjustment: _bool(json, 'isAdjustment', where, orElse: false),
       usdAmount: _intOrNull(json, 'usdAmount', where),
       tagId: _intOrNull(json, 'tagId', where),
+      feeling: json['feeling'] == null
+          ? null
+          : _enum(Feeling.values, json, 'feeling', where),
       createdAt: _date(json, 'createdAt', where),
       updatedAt: _date(json, 'updatedAt', where),
     );
@@ -260,6 +270,9 @@ class BackupTransaction {
 
   /// A trip or event (format 7 and later).
   final int? tagId;
+
+  /// How an expense felt (format 10 and later).
+  final Feeling? feeling;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -275,6 +288,7 @@ class BackupTransaction {
     'isAdjustment': isAdjustment,
     'usdAmount': usdAmount,
     'tagId': tagId,
+    'feeling': feeling?.name,
     'createdAt': _iso(createdAt),
     'updatedAt': _iso(updatedAt),
   };
@@ -407,6 +421,55 @@ class BackupShoppingItem {
     'quantity': quantity,
     'price': price,
     'isDone': isDone,
+    'createdAt': _iso(createdAt),
+  };
+}
+
+class BackupMetalHolding {
+  const BackupMetalHolding({
+    required this.id,
+    required this.metal,
+    required this.name,
+    required this.milligrams,
+    required this.purity,
+    required this.cost,
+    required this.createdAt,
+  });
+
+  factory BackupMetalHolding.fromJson(Map<String, Object?> json) {
+    const where = 'A gold or silver piece';
+    return BackupMetalHolding(
+      id: _int(json, 'id', where),
+      metal: _string(json, 'metal', where),
+      name: _string(json, 'name', where),
+      milligrams: _int(json, 'milligrams', where),
+      purity: _int(json, 'purity', where),
+      cost: _intOrNull(json, 'cost', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+
+  /// A `Metal` name: `gold` or `silver`.
+  final String metal;
+  final String name;
+  final int milligrams;
+
+  /// Parts per thousand.
+  final int purity;
+
+  /// In poisha, what it was bought for.
+  final int? cost;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'metal': metal,
+    'name': name,
+    'milligrams': milligrams,
+    'purity': purity,
+    'cost': cost,
     'createdAt': _iso(createdAt),
   };
 }
@@ -557,6 +620,108 @@ class BackupGoalEntry {
   };
 }
 
+class BackupInvestment {
+  const BackupInvestment({
+    required this.id,
+    required this.name,
+    required this.note,
+    required this.startedOn,
+    required this.currentValue,
+    required this.isClosed,
+    required this.createdAt,
+  });
+
+  factory BackupInvestment.fromJson(Map<String, Object?> json) {
+    const where = 'An investment';
+    final closed = json['isClosed'];
+    if (closed is! bool) _damaged('$where has no "isClosed" yes or no.');
+    return BackupInvestment(
+      id: _int(json, 'id', where),
+      name: _string(json, 'name', where),
+      note: _string(json, 'note', where),
+      startedOn: _date(json, 'startedOn', where),
+      currentValue: _intOrNull(json, 'currentValue', where),
+      isClosed: closed,
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final String name;
+  final String note;
+  final DateTime startedOn;
+
+  /// In poisha, or null when it was never set.
+  final int? currentValue;
+  final bool isClosed;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'name': name,
+    'note': note,
+    'startedOn': _iso(startedOn),
+    'currentValue': currentValue,
+    'isClosed': isClosed,
+    'createdAt': _iso(createdAt),
+  };
+}
+
+class BackupInvestmentEntry {
+  const BackupInvestmentEntry({
+    required this.id,
+    required this.investmentId,
+    required this.kind,
+    required this.amount,
+    required this.date,
+    required this.note,
+    required this.accountId,
+    required this.transactionId,
+    required this.createdAt,
+  });
+
+  factory BackupInvestmentEntry.fromJson(Map<String, Object?> json) {
+    const where = 'An investment line';
+    return BackupInvestmentEntry(
+      id: _int(json, 'id', where),
+      investmentId: _int(json, 'investmentId', where),
+      kind: _string(json, 'kind', where),
+      amount: _int(json, 'amount', where),
+      date: _date(json, 'date', where),
+      note: _string(json, 'note', where),
+      accountId: _intOrNull(json, 'accountId', where),
+      transactionId: _intOrNull(json, 'transactionId', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final int investmentId;
+
+  /// `putIn`, `profit` or `takeBack`.
+  final String kind;
+
+  /// In poisha, above zero.
+  final int amount;
+  final DateTime date;
+  final String note;
+  final int? accountId;
+  final int? transactionId;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'investmentId': investmentId,
+    'kind': kind,
+    'amount': amount,
+    'date': _iso(date),
+    'note': note,
+    'accountId': accountId,
+    'transactionId': transactionId,
+    'createdAt': _iso(createdAt),
+  };
+}
+
 class BackupRecurringRule {
   const BackupRecurringRule({
     required this.id,
@@ -693,6 +858,9 @@ class BackupData {
     this.tags = const [],
     this.shoppingItems = const [],
     this.itemPrices = const [],
+    this.metalHoldings = const [],
+    this.investments = const [],
+    this.investmentEntries = const [],
   });
 
   /// Reads and checks backup text. Throws a [ValidationException] that says
@@ -776,6 +944,18 @@ class BackupData {
         for (final item in _optionalList(json, 'itemPrices'))
           BackupItemPrice.fromJson(_object(item, 'A remembered price')),
       ],
+      metalHoldings: [
+        for (final item in _optionalList(json, 'metalHoldings'))
+          BackupMetalHolding.fromJson(_object(item, 'A gold or silver piece')),
+      ],
+      investments: [
+        for (final item in _optionalList(json, 'investments'))
+          BackupInvestment.fromJson(_object(item, 'An investment')),
+      ],
+      investmentEntries: [
+        for (final item in _optionalList(json, 'investmentEntries'))
+          BackupInvestmentEntry.fromJson(_object(item, 'An investment line')),
+      ],
     );
     data._checkLinks();
     return data;
@@ -794,6 +974,9 @@ class BackupData {
   final List<BackupTag> tags;
   final List<BackupShoppingItem> shoppingItems;
   final List<BackupItemPrice> itemPrices;
+  final List<BackupMetalHolding> metalHoldings;
+  final List<BackupInvestment> investments;
+  final List<BackupInvestmentEntry> investmentEntries;
 
   Map<String, Object?> toJson() => {
     'app': _appId,
@@ -811,6 +994,9 @@ class BackupData {
     'tags': [for (final t in tags) t.toJson()],
     'shoppingItems': [for (final i in shoppingItems) i.toJson()],
     'itemPrices': [for (final p in itemPrices) p.toJson()],
+    'metalHoldings': [for (final m in metalHoldings) m.toJson()],
+    'investments': [for (final i in investments) i.toJson()],
+    'investmentEntries': [for (final e in investmentEntries) e.toJson()],
   };
 
   /// The categories with every category after the one it is inside, so they
@@ -864,6 +1050,41 @@ class BackupData {
       }
     }
 
+    uniqueIds(investments.map((i) => i.id), 'investments');
+    uniqueIds(investmentEntries.map((e) => e.id), 'investment lines');
+    final investmentIds = {for (final i in investments) i.id};
+    for (final i in investments) {
+      final value = i.currentValue;
+      if (value != null && value < 0) {
+        _damaged('investment ${i.id} has a value below zero.');
+      }
+    }
+    for (final e in investmentEntries) {
+      if (!investmentIds.contains(e.investmentId)) {
+        _damaged(
+          'investment line ${e.id} points to an investment that is not in '
+          'the file.',
+        );
+      }
+      if (!InvestmentEntryKind.values.any((k) => k.name == e.kind)) {
+        _damaged(
+          'investment line ${e.id} is of "${e.kind}", which is not a kind.',
+        );
+      }
+      if (e.amount <= 0) {
+        _damaged('investment line ${e.id} has an amount that cannot be.');
+      }
+      checkLoanLinks('investment line', e.id, e.accountId, e.transactionId);
+    }
+    uniqueIds(metalHoldings.map((m) => m.id), 'gold and silver pieces');
+    for (final m in metalHoldings) {
+      if (!Metal.values.any((v) => v.name == m.metal)) {
+        _damaged('piece ${m.id} is of "${m.metal}", which is not a metal.');
+      }
+      if (m.milligrams <= 0 || m.purity < 1 || m.purity > 1000) {
+        _damaged('piece ${m.id} has a weight or purity that cannot be.');
+      }
+    }
     uniqueIds(shoppingItems.map((i) => i.id), 'bazar list items');
     uniqueIds(itemPrices.map((p) => p.id), 'remembered prices');
     final priceKeys = <String>{};

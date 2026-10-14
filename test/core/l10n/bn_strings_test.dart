@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hishab/features/fun/domain/quips.dart';
 import 'package:hishab/core/l10n/bn_strings.dart';
 import 'package:hishab/features/backup/domain/import_mapping.dart';
 import 'package:hishab/features/backup/domain/sheet_date.dart';
@@ -157,6 +158,8 @@ void main() {
         'transaction',
         'loan',
         'recurring item',
+        // Takka's lines are chosen at run time, then passed to tr().
+        ...allQuips,
       ];
 
       for (final text in english) {
@@ -176,6 +179,7 @@ void main() {
         'transaction',
         'loan',
         'recurring item',
+        ...allQuips,
       };
       for (final file in Directory('lib').listSync(recursive: true)) {
         if (file is! File || !file.path.endsWith('.dart')) continue;

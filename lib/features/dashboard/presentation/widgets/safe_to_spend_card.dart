@@ -6,15 +6,23 @@ import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/budget/domain/safe_to_spend.dart';
+import 'package:hishab/features/dashboard/presentation/widgets/afford_sheet.dart';
 
 /// "You can spend today": the daily share of what is left of the month's
 /// budget, after the bills still to come. Without a budget it invites to set
 /// one.
 class SafeToSpendCard extends StatelessWidget {
-  const SafeToSpendCard({required this.figures, super.key});
+  const SafeToSpendCard({
+    required this.figures,
+    this.totalBalance = 0,
+    super.key,
+  });
 
   /// Null when the month has no overall budget.
   final SafeToSpend? figures;
+
+  /// The money in the accounts that count, for "Can I afford it?".
+  final int totalBalance;
 
   @override
   Widget build(BuildContext context) {
@@ -26,40 +34,58 @@ class SafeToSpendCard extends StatelessWidget {
       margin: const EdgeInsets.fromLTRB(16, 12, 16, 0),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: safe == null
-            ? Column(
-                key: const ValueKey('safe-no-budget'),
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            safe == null
+                ? Column(
+                    key: const ValueKey('safe-no-budget'),
                     children: [
-                      Icon(
-                        Icons.account_balance_wallet_outlined,
-                        color: theme.colorScheme.primary,
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          tr(
-                            'Set a monthly budget and Hishab tells you how '
-                            'much you can spend each day.',
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.account_balance_wallet_outlined,
+                            color: theme.colorScheme.primary,
                           ),
-                          style: theme.textTheme.bodyMedium,
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Text(
+                              tr(
+                                'Set a monthly budget and Hishab tells you how '
+                                'much you can spend each day.',
+                              ),
+                              style: theme.textTheme.bodyMedium,
+                            ),
+                          ),
+                        ],
+                      ),
+                      // Under the text, so a long button label has room.
+                      Align(
+                        alignment: Alignment.centerRight,
+                        child: TextButton(
+                          onPressed: () => context.go(AppRoutes.budget),
+                          child: Text(tr('Set budget')),
                         ),
                       ),
                     ],
-                  ),
-                  // Under the text, so a long button label has room.
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => context.go(AppRoutes.budget),
-                      child: Text(tr('Set budget')),
-                    ),
-                  ),
-                ],
-              )
-            : _Figures(safe: safe, expense: colors.expense),
+                  )
+                : _Figures(safe: safe, expense: colors.expense),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton.icon(
+                key: const ValueKey('afford-button'),
+                onPressed: () => showAffordSheet(
+                  context,
+                  safe: safe,
+                  totalBalance: totalBalance,
+                ),
+                icon: const Icon(Icons.help_outline, size: 18),
+                label: Text(tr('Can I afford it?')),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }

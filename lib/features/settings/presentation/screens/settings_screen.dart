@@ -190,6 +190,26 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           _Section(
+            title: tr('Fun'),
+            children: [
+              SwitchListTile(
+                key: const ValueKey('fun-mode'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.celebration_outlined),
+                title: Text(tr('Fun mode')),
+                subtitle: Text(
+                  tr(
+                    'Takka the coin, little jokes and a bit of confetti. '
+                    'Turn it off for a plain app.',
+                  ),
+                ),
+                value: preferences.funMode,
+                onChanged: (value) =>
+                    _change(ref, (p) => p.copyWith(funMode: value)),
+              ),
+            ],
+          ),
+          _Section(
             title: tr('About'),
             children: [
               ListTile(

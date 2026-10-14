@@ -1,11 +1,14 @@
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/features/categories/data/category_mapper.dart';
 import 'package:hishab/features/reports/domain/account_total.dart';
+import 'package:hishab/features/reports/domain/category_branch.dart';
 import 'package:hishab/features/reports/domain/category_total.dart';
 import 'package:hishab/features/reports/domain/period_totals.dart';
 import 'package:hishab/features/reports/domain/report_data.dart';
 import 'package:hishab/features/transactions/data/transactions_repository.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
+import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// Sums over a period for the Reports screen and the Home screen. Income and
 /// expense never include transfers or balance adjustments.
@@ -57,6 +60,20 @@ class ReportsRepository {
           total: row.total,
         ),
     ];
+  }
+
+  /// The money of [type] in [range] down the category tree.
+  Future<List<CategoryBranch>> categoryBranches(
+    DateRange range,
+    TransactionType type,
+  ) async {
+    final own = await _db.reportsDao.ownTotalsByCategory(
+      type,
+      range.start,
+      range.end,
+    );
+    final rows = await _db.categoriesDao.getAll(includeArchived: true);
+    return buildBranches([for (final row in rows) row.toDomain()], own);
   }
 
   /// Income and expense of each account in [range].
@@ -120,6 +137,8 @@ class ReportsRepository {
       categories: await expenseByCategory(range),
       incomeCategories: await incomeByCategory(range),
       accounts: await accountTotals(range),
+      expenseBranches: await categoryBranches(range, TransactionType.expense),
+      incomeBranches: await categoryBranches(range, TransactionType.income),
       months: await monthlyTotals(lastDay),
       topExpenses: await topExpenses(range),
     );

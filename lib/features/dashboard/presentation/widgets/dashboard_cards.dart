@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
@@ -65,8 +66,8 @@ class TotalBalanceCard extends StatelessWidget {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: Text(
-                          formatPoisha(balance),
+                        child: AnimatedAmount(
+                          poisha: balance,
                           style: theme.textTheme.displaySmall?.tabular.copyWith(
                             fontWeight: FontWeight.w700,
                             color: balance < 0
@@ -199,11 +200,14 @@ class _RingContent extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               SizedBox.expand(
-                child: CircularProgressIndicator(
+                child: AnimatedFraction(
                   value: progress.fraction,
-                  strokeWidth: 10,
-                  color: color,
-                  backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  builder: (context, value) => CircularProgressIndicator(
+                    value: value,
+                    strokeWidth: 10,
+                    color: color,
+                    backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                  ),
                 ),
               ),
               Text(

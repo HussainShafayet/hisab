@@ -1,3 +1,4 @@
+import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// A transaction together with the names the UI needs to show it.
@@ -15,6 +16,7 @@ class TransactionItem {
     this.usdAmount,
     this.tagId,
     this.tagName,
+    this.feeling,
     this.toAccountId,
     this.toAccountName,
     this.categoryId,
@@ -64,4 +66,7 @@ class TransactionItem {
   /// The trip or event the transaction belongs to, if any.
   final int? tagId;
   final String? tagName;
+
+  /// How an expense felt, if the person said.
+  final Feeling? feeling;
 }

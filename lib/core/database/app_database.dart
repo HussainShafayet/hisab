@@ -16,6 +16,12 @@ import 'package:hishab/features/debts/data/debts_table.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/goals/data/goals_dao.dart';
 import 'package:hishab/features/goals/data/goals_table.dart';
+import 'package:hishab/features/investments/data/investments_dao.dart';
+import 'package:hishab/features/investments/data/investments_table.dart';
+import 'package:hishab/features/investments/domain/investment.dart';
+import 'package:hishab/features/metals/data/metals_dao.dart';
+import 'package:hishab/features/metals/data/metals_table.dart';
+import 'package:hishab/features/metals/domain/metals.dart';
 import 'package:hishab/features/recurring/data/recurring_dao.dart';
 import 'package:hishab/features/recurring/data/recurring_table.dart';
 import 'package:hishab/features/recurring/domain/recurring.dart';
@@ -26,6 +32,7 @@ import 'package:hishab/features/tags/data/tags_dao.dart';
 import 'package:hishab/features/tags/data/tags_table.dart';
 import 'package:hishab/features/transactions/data/transactions_dao.dart';
 import 'package:hishab/features/transactions/data/transactions_table.dart';
+import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 part 'app_database.g.dart';
@@ -54,6 +61,9 @@ final _budgetsMonthCategoryUnique = Index(
     Tags,
     ShoppingItems,
     ItemPrices,
+    MetalHoldings,
+    Investments,
+    InvestmentEntries,
   ],
   daos: [
     AccountsDao,
@@ -67,6 +77,8 @@ final _budgetsMonthCategoryUnique = Index(
     GoalsDao,
     TagsDao,
     BazarDao,
+    MetalsDao,
+    InvestmentsDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -85,13 +97,17 @@ class AppDatabase extends _$AppDatabase {
   /// 4: the `debts` and `debt_payments` tables (dhar / baki).
   /// 5: the `recurring_rules` table.
   /// 6: `accounts.credit_limit` and `accounts.bill_due_day` (credit cards).
+  /// 13: the `investments` and `investment_entries` tables (business
+  /// investments).
+  /// 12: `transactions.feeling` (needed, wanted, regret).
+  /// 11: the `metal_holdings` table (gold and silver).
   /// 10: the `shopping_items` and `item_prices` tables (bazar list).
   /// 9: the `tags` table and `transactions.tag_id` (trips and events).
   /// 8: the `savings_goals` and `goal_entries` tables.
   /// 7: `transactions.usd_amount` and `accounts.usd_limit` (dollar spending
   /// on credit cards).
   @override
-  int get schemaVersion => 10;
+  int get schemaVersion => 13;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -144,6 +160,17 @@ class AppDatabase extends _$AppDatabase {
       if (from < 10) {
         await migrator.createTable(shoppingItems);
         await migrator.createTable(itemPrices);
+      }
+      if (from < 11) {
+        await migrator.createTable(metalHoldings);
+      }
+      if (from < 12) {
+        await migrator.addColumn(transactions, transactions.feeling);
+      }
+      if (from < 13) {
+        await migrator.createTable(investments);
+        await migrator.createTable(investmentEntries);
+        await migrator.createIndex(idxInvestmentEntriesInvestmentId);
       }
     },
     beforeOpen: (details) async {

@@ -2,12 +2,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/accounts/data/default_accounts.dart';
 import 'package:hishab/features/categories/data/default_categories.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 
 import '../../helpers/test_database.dart';
 
 int _countWithChildren(List<DefaultCategory> categories) =>
-    categories.fold(0, (sum, c) => sum + 1 + c.children.length);
+    flattenDefaults(categories).length;
 
 void main() {
   late AppDatabase db;
@@ -38,7 +39,7 @@ void main() {
     expect(income, hasLength(_countWithChildren(defaultIncomeCategories)));
   });
 
-  test('sub-categories point at a top-level parent of the same type', () async {
+  test('sub-categories point at a parent of the same type', () async {
     final all = await db.categoriesDao.getAll();
     final byId = {for (final c in all) c.id: c};
 
@@ -47,10 +48,36 @@ void main() {
     for (final child in subCategories) {
       final parent = byId[child.parentId];
       expect(parent, isNotNull, reason: child.name);
-      expect(parent!.parentId, isNull, reason: '${child.name} is nested twice');
-      expect(parent.type, child.type, reason: child.name);
+      expect(parent!.type, child.type, reason: child.name);
     }
   });
+
+  test('the tree goes down a few levels but stays within the limit', () async {
+    final all = await db.categoriesDao.getAll();
+    final byId = {for (final c in all) c.id: c};
+    int level(CategoryRow c) =>
+        c.parentId == null ? 1 : 1 + level(byId[c.parentId]!);
+
+    final deepest = all.map(level).reduce((a, b) => a > b ? a : b);
+    expect(deepest, greaterThanOrEqualTo(3));
+    expect(deepest, lessThanOrEqualTo(maxCategoryDepth));
+  });
+
+  test(
+    'a sub-category comes after its parent and keeps the list order',
+    () async {
+      final all = await db.categoriesDao.getAll(type: CategoryType.expense);
+      final food = all.singleWhere((c) => c.name == 'Food');
+      final inside = all.where((c) => c.parentId == food.id).toList()
+        ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+
+      expect(inside.map((c) => c.name).take(3), [
+        'Groceries',
+        'Kacha bazar',
+        'Restaurants',
+      ]);
+    },
+  );
 
   test('top-level categories keep the order of the default list', () async {
     final expense = await db.categoriesDao.getAll(type: CategoryType.expense);

@@ -6,6 +6,7 @@ import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/categories/data/categories_repository.dart';
+import 'package:hishab/features/categories/data/parent_suggestion.dart';
 import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
@@ -189,6 +190,12 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
     ];
   }
 
+  /// The group the typed name probably belongs in, while no group is chosen
+  /// yet. Never when editing: a category that exists is already placed.
+  Category? get _suggestion => _isEditing || _parentId != null
+      ? null
+      : suggestParent(name: _name.text, type: _type, all: widget.all);
+
   /// Opens the sheet to choose which category this one goes inside.
   Future<void> _chooseParent() async {
     final pick = await showCategoryPicker(
@@ -302,6 +309,18 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                         ? tr('Enter a name')
                         : null,
                   ),
+                  if (_suggestion case final suggested?)
+                    _ParentSuggestionBanner(
+                      parent: suggested,
+                      onApply: () => setState(() {
+                        _parentId = suggested.id;
+                        // A new category looks like the group it joins.
+                        if (_icon == 'category') _icon = suggested.icon;
+                        if (_color == defaultCategoryColor) {
+                          _color = suggested.color;
+                        }
+                      }),
+                    ),
                   const SizedBox(height: 20),
                   SegmentedButton<CategoryType>(
                     showSelectedIcon: false,
@@ -345,6 +364,11 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
                     child: InputDecorator(
                       decoration: InputDecoration(
                         labelText: tr('Inside'),
+                        helperText: tr(
+                          'The bigger group it belongs to, like Food for '
+                          'Fuchka. Leave it at top level to start a new group.',
+                        ),
+                        helperMaxLines: 3,
                         suffixIcon: Icon(Icons.unfold_more),
                       ),
                       child: Text(
@@ -469,6 +493,55 @@ class _PickerCell extends StatelessWidget {
             ),
           ),
           child: child,
+        ),
+      ),
+    );
+  }
+}
+
+/// "Looks like it goes inside Food", with a button to put it there.
+class _ParentSuggestionBanner extends StatelessWidget {
+  const _ParentSuggestionBanner({required this.parent, required this.onApply});
+
+  final Category parent;
+  final VoidCallback onApply;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.only(top: 8),
+      child: Container(
+        key: const ValueKey('parent-suggestion'),
+        padding: const EdgeInsets.fromLTRB(12, 4, 4, 4),
+        decoration: BoxDecoration(
+          color: theme.colorScheme.secondaryContainer,
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Row(
+          children: [
+            Icon(
+              Icons.lightbulb_outline,
+              size: 18,
+              color: theme.colorScheme.onSecondaryContainer,
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                tr('Looks like it goes inside {place}.', {
+                  'place': parent.name,
+                }),
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ),
+            TextButton(
+              key: const ValueKey('parent-suggestion-apply'),
+              onPressed: onApply,
+              child: Text(tr('Put it there')),
+            ),
+          ],
         ),
       ),
     );

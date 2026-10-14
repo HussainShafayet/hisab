@@ -16,6 +16,7 @@ import 'package:hishab/features/accounts/presentation/providers/accounts_provide
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/debts/presentation/widgets/day_field.dart';
+import 'package:hishab/features/metals/presentation/providers/metals_providers.dart';
 import 'package:hishab/features/reminders/reminder_sync.dart';
 import 'package:hishab/features/zakat/data/zakat_settings_repository.dart';
 import 'package:hishab/features/zakat/domain/zakat.dart';
@@ -144,6 +145,8 @@ class _ZakatScreenState extends ConsumerState<ZakatScreen> {
         borrowed += item.remaining;
       }
     }
+    final metals = ref.watch(metalTotalsProvider);
+    final metalsValue = settings.countMetals ? metals.value : 0;
     final cardsOwed = totalOwed(ref.watch(creditCardsProvider));
     final debtsTotal = borrowed + cardsOwed;
 
@@ -151,7 +154,7 @@ class _ZakatScreenState extends ConsumerState<ZakatScreen> {
       ZakatInput(
         accounts: inAccounts,
         owedToYou: settings.countOwedToYou ? owedToYou : 0,
-        otherAssets: settings.otherAssets,
+        otherAssets: settings.otherAssets + metalsValue,
         youOwe: settings.subtractDebts ? debtsTotal : 0,
         nisab: nisabValue(settings.basis, settings.gramPrice),
       ),
@@ -209,12 +212,24 @@ class _ZakatScreenState extends ConsumerState<ZakatScreen> {
             value: settings.countOwedToYou,
             onChanged: (on) => _save(settings.copyWith(countOwedToYou: on)),
           ),
+          if (!metals.isEmpty)
+            SwitchListTile(
+              key: const ValueKey('zakat-count-metals'),
+              dense: true,
+              title: Text(tr('Add my gold and silver')),
+              subtitle: Text(
+                formatPoisha(metals.value),
+                key: const ValueKey('zakat-metals-value'),
+              ),
+              value: settings.countMetals,
+              onChanged: (on) => _save(settings.copyWith(countMetals: on)),
+            ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: MoneyFormField(
               key: const ValueKey('zakat-other'),
               controller: _other,
-              label: tr('Gold, silver and other savings (optional)'),
+              label: tr('Other savings (optional)'),
               isRequired: false,
               onChanged: (text) => _save(
                 settings.copyWith(otherAssets: parseTakaToPoisha(text) ?? 0),

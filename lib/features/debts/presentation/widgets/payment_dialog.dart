@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/features/fun/presentation/celebrate.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/dates.dart';
@@ -50,15 +51,18 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
       _error = null;
     });
     try {
+      final amount = parseTakaToPoisha(_amount.text)!;
       await ref
           .read(debtsRepositoryProvider)
           .addPayment(
             widget.item.debt.id,
-            amount: parseTakaToPoisha(_amount.text)!,
+            amount: amount,
             paidOn: combineDayWithTime(_day, ref.read(clockProvider)()),
             note: _note.text,
             accountId: _accountId,
           );
+      // The payment that clears the loan: a little celebration.
+      if (mounted && amount >= widget.item.remaining) celebrate(context, ref);
       if (mounted) Navigator.of(context).pop(true);
     } on Object catch (e) {
       if (mounted) {

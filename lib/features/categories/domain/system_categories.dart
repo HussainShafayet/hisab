@@ -17,3 +17,12 @@ const transferFeeNote = 'Transfer fee';
 /// (money lent, borrowed or paid back). They are corrections as far as income
 /// and expense go: lending is not spending.
 const loanCategoryName = 'Loans';
+
+/// The category of the transactions that move an account's balance for money
+/// put into an investment or taken back from it. They are corrections as far
+/// as income and expense go: investing is not spending.
+const investmentCategoryName = 'Investments';
+
+/// The income category of the profit received from an investment. Unlike the
+/// money put in and taken back, profit counts as income.
+const investmentProfitCategoryName = 'Investment profit';

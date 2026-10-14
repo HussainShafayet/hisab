@@ -13,8 +13,7 @@ const bnZakat = <String, String>{
   "From the market price of the metal. A jeweller's price may differ.":
       'ধাতুর বাজারদর থেকে। জুয়েলারের দাম আলাদা হতে পারে।',
   'Gold (87.48 g)': 'স্বর্ণ (৮৭.৪৮ গ্রাম)',
-  'Gold, silver and other savings (optional)':
-      'সোনা, রুপা ও অন্য সঞ্চয় (ঐচ্ছিক)',
+  'Other savings (optional)': 'অন্য সঞ্চয় (ঐচ্ছিক)',
   'Left to count': 'হিসাবে ধরা হবে',
   'Next reminder: {date}': 'পরের রিমাইন্ডার: {date}',
   'Nisab': 'নিসাব',

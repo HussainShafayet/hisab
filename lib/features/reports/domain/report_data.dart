@@ -1,5 +1,6 @@
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/features/reports/domain/account_total.dart';
+import 'package:hishab/features/reports/domain/category_branch.dart';
 import 'package:hishab/features/reports/domain/category_total.dart';
 import 'package:hishab/features/reports/domain/period_totals.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
@@ -16,6 +17,8 @@ class ReportData {
     required this.topExpenses,
     this.incomeCategories = const [],
     this.accounts = const [],
+    this.expenseBranches = const [],
+    this.incomeBranches = const [],
   });
 
   final DateRange range;
@@ -39,4 +42,11 @@ class ReportData {
 
   /// Income and expense of each account, the busiest first.
   final List<AccountTotal> accounts;
+
+  /// Expenses down the category tree, each group with the total of what is
+  /// inside it, biggest first.
+  final List<CategoryBranch> expenseBranches;
+
+  /// Income down the category tree.
+  final List<CategoryBranch> incomeBranches;
 }

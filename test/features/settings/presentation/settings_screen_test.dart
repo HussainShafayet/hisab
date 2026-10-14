@@ -433,6 +433,30 @@ void main() {
     });
   });
 
+  group('Fun mode', () {
+    testWithDatabase('is on, and can be turned off and on again', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openSettings(tester);
+      Finder fun() => find.byKey(const ValueKey('fun-mode'));
+
+      expect(tester.widget<SwitchListTile>(fun()).value, isTrue);
+
+      await tester.ensureVisible(fun());
+      await tester.tap(fun());
+      await tester.pumpAndSettle();
+      expect((await saved(db)).funMode, isFalse);
+      expect(tester.widget<SwitchListTile>(fun()).value, isFalse);
+
+      await tester.tap(fun());
+      await tester.pumpAndSettle();
+      expect((await saved(db)).funMode, isTrue);
+    });
+  });
+
   group('the week', () {
     testWithDatabase('can start on Saturday or Monday, and is saved', (
       tester,

@@ -14,6 +14,10 @@ void main() {
       expect(defaults.defaultAccountId, isNull);
     });
 
+    test('have Fun mode on', () {
+      expect(AppPreferences.defaults.funMode, isTrue);
+    });
+
     test('are what nothing saved gives', () {
       expect(AppPreferences.fromMap({}), AppPreferences.defaults);
     });
@@ -90,6 +94,7 @@ void main() {
         PreferenceKeys.defaultAccount: '3',
         PreferenceKeys.amountEntry: 'calculator',
         PreferenceKeys.weekStart: 'monday',
+        PreferenceKeys.funMode: 'true',
       });
     });
 
@@ -154,6 +159,40 @@ void main() {
         const AppPreferences(weekStart: WeekStart.monday).hashCode,
         const AppPreferences(weekStart: WeekStart.monday).hashCode,
       );
+    });
+  });
+
+  group('Fun mode', () {
+    test('is saved as true or false and read back', () {
+      expect(
+        const AppPreferences(funMode: false).toMap()[PreferenceKeys.funMode],
+        'false',
+      );
+      expect(AppPreferences.defaults.toMap()[PreferenceKeys.funMode], 'true');
+      expect(
+        AppPreferences.fromMap({PreferenceKeys.funMode: 'false'}).funMode,
+        isFalse,
+      );
+      expect(
+        AppPreferences.fromMap({PreferenceKeys.funMode: 'true'}).funMode,
+        isTrue,
+      );
+    });
+
+    test('stays on for anything that is not "false"', () {
+      expect(AppPreferences.fromMap({}).funMode, isTrue);
+      expect(
+        AppPreferences.fromMap({PreferenceKeys.funMode: 'banana'}).funMode,
+        isTrue,
+      );
+    });
+
+    test('is part of equality and copyWith', () {
+      expect(
+        AppPreferences.defaults.copyWith(funMode: false),
+        isNot(AppPreferences.defaults),
+      );
+      expect(AppPreferences.defaults.copyWith(funMode: false).funMode, isFalse);
     });
   });
 }

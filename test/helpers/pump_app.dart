@@ -27,6 +27,10 @@ void testWithDatabase(
   testWidgets(description, skip: skip, (tester) async {
     // The language is global state, so every test starts and ends in English.
     setAppLanguage(AppLanguage.english);
+    // No animations: Takka stands still and amounts show at once, so a
+    // screen settles and `find.text` sees the final value.
+    tester.platformDispatcher.accessibilityFeaturesTestValue =
+        const FakeAccessibilityFeatures(disableAnimations: true);
     final db = createTestDatabase(seedDefaults: seedDefaults);
     try {
       await body(tester, db);
@@ -35,6 +39,7 @@ void testWithDatabase(
       await tester.pump(Duration.zero);
       await db.close();
       setAppLanguage(AppLanguage.english);
+      tester.platformDispatcher.clearAccessibilityFeaturesTestValue();
     }
   });
 }

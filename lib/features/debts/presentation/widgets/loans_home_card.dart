@@ -30,7 +30,7 @@ class LoansHomeCard extends ConsumerWidget {
     final totals = debtTotals(items, today);
     final cardsOwed = totalOwed(cards);
     final toGive = totals.toPay + cardsOwed;
-    if (totals.toReceive == 0 && toGive == 0) return const SizedBox.shrink();
+    if (totals.toReceive == 0 && toGive == 0) return const _EmptyLoansCard();
 
     final theme = Theme.of(context);
     final colors = context.financeColors;
@@ -140,8 +140,60 @@ class LoansHomeCard extends ConsumerWidget {
                     ],
                   ),
                 ),
+              Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  key: const ValueKey('home-add-loan'),
+                  onPressed: () => context.push(AppRoutes.newDebt),
+                  icon: const Icon(Icons.add, size: 18),
+                  label: Text(tr('Add loan')),
+                ),
+              ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+/// Shown while there are no loans, so the feature can be found from Home.
+class _EmptyLoansCard extends StatelessWidget {
+  const _EmptyLoansCard();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      key: const ValueKey('loans-home-empty'),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            Icon(Icons.handshake_outlined, color: theme.colorScheme.primary),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(tr('Loans'), style: theme.textTheme.titleSmall),
+                  Text(
+                    tr('Lent or borrowed money? Keep track of it here.'),
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.tonal(
+              key: const ValueKey('home-add-first-loan'),
+              onPressed: () => context.push(AppRoutes.newDebt),
+              child: Text(tr('Add loan')),
+            ),
+          ],
         ),
       ),
     );

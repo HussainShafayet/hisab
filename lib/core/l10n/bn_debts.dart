@@ -133,4 +133,6 @@ const bnDebts = <String, String>{
   'There is nothing to set off.': 'কাটাকাটি করার মতো কিছু নেই।',
   'This takes {amount} off both sides. Account balances do not change.':
       'দুই দিক থেকেই {amount} কমবে। অ্যাকাউন্টের ব্যালেন্স বদলাবে না।',
+  'Lent or borrowed money? Keep track of it here.':
+      'কাউকে ধার দিয়েছেন বা কারও কাছ থেকে নিয়েছেন? এখানে হিসাব রাখুন।',
 };

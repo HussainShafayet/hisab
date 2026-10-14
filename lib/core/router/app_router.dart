@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/router/app_shell.dart';
+import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/presentation/screens/account_form_screen.dart';
 import 'package:hishab/features/accounts/presentation/screens/accounts_screen.dart';
@@ -23,8 +24,14 @@ import 'package:hishab/features/debts/presentation/screens/split_bill_screen.dar
 import 'package:hishab/features/goals/presentation/screens/goal_detail_screen.dart';
 import 'package:hishab/features/goals/presentation/screens/goal_form_screen.dart';
 import 'package:hishab/features/goals/presentation/screens/goals_screen.dart';
+import 'package:hishab/features/investments/presentation/screens/investment_detail_screen.dart';
+import 'package:hishab/features/investments/presentation/screens/investment_form_screen.dart';
+import 'package:hishab/features/investments/presentation/screens/investments_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_form_screen.dart';
 import 'package:hishab/features/tags/presentation/screens/tag_detail_screen.dart';
+import 'package:hishab/features/fun/presentation/screens/badges_screen.dart';
+import 'package:hishab/features/fun/presentation/screens/wrapped_screen.dart';
+import 'package:hishab/features/metals/presentation/screens/metals_screen.dart';
 import 'package:hishab/features/zakat/presentation/screens/zakat_screen.dart';
 import 'package:hishab/features/tags/presentation/screens/tags_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_screen.dart';
@@ -137,6 +144,25 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => const ZakatScreen(),
                   ),
                   GoRoute(
+                    path: 'wrapped',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => WrappedScreen(
+                      month: DateTime.tryParse(
+                        '${state.uri.queryParameters['month'] ?? ''}-01',
+                      ),
+                    ),
+                  ),
+                  GoRoute(
+                    path: 'badges',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const BadgesScreen(),
+                  ),
+                  GoRoute(
+                    path: 'metals',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const MetalsScreen(),
+                  ),
+                  GoRoute(
                     path: 'bazar',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const BazarScreen(),
@@ -159,6 +185,41 @@ final routerProvider = Provider<GoRouter>((ref) {
                     ],
                   ),
                   GoRoute(
+                    path: 'investments',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const InvestmentsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'new',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) =>
+                            const InvestmentFormScreen(),
+                      ),
+                      GoRoute(
+                        path: ':id',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) {
+                          final id = _idOf(state);
+                          return id == null
+                              ? const _InvalidIdScreen('investment')
+                              : InvestmentDetailScreen(investmentId: id);
+                        },
+                        routes: [
+                          GoRoute(
+                            path: 'edit',
+                            parentNavigatorKey: _rootNavigatorKey,
+                            builder: (context, state) {
+                              final id = _idOf(state);
+                              return id == null
+                                  ? const _InvalidIdScreen('investment')
+                                  : InvestmentFormScreen(investmentId: id);
+                            },
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  GoRoute(
                     path: 'goals',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const GoalsScreen(),
@@ -166,7 +227,15 @@ final routerProvider = Provider<GoRouter>((ref) {
                       GoRoute(
                         path: 'new',
                         parentNavigatorKey: _rootNavigatorKey,
-                        builder: (context, state) => const GoalFormScreen(),
+                        builder: (context, state) {
+                          final query = state.uri.queryParameters;
+                          final day = DateTime.tryParse(query['day'] ?? '');
+                          return GoalFormScreen(
+                            prefillName: query['name'],
+                            prefillDay: day == null ? null : dateOnly(day),
+                            prefillIcon: query['icon'],
+                          );
+                        },
                       ),
                       GoRoute(
                         path: ':id',

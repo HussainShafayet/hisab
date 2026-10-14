@@ -27,6 +27,9 @@ import 'package:hishab/features/tags/presentation/providers/tags_providers.dart'
 import 'package:hishab/features/tags/presentation/widgets/tag_name_dialog.dart';
 import 'package:hishab/features/transactions/domain/amount_calculator.dart';
 import 'package:hishab/features/transactions/domain/balance_preview.dart';
+import 'package:hishab/features/transactions/domain/feeling.dart';
+import 'package:hishab/features/transactions/domain/quick_entry.dart';
+import 'package:hishab/features/transactions/presentation/widgets/quick_type_bar.dart';
 import 'package:hishab/features/transactions/domain/transaction_input.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
@@ -142,6 +145,9 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
 
   /// The trip or event of an income or expense.
   int? _tagId;
+
+  /// How an expense felt afterwards, if the person says.
+  Feeling? _feeling;
   late DateTime _day;
 
   /// Whether the amount is typed with the calculator keypad, so it can be a
@@ -177,6 +183,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     _amount.text = source == null ? '' : poishaToInput(source.amount);
     _note.text = source?.note ?? '';
     _tagId = source?.tagId;
+    _feeling = source?.feeling;
     final usd = source?.usdAmount;
     _usd.text = usd == null ? '' : poishaToInput(usd);
     _day = dateOnly(_isEditing ? source!.date : now);
@@ -233,6 +240,24 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   }
 
   void _onFocusChanged() => setState(() {});
+
+  /// Fills the form with what the quick-type line understood. What it did not
+  /// understand stays as it was.
+  void _applyQuick(QuickEntry entry) {
+    setState(() {
+      _categoryId =
+          entry.category?.id ?? (entry.type == _type ? _categoryId : null);
+      _type = entry.type;
+      final account = entry.account;
+      if (account != null) _accountId = account.id;
+      final amount = entry.amount;
+      if (amount != null) _setAmountText(poishaToInput(amount));
+      if (entry.note.isNotEmpty) _note.text = entry.note;
+      _error = null;
+      _notice = tr('Filled in. Check it and save.');
+    });
+    FocusScope.of(context).unfocus();
+  }
 
   @override
   void dispose() {
@@ -360,6 +385,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       note: _note.text,
       usdAmount: usd,
       tagId: isTransfer ? null : _tagId,
+      feeling: _type == TransactionType.expense ? _feeling : null,
     );
 
     setState(() {
@@ -647,6 +673,11 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     final balances = _balances();
 
     final header = <Widget>[
+      if (_isAdding && widget.payCardId == null)
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+          child: QuickTypeBar(options: options, onApply: _applyQuick),
+        ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
         child: SegmentedButton<TransactionType>(
@@ -736,6 +767,10 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ),
         const SizedBox(height: 16),
         _tagSection(context),
+        if (_type == TransactionType.expense) ...[
+          const SizedBox(height: 16),
+          _feelingSection(),
+        ],
       ],
       if (_dollarCard != null) ...[
         const SizedBox(height: 16),
@@ -947,6 +982,37 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ),
       ],
     ];
+  }
+
+  /// Three chips for how an expense felt. Tapping the one chosen clears it.
+  Widget _feelingSection() {
+    Widget chip(Feeling feeling, IconData icon, String label) => ChoiceChip(
+      key: ValueKey('feeling-${feeling.name}'),
+      avatar: Icon(icon, size: 18),
+      label: Text(label),
+      selected: _feeling == feeling,
+      showCheckmark: false,
+      onSelected: (on) => setState(() => _feeling = on ? feeling : null),
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionLabel(tr('How did it feel? (optional)')),
+        Wrap(
+          spacing: 8,
+          runSpacing: 4,
+          children: [
+            chip(Feeling.need, Icons.check_circle_outline, tr('Needed')),
+            chip(Feeling.want, Icons.favorite_border, tr('Wanted')),
+            chip(
+              Feeling.regret,
+              Icons.sentiment_dissatisfied_outlined,
+              tr('Regret'),
+            ),
+          ],
+        ),
+      ],
+    );
   }
 
   /// How many tags are shown as chips before the rest are left out. The one

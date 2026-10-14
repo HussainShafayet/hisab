@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import 'package:hishab/features/accounts/data/accounts_table.dart';
 import 'package:hishab/features/categories/data/categories_table.dart';
+import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 @DataClassName('TransactionRow')
@@ -58,6 +59,10 @@ class Transactions extends Table {
   /// spending. [amount] stays the taka the bank charged. Null when the entry
   /// has nothing to do with dollars.
   IntColumn get usdAmount => integer().nullable()();
+
+  /// How an expense felt afterwards (needed, wanted, regret), if the person
+  /// said. Null for income and transfers.
+  TextColumn get feeling => textEnum<Feeling>().nullable()();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 

@@ -86,6 +86,27 @@ class ReportsDao extends DatabaseAccessor<AppDatabase> with _$ReportsDaoMixin {
     ];
   }
 
+  /// What was put directly on each category in the range, by category id:
+  /// the category's own money, without what is in the categories inside it.
+  Future<Map<int, int>> ownTotalsByCategory(
+    TransactionType type,
+    DateTime start,
+    DateTime end,
+  ) async {
+    final rows = await customSelect(
+      'SELECT category_id, SUM(amount) AS total FROM transactions '
+      "WHERE type = '${type.name}' AND is_adjustment = 0 "
+      'AND category_id IS NOT NULL AND date >= ? AND date < ? '
+      'GROUP BY category_id',
+      variables: [Variable.withDateTime(start), Variable.withDateTime(end)],
+      readsFrom: {transactions},
+    ).get();
+    return {
+      for (final row in rows)
+        row.read<int>('category_id'): row.read<int>('total'),
+    };
+  }
+
   /// Income and expense of each account in the range, the busiest first.
   Future<List<({int accountId, String name, int income, int expense})>>
   incomeExpenseByAccount(DateTime start, DateTime end) async {

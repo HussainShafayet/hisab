@@ -1,3 +1,4 @@
+import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// What the user entered for one transaction. The repository checks it and
@@ -14,6 +15,7 @@ class TransactionInput {
     this.note = '',
     this.usdAmount,
     this.tagId,
+    this.feeling,
   });
 
   final TransactionType type;
@@ -35,4 +37,7 @@ class TransactionInput {
 
   /// The trip or event of an income or expense. A transfer has none.
   final int? tagId;
+
+  /// How an expense felt. Only an expense keeps it.
+  final Feeling? feeling;
 }
