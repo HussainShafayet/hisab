@@ -4444,7 +4444,7 @@ class $SavingsGoalsTable extends SavingsGoals
     false,
     type: DriftSqlType.string,
     requiredDuringInsert: false,
-    defaultValue: const Constant('savings'),
+    defaultValue: const Constant('target'),
   );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',

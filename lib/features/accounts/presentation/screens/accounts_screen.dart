@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
+import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
@@ -15,6 +16,7 @@ import 'package:hishab/features/accounts/presentation/providers/accounts_provide
 import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_type_ui.dart';
 import 'package:hishab/features/accounts/presentation/widgets/adjust_balance_dialog.dart';
+import 'package:hishab/features/accounts/presentation/widgets/credit_card_tile.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// Every wallet as a card, with the total on top.
@@ -182,23 +184,32 @@ class _TypeStat extends StatelessWidget {
       children: [
         Icon(icon, size: 18, color: const Color(0xCCFFFFFF)),
         const SizedBox(width: 6),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              label,
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: const Color(0xCCFFFFFF),
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: const Color(0xCCFFFFFF),
+                ),
               ),
-            ),
-            Text(
-              formatPoisha(amount),
-              style: theme.textTheme.titleSmall?.tabular.copyWith(
-                color: Colors.white,
-                fontWeight: FontWeight.w600,
+              // A long amount shrinks instead of running off the card.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  formatPoisha(amount),
+                  style: theme.textTheme.titleSmall?.tabular.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -217,7 +228,11 @@ class _AccountCardTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return AccountCard(
+    final cards = ref.watch(creditCardsProvider);
+    final status = _account.isCreditCard
+        ? cards.where((c) => c.account.id == _account.id).firstOrNull
+        : null;
+    final card = AccountCard(
       key: ValueKey('account-card-${_account.id}'),
       account: _account,
       balance: item.balance,
@@ -243,6 +258,26 @@ class _AccountCardTile extends ConsumerWidget {
             ),
         ],
       ),
+    );
+    if (status == null) return card;
+    // A credit card also says when the bill is due, how much is left to
+    // spend, and its dollars, right under it.
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        card,
+        CreditCardDetails(
+          card: status,
+          today: ref.watch(clockProvider)(),
+          onPay: () => context.push(
+            AppRoutes.payCardBill(
+              status.account.id,
+              status.owed,
+              usd: status.dollars.due,
+            ),
+          ),
+        ),
+      ],
     );
   }
 

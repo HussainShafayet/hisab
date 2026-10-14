@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/domain/card_dollars.dart';
@@ -25,37 +27,62 @@ class CreditCardStatus {
   /// Money paid in beyond what was owed, in poisha.
   int get credit => balance > 0 ? balance : 0;
 
-  /// The limit in poisha, if one was set.
+  /// The limit in taka, if one was set. For a card that also has a dollar
+  /// limit it is the taka limit alone, as the bank shows it.
   int? get limit => account.creditLimit;
 
-  /// What can still be spent, in poisha: the limit less what is owed. Below
-  /// zero when the card is over its limit. Null without a limit.
-  int? get available => limit == null ? null : limit! - owed + credit;
-
-  bool get isOverLimit => limit != null && owed > limit!;
-
-  /// How much of the limit is used, from 0 to 1. Null without a limit.
-  double? get usage =>
-      limit == null ? null : (owed / limit!).clamp(0.0, 1.0).toDouble();
-
-  /// The part of the limit held in dollars, in US cents, if the card has one.
-  /// The limit above is the whole limit, in taka.
+  /// The dollar limit in US cents, if the card has one. A separate limit, in
+  /// its own money: dollar spending uses it, not the taka limit.
   int? get usdLimit => account.usdLimit;
 
+  /// The card has a dollar limit as well as (or instead of) a taka one.
+  bool get hasDollarLimit => usdLimit != null;
+
+  /// What is owed in dollars, written in taka at the latest dollar rate, in
+  /// poisha. Zero when no dollars are owed. Close, not exact: the rate is the
+  /// one of the latest dollar expense.
+  int get dollarsOwedAsTaka {
+    final due = dollars.due;
+    return due == 0 ? 0 : (dollars.toPoisha(due) ?? 0);
+  }
+
+  /// What is owed in taka alone, in poisha. With a dollar limit the dollars
+  /// owed are taken out, since they use the dollar limit; without one all that
+  /// is owed uses the taka limit.
+  int get takaOwed =>
+      hasDollarLimit ? math.max(0, owed - dollarsOwedAsTaka) : owed;
+
+  /// What can still be spent in taka, in poisha: the taka limit less the taka
+  /// owed, plus money paid in beyond the bill. Below zero when over the limit.
+  /// Null without a taka limit.
+  int? get takaLeft => limit == null ? null : limit! - takaOwed + credit;
+
   /// Dollars still free to spend, in US cents. Below zero when the dollar
-  /// part is used up. Null without a dollar limit.
+  /// limit is passed. Null without a dollar limit.
   int? get usdLeft => usdLimit == null ? null : usdLimit! - dollars.due;
 
-  /// What is left of the taka part, in poisha: all that is left to spend less
-  /// the dollars still free (at the latest dollar rate, so it is a close
-  /// figure, not exact). Null without a limit, a dollar limit or a rate.
-  int? get takaLeft {
-    final all = available;
+  /// Everything still free, in taka (the dollars at the latest rate), in
+  /// poisha. Null without both limits, or while there is no dollar rate yet.
+  int? get totalLeft {
+    final taka = takaLeft;
     final usd = usdLeft;
-    if (all == null || usd == null) return null;
-    final usdAsTaka = dollars.toPoisha(usd);
-    return usdAsTaka == null ? null : all - usdAsTaka;
+    final usdAsTaka = usd == null ? null : dollars.toPoisha(usd);
+    return taka == null || usdAsTaka == null ? null : taka + usdAsTaka;
   }
+
+  /// What can still be spent, in poisha. For a card with a taka limit alone it
+  /// is the limit less what is owed; with a dollar limit too it is
+  /// [totalLeft]. Null without a limit, or when it cannot be worked out.
+  int? get available => hasDollarLimit ? totalLeft : takaLeft;
+
+  /// A limit is passed: the taka one, or the dollar one.
+  bool get isOverLimit =>
+      (takaLeft != null && takaLeft! < 0) || (usdLeft != null && usdLeft! < 0);
+
+  /// How much of the taka limit is used, from 0 to 1. Null without a taka
+  /// limit.
+  double? get usage =>
+      limit == null ? null : (takaOwed / limit!).clamp(0.0, 1.0).toDouble();
 
   /// Whether the card has anything to show about dollars.
   bool get showsDollars => usdLimit != null || dollars.isUsed;

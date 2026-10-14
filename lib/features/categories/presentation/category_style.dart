@@ -44,7 +44,6 @@ const categoryIcons = <String, IconData>{
   'account_balance': Icons.account_balance,
   'payments': Icons.payments,
   'wallet': Icons.wallet,
-  'savings': Icons.savings,
   'work': Icons.work,
   'store': Icons.store,
   'laptop_mac': Icons.laptop_mac,

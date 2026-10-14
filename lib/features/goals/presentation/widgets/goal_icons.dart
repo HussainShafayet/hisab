@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// The icon for a goal's icon key (see `goalIcons`). An unknown key gets the
-/// piggy bank.
+/// flag.
 IconData goalIconData(String key) => switch (key) {
   'laptop' => Icons.laptop_mac,
   'phone' => Icons.smartphone,
@@ -14,5 +14,5 @@ IconData goalIconData(String key) => switch (key) {
   'gift' => Icons.card_giftcard,
   'health' => Icons.medical_services_outlined,
   'emergency' => Icons.shield_outlined,
-  _ => Icons.savings_outlined,
+  _ => Icons.flag_outlined,
 };

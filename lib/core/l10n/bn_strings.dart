@@ -6,6 +6,7 @@ import 'package:hishab/core/l10n/bn_dollars.dart';
 import 'package:hishab/core/l10n/bn_errors.dart';
 import 'package:hishab/core/l10n/bn_goals.dart';
 import 'package:hishab/core/l10n/bn_insights.dart';
+import 'package:hishab/core/l10n/bn_overdrawn.dart';
 import 'package:hishab/core/l10n/bn_recurring.dart';
 import 'package:hishab/core/l10n/bn_split.dart';
 import 'package:hishab/core/l10n/bn_tags.dart';
@@ -23,6 +24,7 @@ const bnStrings = <String, String>{
   ...bnErrors,
   ...bnGoals,
   ...bnInsights,
+  ...bnOverdrawn,
   ...bnRecurring,
   ...bnSplit,
   ...bnTags,

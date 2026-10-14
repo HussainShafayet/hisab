@@ -15,7 +15,7 @@ class SavingsGoals extends Table {
   DateTimeColumn get targetDate => dateTime().nullable()();
 
   /// A key of the icons a goal can have (see `goalIcons`).
-  TextColumn get icon => text().withDefault(const Constant('savings'))();
+  TextColumn get icon => text().withDefault(const Constant('target'))();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 

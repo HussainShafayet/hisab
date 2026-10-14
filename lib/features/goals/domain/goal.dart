@@ -4,7 +4,7 @@ import 'package:hishab/core/utils/dates.dart';
 
 /// The icons a goal can have, by the key that is saved.
 const goalIcons = [
-  'savings',
+  'target',
   'laptop',
   'phone',
   'bike',
@@ -18,7 +18,7 @@ const goalIcons = [
   'emergency',
 ];
 
-const defaultGoalIcon = 'savings';
+const defaultGoalIcon = 'target';
 
 /// Something being saved up for.
 class SavingsGoal {

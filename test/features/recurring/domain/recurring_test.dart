@@ -227,7 +227,7 @@ void main() {
   group('upcomingReminders', () {
     test('has the next days of a rule, from today on', () {
       final planned = upcomingReminders([
-        rule(nextDue: DateTime(2026, 10, 15)),
+        rule(start: DateTime(2026, 8, 15), nextDue: DateTime(2026, 10, 15)),
       ], today);
 
       expect(planned.map((p) => p.day), [
@@ -255,7 +255,11 @@ void main() {
 
     test('stops at the end day', () {
       final planned = upcomingReminders([
-        rule(nextDue: DateTime(2026, 10, 15), endDate: DateTime(2026, 11, 20)),
+        rule(
+          start: DateTime(2026, 8, 15),
+          nextDue: DateTime(2026, 10, 15),
+          endDate: DateTime(2026, 11, 20),
+        ),
       ], today);
 
       expect(planned.map((p) => p.day), [

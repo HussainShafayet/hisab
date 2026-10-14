@@ -35,23 +35,26 @@ still be spent, and when the bill is due, and so paying the bill is one tap.
   out a bill due within 5 days.
 
 ## Dollars (dual currency cards)
-A card such as EBL keeps one limit, part of which can be held in dollars. The
-app stays in taka; dollars are written beside a taka amount, never instead.
-- **Card form**: *Credit limit* is the whole limit in taka. *Part of the limit
-  in dollars* (optional, `$250`) is part of it, not extra.
+A card such as EBL can show two limits, one in taka and one in dollars (for
+example ৳111,200 and $74, after part of a ৳120,000 limit was moved to dollars).
+The app keeps the balance in taka; dollars are written beside a taka amount,
+never instead of it.
+- **Card form**: *Credit limit* is the taka limit your bank shows (for a card
+  with a dollar limit, the taka part only). *Limit in dollars* (optional) is the
+  dollar limit. A short guide in the form says how to use the card.
 - **Spending**: on a credit card account the add form shows a dollar field
   (*Spent in dollars* / *Refunded in dollars* / *Dollars this payment clears*).
   The amount field stays the taka the bank charged, so the card's balance is
-  unchanged in kind. For an expense the form shows the rate it implies.
-- **Paying the bill** is a normal transfer from a taka account. "Pay bill"
+  unchanged in kind. For an expense the form shows the rate it implies, and
+  *Use today's rate* can fill the taka from the market rate.
+- **Paying the bill** is a normal transfer from a taka account. *Pay bill*
   fills the dollars still due; change it to what this payment clears.
-- **Card tile** (Loans, "I'll give"): dollars spent this month, dollars still
-  due, and with a dollar limit what is left: `taka left + dollars left`.
+- **Under the card**, on the Accounts screen and in Loans ("I'll give"): the
+  bill day, *Pay bill*, dollars spent this month, dollars still due, and what is
+  left: `Left: X in taka and $Y in dollars`, and `About Z left in all` (the
+  dollars at the latest rate, once there is one). On the wallet card itself a
+  card with a dollar limit says `Limits X and $Y` instead of a bar.
 - A transaction with dollars shows `$25.00` in its row.
-- *Use today's rate* (an expense with dollars): fetches the market rate from the
-  internet and, if the taka amount is still empty, fills it with dollars x rate.
-  The bank's own rate is what is charged, so it is a start; a note says so.
-  Without internet a message says so and the taka can be typed.
 
 ## Rules
 - Only a credit card keeps a limit and a bill day; another kind saves none. The
@@ -63,11 +66,16 @@ app stays in taka; dollars are written beside a taka amount, never instead.
   unless "Include in total balance" is off.
 - Dollars: `due = max(0, spent - refunded - settled)` in US cents, where spent
   is dollar expenses on the card, refunded dollar income on it and settled the
-  dollars of transfers into it. `usdLeft = usdLimit - due`; `takaLeft =
-  (limit - owed) - usdLeft x rate`, where rate is taka per dollar on the latest
-  dollar expense (null, and so no taka figure, before the first one). Dollars
-  are only accepted on a credit card (the card spent on, or paid into) and
-  must be above zero; the dollar limit too.
+  dollars of transfers into it. The two limits are separate pools:
+  `usdLeft = usdLimit - due`; the dollars owed in taka are `due x rate`, where
+  rate is taka per dollar on the latest dollar expense; with a dollar limit
+  `takaOwed = owed - dollars owed in taka` (without one, dollars use the single
+  limit and `takaOwed = owed`); `takaLeft = limit - takaOwed (+ credit)`;
+  `totalLeft = takaLeft + usdLeft x rate`, known only with both limits and a
+  rate. A limit is passed when `takaLeft < 0` or `usdLeft < 0`. The rate is the
+  latest one, so the taka figures are close, not exact. Dollars are only
+  accepted on a credit card (the card spent on, or paid into) and must be above
+  zero; the dollar limit too.
 - Schema version 7 adds `transactions.usd_amount` and `accounts.usd_limit`;
   backup format 5 saves both (older files read as none). CSV export gets a USD
   column.
@@ -84,8 +92,8 @@ app stays in taka; dollars are written beside a taka amount, never instead.
 - `test/features/accounts/domain/card_dollars_test.dart`
 - `test/features/accounts/data/card_dollars_repository_test.dart` (saving,
   validation, the dollar totals, backup)
-- `test/features/accounts/presentation/card_dollars_ui_test.dart` (the tile,
-  the form)
+- `test/features/accounts/presentation/card_dollars_ui_test.dart` (the tile, the
+  card on the accounts screen, the form)
 - `test/features/debts/presentation/debts_screen_test.dart` (cards in Loans, Pay
   bill)
 - `test/features/reminders/reminder_sync_test.dart`

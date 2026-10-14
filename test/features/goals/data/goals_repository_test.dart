@@ -48,7 +48,7 @@ void main() {
     });
 
     test(
-      'can be without a day, and an unknown icon becomes the piggy bank',
+      'can be without a day, and an unknown icon becomes the default one',
       () async {
         final id = await repo.createGoal(
           name: 'Eid',
@@ -59,7 +59,7 @@ void main() {
         final goal = (await repo.getGoal(id))!;
 
         expect(goal.goal.targetDate, isNull);
-        expect(goal.goal.icon, 'savings');
+        expect(goal.goal.icon, 'target');
       },
     );
 

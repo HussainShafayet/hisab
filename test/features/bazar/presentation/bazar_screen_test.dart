@@ -223,12 +223,7 @@ void main() {
       expect(amountText(tester), '255');
       expect(
         tester
-            .widget<TextField>(
-              find.descendant(
-                of: find.widgetWithText(TextField, 'Note'),
-                matching: find.byType(EditableText),
-              ),
-            )
+            .widget<TextField>(find.widgetWithText(TextField, 'Note'))
             .controller!
             .text,
         'Bazar: Rice, Egg',

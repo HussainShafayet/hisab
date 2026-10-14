@@ -27,26 +27,35 @@ class SafeToSpendCard extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: safe == null
-            ? Row(
+            ? Column(
                 key: const ValueKey('safe-no-budget'),
                 children: [
-                  Icon(
-                    Icons.account_balance_wallet_outlined,
-                    color: theme.colorScheme.primary,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      tr(
-                        'Set a monthly budget and Hishab tells you how much '
-                        'you can spend each day.',
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: theme.colorScheme.primary,
                       ),
-                      style: theme.textTheme.bodyMedium,
-                    ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Text(
+                          tr(
+                            'Set a monthly budget and Hishab tells you how '
+                            'much you can spend each day.',
+                          ),
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                    ],
                   ),
-                  TextButton(
-                    onPressed: () => context.go(AppRoutes.budget),
-                    child: Text(tr('Set budget')),
+                  // Under the text, so a long button label has room.
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => context.go(AppRoutes.budget),
+                      child: Text(tr('Set budget')),
+                    ),
                   ),
                 ],
               )
@@ -89,7 +98,7 @@ class _Figures extends StatelessWidget {
         Row(
           children: [
             Icon(
-              bad ? Icons.warning_amber_rounded : Icons.savings_outlined,
+              bad ? Icons.warning_amber_rounded : Icons.payments_outlined,
               size: 20,
               color: bad ? expense : theme.colorScheme.primary,
             ),

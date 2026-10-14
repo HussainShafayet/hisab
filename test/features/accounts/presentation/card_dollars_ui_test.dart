@@ -7,6 +7,7 @@ import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/accounts/domain/card_dollars.dart';
 import 'package:hishab/features/accounts/domain/credit_card.dart';
+import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
 import 'package:hishab/features/accounts/presentation/widgets/credit_card_tile.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -26,10 +27,10 @@ CreditCardStatus status({
     openingBalance: 0,
     includeInTotal: true,
     isArchived: false,
-    creditLimit: 12000000,
+    creditLimit: 11120000,
     usdLimit: usdLimit,
   ),
-  balance: -4220000,
+  balance: -2000000,
   dollars: dollars,
 );
 
@@ -87,23 +88,104 @@ void main() {
       await pumpTile(
         tester,
         status(
-          usdLimit: 25000,
-          dollars: const CardDollars(spent: 10000, lastRate: 122),
+          usdLimit: 7400,
+          dollars: const CardDollars(spent: 5000, lastRate: 122),
         ),
       );
 
       expect(
         textOf(tester, 'card-usd-left-1'),
-        'Left: ৳59,500.00 in taka and \$150.00 in dollars',
+        'Left: ৳97,300.00 in taka and \$24.00 in dollars',
+      );
+      expect(
+        textOf(tester, 'card-usd-total-1'),
+        'About ৳1,00,228.00 left in all',
       );
     });
 
-    testWidgets('shows only the dollars left before there is a rate', (
+    testWidgets('shows both parts before there is a rate, and no total', (
       tester,
     ) async {
-      await pumpTile(tester, status(usdLimit: 25000));
+      await pumpTile(tester, status(usdLimit: 7400));
 
-      expect(textOf(tester, 'card-usd-left-1'), 'Left in dollars: \$250.00');
+      expect(
+        textOf(tester, 'card-usd-left-1'),
+        'Left: ৳91,200.00 in taka and \$74.00 in dollars',
+      );
+      expect(find.byKey(const ValueKey('card-usd-total-1')), findsNothing);
+    });
+  });
+
+  group('the card on the accounts screen', () {
+    testWidgets('says the limits instead of a bar when it has two', (
+      tester,
+    ) async {
+      final card = status(usdLimit: 7400);
+      await tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: AccountCard(account: card.account, balance: card.balance),
+          ),
+        ),
+      );
+
+      expect(
+        textOf(tester, 'card-limits-1'),
+        'Limits ৳1,11,200.00 and \$74.00',
+      );
+      expect(find.byType(LinearProgressIndicator), findsNothing);
+    });
+
+    testWithDatabase('shows the bill day, dollars and what is left', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await db.accountsDao.insertAccount(
+        AccountsCompanion.insert(
+          name: 'EBL',
+          type: AccountType.creditCard,
+          openingBalance: const Value(-2000000),
+          creditLimit: const Value(11120000),
+          usdLimit: const Value(7400),
+          billDueDay: const Value(15),
+        ),
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Accounts');
+
+      expect(
+        textOf(tester, 'card-limits-$id'),
+        'Limits ৳1,11,200.00 and \$74.00',
+      );
+      expect(textOf(tester, 'card-due-$id'), 'Bill due 15 Oct');
+      expect(
+        textOf(tester, 'card-usd-left-$id'),
+        'Left: ৳91,200.00 in taka and \$74.00 in dollars',
+      );
+      expect(find.byKey(ValueKey('pay-bill-$id')), findsOneWidget);
+    });
+
+    testWithDatabase('Pay bill opens a transfer for what is owed', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      final id = await db.accountsDao.insertAccount(
+        AccountsCompanion.insert(
+          name: 'EBL',
+          type: AccountType.creditCard,
+          openingBalance: const Value(-50000),
+        ),
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Accounts');
+
+      await tester.tap(find.byKey(ValueKey('pay-bill-$id')));
+      await tester.pumpAndSettle();
+
+      expect(amountText(tester), '500');
     });
   });
 

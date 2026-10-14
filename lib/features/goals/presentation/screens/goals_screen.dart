@@ -34,7 +34,7 @@ class GoalsScreen extends ConsumerWidget {
         data: (list) {
           if (list.isEmpty) {
             return EmptyState(
-              icon: Icons.savings_outlined,
+              icon: Icons.flag_outlined,
               title: tr('No goals yet'),
               message: tr(
                 'Save up for a laptop, a trip or Eid. Set a target and put '

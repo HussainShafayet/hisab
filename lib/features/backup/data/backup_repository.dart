@@ -8,7 +8,6 @@ import 'package:hishab/features/backup/domain/backup_data.dart';
 import 'package:hishab/features/categories/data/category_mapper.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
-import 'package:intl/intl.dart';
 
 /// Saving everything to a file and bringing it back, and exporting the
 /// transactions as a spreadsheet.
@@ -401,7 +400,12 @@ class BackupRepository {
     final categories = await _db.categoriesDao.getAll(includeArchived: true);
     final byId = {for (final c in categories) c.id: c.toDomain()};
     final rows = await _db.transactionsDao.getAllWithDetails();
-    final dateFormat = DateFormat('yyyy-MM-dd HH:mm', 'en');
+    // Written by hand: DateFormat needs locale data, and a sheet always wants
+    // western digits.
+    String two(int n) => n.toString().padLeft(2, '0');
+    String csvDate(DateTime d) =>
+        '${d.year.toString().padLeft(4, '0')}-${two(d.month)}-${two(d.day)} '
+        '${two(d.hour)}:${two(d.minute)}';
 
     String categoryPath(CategoryRow? category) {
       final domain = category == null ? null : byId[category.id];
@@ -425,7 +429,7 @@ class BackupRepository {
       ],
       for (final row in rows)
         [
-          dateFormat.format(row.transaction.date.toLocal()),
+          csvDate(row.transaction.date.toLocal()),
           row.transaction.type.name,
           poishaToFixed(row.transaction.amount),
           row.account.name,

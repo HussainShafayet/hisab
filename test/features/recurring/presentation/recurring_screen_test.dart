@@ -223,7 +223,8 @@ void main() {
       expect(rule.categoryId, s.rent);
       expect(rule.frequency, RecurrenceFrequency.monthly);
       expect(rule.startDate, DateTime(2026, 10, 11));
-      expect(find.text('House rent'), findsOneWidget);
+      // Starting today, so it is in the list and in the "due" card.
+      expect(find.text('House rent'), findsWidgets);
     });
 
     testWithDatabase('asks for a name, an amount, an account and a category', (

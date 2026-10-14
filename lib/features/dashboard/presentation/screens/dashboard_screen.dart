@@ -7,6 +7,7 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/features/accounts/presentation/widgets/overdrawn_card.dart';
 import 'package:hishab/features/budget/domain/safe_to_spend.dart';
 import 'package:hishab/features/dashboard/domain/dashboard_data.dart';
 import 'package:hishab/features/dashboard/presentation/providers/dashboard_providers.dart';
@@ -64,6 +65,7 @@ class _DashboardContent extends ConsumerWidget {
       children: [
         const DueRecurringCard(),
         TotalBalanceCard(balance: data.totalBalance),
+        const OverdrawnCard(),
         const WalletStrip(),
         SafeToSpendCard(figures: safeToSpend),
         DashboardHeading(

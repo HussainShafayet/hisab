@@ -229,15 +229,33 @@ class ComparisonLine extends StatelessWidget {
 
     return Row(
       children: [
-        Expanded(child: Text(label, style: theme.textTheme.bodyMedium)),
-        if (direction == ChangeDirection.up)
-          Icon(Icons.arrow_upward, size: 16, color: color)
-        else if (direction == ChangeDirection.down)
-          Icon(Icons.arrow_downward, size: 16, color: color),
-        const SizedBox(width: 4),
-        Text(
-          text,
-          style: theme.textTheme.bodyMedium?.tabular.copyWith(color: color),
+        Expanded(
+          flex: 2,
+          child: Text(label, style: theme.textTheme.bodyMedium),
+        ),
+        // A long amount shrinks to fit instead of running off a small phone.
+        Expanded(
+          flex: 3,
+          child: FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerRight,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                if (direction == ChangeDirection.up)
+                  Icon(Icons.arrow_upward, size: 16, color: color)
+                else if (direction == ChangeDirection.down)
+                  Icon(Icons.arrow_downward, size: 16, color: color),
+                const SizedBox(width: 4),
+                Text(
+                  text,
+                  style: theme.textTheme.bodyMedium?.tabular.copyWith(
+                    color: color,
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       ],
     );

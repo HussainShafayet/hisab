@@ -408,15 +408,17 @@ class _Summary extends StatelessWidget {
                 children: [
                   Icon(Icons.schedule, size: 18, color: colors.expense),
                   const SizedBox(width: 6),
-                  Text(
-                    totals.overdueCount == 1
-                        ? tr('1 loan is late')
-                        : tr('{count} loans are late', {
-                            'count': totals.overdueCount,
-                          }),
-                    key: const ValueKey('overdue-count'),
-                    style: theme.textTheme.bodyMedium?.copyWith(
-                      color: colors.expense,
+                  Expanded(
+                    child: Text(
+                      totals.overdueCount == 1
+                          ? tr('1 loan is late')
+                          : tr('{count} loans are late', {
+                              'count': totals.overdueCount,
+                            }),
+                      key: const ValueKey('overdue-count'),
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.expense,
+                      ),
                     ),
                   ),
                 ],
