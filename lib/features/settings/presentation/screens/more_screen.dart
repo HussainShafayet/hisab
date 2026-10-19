@@ -95,6 +95,12 @@ class MoreScreen extends StatelessWidget {
             route: AppRoutes.wrapped(),
           ),
           _MoreTile(
+            icon: Icons.timer_outlined,
+            title: tr('Challenges'),
+            subtitle: tr('Dare yourself to spend less'),
+            route: AppRoutes.challenges,
+          ),
+          _MoreTile(
             icon: Icons.emoji_events_outlined,
             title: tr('Badges'),
             subtitle: tr('Streaks and rewards'),

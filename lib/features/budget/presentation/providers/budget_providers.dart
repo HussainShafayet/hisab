@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/features/budget/data/budgets_repository.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
 final budgetsRepositoryProvider = Provider<BudgetsRepository>(
   (ref) => BudgetsRepository(ref.watch(appDatabaseProvider)),
@@ -11,6 +12,8 @@ final budgetsRepositoryProvider = Provider<BudgetsRepository>(
 /// day of the month, so every screen asking for the same month shares one
 /// stream.
 final monthBudgetProvider = StreamProvider.autoDispose
-    .family<MonthBudget, DateTime>(
-      (ref, month) => ref.watch(budgetsRepositoryProvider).watchMonth(month),
-    );
+    .family<MonthBudget, DateTime>((ref, month) {
+      // Starts again when carrying over is switched on or off.
+      ref.watch(preferencesProvider.select((p) => p.budgetRollover));
+      return ref.watch(budgetsRepositoryProvider).watchMonth(month);
+    });

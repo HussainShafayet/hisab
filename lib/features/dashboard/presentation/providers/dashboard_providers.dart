@@ -13,6 +13,8 @@ final dashboardRepositoryProvider = Provider<DashboardRepository>(
 /// the data (a new transaction, a budget edit, ...).
 final dashboardProvider = FutureProvider.autoDispose<DashboardData>((ref) {
   ref.watch(dataChangesProvider);
+  // The budget limit includes what was carried over, when that is on.
+  ref.watch(preferencesProvider.select((p) => p.budgetRollover));
   // "This week" starts on the day chosen in Settings.
   final weekStart = ref.watch(
     preferencesProvider.select((preferences) => preferences.weekStart.weekday),

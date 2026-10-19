@@ -66,6 +66,7 @@ void main() {
         AppRoutes.zakat,
         AppRoutes.metals,
         AppRoutes.badges,
+        AppRoutes.challenges,
       };
 
       for (final topic in guideTopics) {
@@ -96,6 +97,7 @@ void main() {
         AppRoutes.zakat,
         AppRoutes.metals,
         AppRoutes.badges,
+        AppRoutes.challenges,
         AppRoutes.backup,
         AppRoutes.settings,
       ]) {

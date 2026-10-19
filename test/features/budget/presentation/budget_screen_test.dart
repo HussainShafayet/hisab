@@ -625,4 +625,100 @@ void main() {
     expect(find.text('Database is down'), findsOneWidget);
     expect(find.text('Retry'), findsOneWidget);
   });
+
+  group('carrying over what is left', () {
+    testWithDatabase('the switch turns it on and off and saves the choice', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await setBudget(db, '2026-10', 3000000);
+      await pumpAppWithDatabase(tester, db);
+      await openBudget(tester);
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const ValueKey('rollover-switch')),
+            )
+            .value,
+        isFalse,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('rollover-switch')));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const ValueKey('rollover-switch')),
+            )
+            .value,
+        isTrue,
+      );
+      expect((await db.settingsDao.getAll())['budget_rollover'], 'true');
+
+      await tester.tap(find.byKey(const ValueKey('rollover-switch')));
+      await tester.pumpAndSettle();
+      expect((await db.settingsDao.getAll())['budget_rollover'], 'false');
+    });
+
+    testWithDatabase('adds last month\'s leftover and says so', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await db.settingsDao.put('budget_rollover', 'true');
+      await setBudget(db, '2026-09', 3000000); // ৳30,000
+      await setBudget(db, '2026-10', 3000000);
+      await setBudget(db, '2026-09', 500000, categoryId: b.food); // ৳5,000
+      await setBudget(db, '2026-10', 500000, categoryId: b.food);
+      await spend(db, b, b.food, 1000000, DateTime(2026, 9, 12)); // ৳10,000
+      await pumpAppWithDatabase(tester, db);
+      await openBudget(tester);
+
+      // Overall: 30,000 - 10,000 left over. Food: 5,000 - 10,000 is below
+      // zero, so nothing.
+      expect(
+        find.text('Includes ৳20,000.00 left over from last month'),
+        findsOneWidget,
+      );
+      expect(find.text('Spent ৳0.00 of ৳50,000.00'), findsOneWidget);
+      expect(find.byKey(ValueKey('carried-${b.food}')), findsNothing);
+    });
+
+    testWithDatabase('editing starts from the amount that was set', (
+      tester,
+      db,
+    ) async {
+      final b = await seedBasics(db);
+      await db.settingsDao.put('budget_rollover', 'true');
+      await setBudget(db, '2026-09', 3000000);
+      await setBudget(db, '2026-10', 3000000);
+      await spend(db, b, b.food, 1000000, DateTime(2026, 9, 12));
+      await pumpAppWithDatabase(tester, db);
+      await openBudget(tester);
+
+      await tester.tap(find.byKey(const ValueKey('overall-budget')));
+      await tester.pumpAndSettle();
+
+      expect(find.widgetWithText(TextFormField, '30000'), findsOneWidget);
+      await tapText(tester, 'Cancel');
+    });
+
+    testWithDatabase('adds nothing while the switch is off', (
+      tester,
+      db,
+    ) async {
+      final b = await seedBasics(db);
+      await setBudget(db, '2026-09', 3000000);
+      await setBudget(db, '2026-10', 3000000);
+      await spend(db, b, b.food, 1000000, DateTime(2026, 9, 12));
+      await pumpAppWithDatabase(tester, db);
+      await openBudget(tester);
+
+      expect(find.byKey(const ValueKey('overall-carried')), findsNothing);
+      expect(find.text('Spent ৳0.00 of ৳30,000.00'), findsOneWidget);
+    });
+  });
 }

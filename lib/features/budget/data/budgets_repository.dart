@@ -7,6 +7,10 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/budget/data/budgets_dao.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/settings/domain/app_preferences.dart';
+
+/// How many months back a leftover can come from.
+const rolloverMonths = 12;
 
 /// The monthly budget: reading it with what was spent, setting limits and
 /// copying last month's. Months are calendar months, starting on the 1st.
@@ -21,7 +25,10 @@ class BudgetsRepository {
     final range = monthRange(month);
     return _db.budgetsDao
         .watchForMonthWithSpent(monthKey(month), range.start, range.end)
-        .map((rows) => _toMonthBudget(range.start, rows));
+        .asyncMap(
+          (rows) async =>
+              _toMonthBudget(range.start, rows, await _carriedInto(month)),
+        );
   }
 
   /// The overall budget of [month] with what was spent, or null when the month
@@ -33,10 +40,41 @@ class BudgetsRepository {
       range.start,
       range.end,
     );
+    final carried = await _carriedInto(month);
     for (final row in rows) {
-      if (row.categoryId == null) return _toBudgetItem(row);
+      if (row.categoryId == null) return _toBudgetItem(row, carried);
     }
     return null;
+  }
+
+  /// What each budget of [month] gets from the months before, by category id
+  /// (null: the overall budget). Empty when carrying over is off.
+  ///
+  /// A month's leftover is its limit (with what it got itself) minus what was
+  /// spent, when that is above zero: overspending does not take anything
+  /// off the next month. A month without that budget breaks the chain. Only
+  /// the last [rolloverMonths] months count.
+  Future<Map<int?, int>> _carriedInto(DateTime month) async {
+    final settings = await _db.settingsDao.getAll();
+    if (settings[PreferenceKeys.budgetRollover] != 'true') return const {};
+
+    var carried = <int?, int>{};
+    for (var back = rolloverMonths; back >= 1; back--) {
+      final earlier = addMonths(monthStart(month), -back);
+      final range = monthRange(earlier);
+      final rows = await _db.budgetsDao.getForMonthWithSpent(
+        monthKey(earlier),
+        range.start,
+        range.end,
+      );
+      final next = <int?, int>{};
+      for (final row in rows) {
+        final left = row.amount + (carried[row.categoryId] ?? 0) - row.spent;
+        if (left > 0) next[row.categoryId] = left;
+      }
+      carried = next;
+    }
+    return carried;
   }
 
   /// Sets the limit of [categoryId] in [month], or the overall limit when
@@ -130,18 +168,26 @@ class BudgetsRepository {
     }
   }
 
-  BudgetItem _toBudgetItem(BudgetWithSpent row) => BudgetItem(
-    id: row.id,
-    categoryId: row.categoryId,
-    categoryName: row.categoryName,
-    categoryIcon: row.categoryIcon,
-    categoryColor: row.categoryColor,
-    limit: row.amount,
-    spent: row.spent,
-  );
+  BudgetItem _toBudgetItem(BudgetWithSpent row, Map<int?, int> carried) {
+    final carriedOver = carried[row.categoryId] ?? 0;
+    return BudgetItem(
+      id: row.id,
+      categoryId: row.categoryId,
+      categoryName: row.categoryName,
+      categoryIcon: row.categoryIcon,
+      categoryColor: row.categoryColor,
+      limit: row.amount + carriedOver,
+      carriedOver: carriedOver,
+      spent: row.spent,
+    );
+  }
 
-  MonthBudget _toMonthBudget(DateTime month, List<BudgetWithSpent> rows) {
-    BudgetItem toItem(BudgetWithSpent row) => _toBudgetItem(row);
+  MonthBudget _toMonthBudget(
+    DateTime month,
+    List<BudgetWithSpent> rows,
+    Map<int?, int> carried,
+  ) {
+    BudgetItem toItem(BudgetWithSpent row) => _toBudgetItem(row, carried);
 
     BudgetItem? overall;
     final categories = <BudgetItem>[];

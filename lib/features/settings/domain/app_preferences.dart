@@ -39,6 +39,7 @@ abstract final class PreferenceKeys {
   static const wrappedAlert = 'wrapped_alert';
   static const dailyReminder = 'daily_reminder';
   static const dailyReminderMinutes = 'daily_reminder_minutes';
+  static const budgetRollover = 'budget_rollover';
 }
 
 /// What the user chose in Settings.
@@ -56,6 +57,7 @@ class AppPreferences {
     this.wrappedAlert = true,
     this.dailyReminder = false,
     this.dailyReminderMinutes = 21 * 60,
+    this.budgetRollover = false,
   });
 
   static const defaults = AppPreferences();
@@ -90,6 +92,10 @@ class AppPreferences {
   /// The time of that reminder, in minutes after midnight.
   final int dailyReminderMinutes;
 
+  /// What is left of a budget at the end of a month is added to the same
+  /// budget of the next month.
+  final bool budgetRollover;
+
   AppPreferences copyWith({
     ThemePreference? theme,
     AppLanguage? language,
@@ -103,6 +109,7 @@ class AppPreferences {
     bool? wrappedAlert,
     bool? dailyReminder,
     int? dailyReminderMinutes,
+    bool? budgetRollover,
   }) => AppPreferences(
     theme: theme ?? this.theme,
     language: language ?? this.language,
@@ -118,6 +125,7 @@ class AppPreferences {
     wrappedAlert: wrappedAlert ?? this.wrappedAlert,
     dailyReminder: dailyReminder ?? this.dailyReminder,
     dailyReminderMinutes: dailyReminderMinutes ?? this.dailyReminderMinutes,
+    budgetRollover: budgetRollover ?? this.budgetRollover,
   );
 
   /// Reads saved preferences. Anything missing or not understood (a value
@@ -163,6 +171,8 @@ class AppPreferences {
         saved[PreferenceKeys.dailyReminderMinutes],
         defaults.dailyReminderMinutes,
       ),
+      // Off until the person turns it on.
+      budgetRollover: saved[PreferenceKeys.budgetRollover] == 'true',
     );
   }
 
@@ -181,6 +191,7 @@ class AppPreferences {
     PreferenceKeys.wrappedAlert: wrappedAlert.toString(),
     PreferenceKeys.dailyReminder: dailyReminder.toString(),
     PreferenceKeys.dailyReminderMinutes: dailyReminderMinutes.toString(),
+    PreferenceKeys.budgetRollover: budgetRollover.toString(),
   };
 
   /// A saved time of day, or [fallback] when it is missing or not a time.
@@ -205,7 +216,8 @@ class AppPreferences {
       other.habitAlerts == habitAlerts &&
       other.wrappedAlert == wrappedAlert &&
       other.dailyReminder == dailyReminder &&
-      other.dailyReminderMinutes == dailyReminderMinutes;
+      other.dailyReminderMinutes == dailyReminderMinutes &&
+      other.budgetRollover == budgetRollover;
 
   @override
   int get hashCode => Object.hash(
@@ -221,5 +233,6 @@ class AppPreferences {
     wrappedAlert,
     dailyReminder,
     dailyReminderMinutes,
+    budgetRollover,
   );
 }

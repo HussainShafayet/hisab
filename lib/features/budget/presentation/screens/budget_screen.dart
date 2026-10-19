@@ -17,6 +17,7 @@ import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
 class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
@@ -46,7 +47,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       context: context,
       builder: (context) => BudgetLimitDialog(
         title: tr('Monthly budget'),
-        initialAmount: current?.limit,
+        initialAmount: current?.setAmount,
         canRemove: current != null,
       ),
     );
@@ -66,7 +67,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       context: context,
       builder: (context) => BudgetLimitDialog(
         title: tr('{name} budget', {'name': item.categoryName}),
-        initialAmount: item.limit,
+        initialAmount: item.setAmount,
         canRemove: true,
       ),
     );
@@ -243,6 +244,20 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               onTap: () => _editOverall(null),
             ),
           ),
+        SwitchListTile(
+          key: const ValueKey('rollover-switch'),
+          secondary: const Icon(Icons.redo),
+          title: Text(tr('Carry over what is left')),
+          subtitle: Text(
+            tr("Money you do not spend is added to next month's budget."),
+          ),
+          value: ref.watch(preferencesProvider.select((p) => p.budgetRollover)),
+          onChanged: (value) => _run(
+            () => ref
+                .read(settingsRepositoryProvider)
+                .update((p) => p.copyWith(budgetRollover: value)),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
           child: Text(tr('By category'), style: theme.textTheme.titleSmall),

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/utils/clock.dart';
+import 'package:hishab/features/challenges/presentation/widgets/challenge_home_card.dart';
 import 'package:hishab/features/fun/presentation/widgets/takka_card.dart';
 import 'package:hishab/features/fun/domain/quips.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
@@ -102,6 +103,7 @@ class _DashboardContent extends ConsumerWidget {
         SafeToSpendCard(figures: safeToSpend, totalBalance: data.totalBalance),
         const LoansHomeCard(),
         const InvestmentsHomeCard(),
+        const ChallengeHomeCard(),
         DashboardHeading(
           tr('This month · {month}', {'month': monthLabel(data.month)}),
         ),

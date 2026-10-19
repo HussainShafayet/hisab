@@ -1,4 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -14,6 +15,8 @@ TransactionItem item(
   String categoryName = 'Food',
   String note = '',
   DateTime? date,
+  int? tagId,
+  Feeling? feeling,
 }) => TransactionItem(
   id: id,
   type: type,
@@ -26,6 +29,8 @@ TransactionItem item(
   categoryParentId: parentId,
   date: date ?? DateTime(2026, 10, 11, 12),
   note: note,
+  tagId: tagId,
+  feeling: feeling,
   createdAt: DateTime(2026, 10, 11),
 );
 
@@ -257,7 +262,106 @@ void main() {
     expect(filter.isActive, isTrue);
   });
 
+  group('amount range', () {
+    final priced = [
+      item(1, amount: 10000),
+      item(2, amount: 50000),
+      item(3, amount: 150000),
+    ];
+
+    test('a smallest amount keeps that much and more', () {
+      const filter = TransactionFilter(minAmount: 50000);
+      expect(ids(applyTransactionFilter(priced, filter)), [2, 3]);
+    });
+
+    test('a largest amount keeps that much and less', () {
+      const filter = TransactionFilter(maxAmount: 50000);
+      expect(ids(applyTransactionFilter(priced, filter)), [1, 2]);
+    });
+
+    test('both ends are included', () {
+      const filter = TransactionFilter(minAmount: 10000, maxAmount: 50000);
+      expect(ids(applyTransactionFilter(priced, filter)), [1, 2]);
+    });
+
+    test('an empty range matches nothing', () {
+      const filter = TransactionFilter(minAmount: 60000, maxAmount: 90000);
+      expect(applyTransactionFilter(priced, filter), isEmpty);
+    });
+  });
+
+  group('trip or event', () {
+    test('keeps only what belongs to the tag', () {
+      final tagged = [item(1, tagId: 7), item(2, tagId: 8), item(3)];
+      const filter = TransactionFilter(tagId: 7);
+      expect(ids(applyTransactionFilter(tagged, filter)), [1]);
+    });
+  });
+
+  group('feeling', () {
+    test('keeps only spending that felt that way', () {
+      final felt = [
+        item(1, feeling: Feeling.regret),
+        item(2, feeling: Feeling.need),
+        item(3),
+      ];
+      const filter = TransactionFilter(feeling: Feeling.regret);
+      expect(ids(applyTransactionFilter(felt, filter)), [1]);
+    });
+
+    test('works together with the amount', () {
+      final felt = [
+        item(1, feeling: Feeling.regret, amount: 90000),
+        item(2, feeling: Feeling.regret, amount: 10000),
+        item(3, feeling: Feeling.need, amount: 90000),
+      ];
+      const filter = TransactionFilter(
+        feeling: Feeling.regret,
+        minAmount: 50000,
+      );
+      expect(ids(applyTransactionFilter(felt, filter)), [1]);
+    });
+  });
+
   group('isActive and counting options', () {
+    test('the new options make the filter active and are counted', () {
+      expect(const TransactionFilter(minAmount: 1).isActive, isTrue);
+      expect(const TransactionFilter(maxAmount: 1).isActive, isTrue);
+      expect(const TransactionFilter(tagId: 1).isActive, isTrue);
+      expect(const TransactionFilter(feeling: Feeling.want).isActive, isTrue);
+
+      // The amount range is one option, whichever ends are set.
+      expect(
+        const TransactionFilter(
+          minAmount: 1,
+          maxAmount: 9,
+          tagId: 1,
+          feeling: Feeling.need,
+        ).sheetOptionCount,
+        3,
+      );
+    });
+
+    test('withQuery and withoutRange keep the new options', () {
+      final filter = TransactionFilter(
+        minAmount: 100,
+        maxAmount: 900,
+        tagId: 4,
+        feeling: Feeling.regret,
+        range: (start: DateTime(2026), end: DateTime(2027)),
+      );
+
+      for (final kept in [filter.withQuery('x'), filter.withoutRange()]) {
+        expect(kept.minAmount, 100);
+        expect(kept.maxAmount, 900);
+        expect(kept.tagId, 4);
+        expect(kept.feeling, Feeling.regret);
+      }
+      expect(filter.withoutSheetOptions().minAmount, isNull);
+      expect(filter.withoutSheetOptions().tagId, isNull);
+      expect(filter.withoutSheetOptions().feeling, isNull);
+    });
+
     test('a search text counts as active but not as a sheet option', () {
       const filter = TransactionFilter(query: 'x');
       expect(filter.isActive, isTrue);

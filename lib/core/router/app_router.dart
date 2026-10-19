@@ -16,6 +16,8 @@ import 'package:hishab/features/budget/presentation/screens/budget_screen.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/screens/categories_screen.dart';
 import 'package:hishab/features/categories/presentation/screens/category_form_screen.dart';
+import 'package:hishab/features/challenges/presentation/screens/challenge_form_screen.dart';
+import 'package:hishab/features/challenges/presentation/screens/challenges_screen.dart';
 import 'package:hishab/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:hishab/features/debts/presentation/screens/debt_detail_screen.dart';
 import 'package:hishab/features/debts/presentation/screens/debt_form_screen.dart';
@@ -206,6 +208,29 @@ final routerProvider = Provider<GoRouter>((ref) {
                           return id == null
                               ? const _InvalidIdScreen('tag')
                               : TagDetailScreen(tagId: id);
+                        },
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'challenges',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const ChallengesScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'new',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) =>
+                            const ChallengeFormScreen(),
+                      ),
+                      GoRoute(
+                        path: ':id/edit',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) {
+                          final id = _idOf(state);
+                          return id == null
+                              ? const _InvalidIdScreen('challenge')
+                              : ChallengeFormScreen(challengeId: id);
                         },
                       ),
                     ],

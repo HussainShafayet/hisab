@@ -19,6 +19,9 @@ abstract final class AppRoutes {
   static const tags = '/more/tags';
   static String tag(int id) => '/more/tags/$id';
   static const notifications = '/more/notifications';
+  static const challenges = '/more/challenges';
+  static const newChallenge = '/more/challenges/new';
+  static String editChallenge(int id) => '/more/challenges/$id/edit';
   static const investments = '/more/investments';
   static const newInvestment = '/more/investments/new';
   static String investment(int id) => '/more/investments/$id';

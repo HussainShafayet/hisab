@@ -4,6 +4,7 @@ import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/budget/data/budgets_repository.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 import '../../../helpers/test_database.dart';
@@ -323,6 +324,129 @@ void main() {
 
       expect(await repo.copyFromPreviousMonth(DateTime(2026, 10, 20, 9)), 1);
       expect((await month(october)).overall!.limit, 100);
+    });
+  });
+
+  group('carrying over what is left', () {
+    final august = DateTime(2026, 8);
+    final november = DateTime(2026, 11);
+
+    Future<void> rolloverOn() =>
+        db.settingsDao.put(PreferenceKeys.budgetRollover, 'true');
+
+    test('adds nothing while it is off', () async {
+      await repo.setBudget(month: september, amount: 100000);
+      await repo.setBudget(month: october, amount: 100000);
+      await spend(food, 30000, DateTime(2026, 9, 10));
+
+      final budget = (await repo.overallBudget(october))!;
+
+      expect(budget.limit, 100000);
+      expect(budget.carriedOver, 0);
+    });
+
+    test('adds what was not spent last month', () async {
+      await rolloverOn();
+      await repo.setBudget(month: september, amount: 100000);
+      await repo.setBudget(month: october, amount: 100000);
+      await spend(food, 60000, DateTime(2026, 9, 10));
+
+      final fromStream = (await month(october)).overall!;
+      final oneOff = (await repo.overallBudget(october))!;
+
+      for (final budget in [fromStream, oneOff]) {
+        expect(budget.carriedOver, 40000);
+        expect(budget.limit, 140000);
+        expect(budget.setAmount, 100000);
+      }
+    });
+
+    test('passes a leftover on through several months', () async {
+      await rolloverOn();
+      await repo.setBudget(month: august, amount: 100000);
+      await repo.setBudget(month: september, amount: 100000);
+      await repo.setBudget(month: october, amount: 100000);
+      await spend(food, 70000, DateTime(2026, 8, 5));
+      await spend(food, 120000, DateTime(2026, 9, 5));
+
+      // August leaves 30,000. September has 130,000 and spends 120,000, so
+      // 10,000 goes on to October.
+      final budget = (await repo.overallBudget(october))!;
+
+      expect(budget.carriedOver, 10000);
+      expect(budget.limit, 110000);
+    });
+
+    test('overspending takes nothing off the next month', () async {
+      await rolloverOn();
+      await repo.setBudget(month: september, amount: 100000);
+      await repo.setBudget(month: october, amount: 100000);
+      await spend(food, 150000, DateTime(2026, 9, 10));
+
+      final budget = (await repo.overallBudget(october))!;
+
+      expect(budget.carriedOver, 0);
+      expect(budget.limit, 100000);
+    });
+
+    test('a month without the budget breaks the chain', () async {
+      await rolloverOn();
+      await repo.setBudget(month: august, amount: 100000);
+      // September has no budget at all.
+      await repo.setBudget(month: october, amount: 100000);
+
+      final budget = (await repo.overallBudget(october))!;
+
+      expect(budget.carriedOver, 0);
+    });
+
+    test('a category carries its own leftover only', () async {
+      await rolloverOn();
+      await repo.setBudget(month: september, amount: 50000, categoryId: food);
+      await repo.setBudget(
+        month: september,
+        amount: 50000,
+        categoryId: transport,
+      );
+      await repo.setBudget(month: october, amount: 50000, categoryId: food);
+      await repo.setBudget(
+        month: october,
+        amount: 50000,
+        categoryId: transport,
+      );
+      await spend(food, 20000, DateTime(2026, 9, 10));
+      await spend(transport, 50000, DateTime(2026, 9, 11));
+
+      final budget = await month(october);
+      final byName = {for (final c in budget.categories) c.categoryName: c};
+
+      expect(byName['Food']!.carriedOver, 30000);
+      expect(byName['Food']!.limit, 80000);
+      expect(byName['Transport']!.carriedOver, 0);
+      expect(byName['Transport']!.limit, 50000);
+    });
+
+    test('only the last $rolloverMonths months count', () async {
+      await rolloverOn();
+      // A budget in each of 15 months, nothing spent: every month leaves all
+      // of its limit. November gets what the 12 months before it left, not
+      // the three older ones.
+      for (var i = 0; i < 15; i++) {
+        await repo.setBudget(month: DateTime(2025, 9 + i), amount: 100000);
+      }
+
+      final budget = (await repo.overallBudget(november))!;
+
+      expect(budget.carriedOver, rolloverMonths * 100000);
+    });
+
+    test('the set amount is the whole limit when nothing is carried', () async {
+      await rolloverOn();
+      await repo.setBudget(month: october, amount: 100000);
+
+      final budget = (await repo.overallBudget(october))!;
+
+      expect(budget.setAmount, budget.limit);
     });
   });
 }

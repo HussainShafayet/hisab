@@ -21,6 +21,7 @@ final dataChangesProvider = StreamProvider<void>((ref) {
       db.accounts,
       db.categories,
       db.budgets,
+      db.challenges,
     ]),
   );
 });

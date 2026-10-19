@@ -6,6 +6,7 @@ class BudgetItem {
     required this.id,
     required this.limit,
     required this.spent,
+    this.carriedOver = 0,
     this.categoryId,
     this.categoryName,
     this.categoryIcon,
@@ -20,8 +21,17 @@ class BudgetItem {
   final String? categoryIcon;
   final int? categoryColor;
 
-  /// In poisha.
+  /// In poisha: the limit that counts this month, which is the amount that was
+  /// set plus [carriedOver].
   final int limit;
+
+  /// In poisha: what was left of this budget in the months before and is
+  /// added to it (Budget > Carry over what is left). Zero when that is off.
+  final int carriedOver;
+
+  /// In poisha: the amount that was set for this month, without what was
+  /// carried over. This is what the edit box starts with.
+  int get setAmount => limit - carriedOver;
 
   /// In poisha: the month's expenses in this category and its
   /// sub-categories, or all expenses for the overall budget. Transfers and
