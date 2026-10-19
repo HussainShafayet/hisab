@@ -4,12 +4,12 @@ import 'package:hishab/features/settings/domain/app_preferences.dart';
 
 void main() {
   group('defaults', () {
-    test('are English, the phone theme, the keyboard and Sunday', () {
+    test('are English, the phone theme, the calculator and Sunday', () {
       const defaults = AppPreferences.defaults;
 
       expect(defaults.language, AppLanguage.english);
       expect(defaults.theme, ThemePreference.system);
-      expect(defaults.amountEntry, AmountEntry.keyboard);
+      expect(defaults.amountEntry, AmountEntry.calculator);
       expect(defaults.weekStart, WeekStart.sunday);
       expect(defaults.defaultAccountId, isNull);
     });
@@ -37,14 +37,14 @@ void main() {
         PreferenceKeys.theme: 'dark',
         PreferenceKeys.language: 'bangla',
         PreferenceKeys.defaultAccount: '7',
-        PreferenceKeys.amountEntry: 'calculator',
+        PreferenceKeys.amountEntry: 'keyboard',
         PreferenceKeys.weekStart: 'saturday',
       });
 
       expect(preferences.theme, ThemePreference.dark);
       expect(preferences.language, AppLanguage.bangla);
       expect(preferences.defaultAccountId, 7);
-      expect(preferences.amountEntry, AmountEntry.calculator);
+      expect(preferences.amountEntry, AmountEntry.keyboard);
       expect(preferences.weekStart, WeekStart.saturday);
     });
 
@@ -84,7 +84,7 @@ void main() {
         theme: ThemePreference.dark,
         language: AppLanguage.bangla,
         defaultAccountId: 3,
-        amountEntry: AmountEntry.calculator,
+        amountEntry: AmountEntry.keyboard,
         weekStart: WeekStart.monday,
       );
 
@@ -92,9 +92,15 @@ void main() {
         PreferenceKeys.theme: 'dark',
         PreferenceKeys.language: 'bangla',
         PreferenceKeys.defaultAccount: '3',
-        PreferenceKeys.amountEntry: 'calculator',
+        PreferenceKeys.amountEntry: 'keyboard',
         PreferenceKeys.weekStart: 'monday',
         PreferenceKeys.funMode: 'true',
+        PreferenceKeys.funSounds: 'true',
+        PreferenceKeys.budgetAlerts: 'true',
+        PreferenceKeys.habitAlerts: 'true',
+        PreferenceKeys.wrappedAlert: 'true',
+        PreferenceKeys.dailyReminder: 'false',
+        PreferenceKeys.dailyReminderMinutes: '1260',
       });
     });
 
@@ -110,7 +116,7 @@ void main() {
         theme: ThemePreference.light,
         language: AppLanguage.bangla,
         defaultAccountId: 12,
-        amountEntry: AmountEntry.calculator,
+        amountEntry: AmountEntry.keyboard,
         weekStart: WeekStart.saturday,
       );
       final saved = {
@@ -193,6 +199,66 @@ void main() {
         isNot(AppPreferences.defaults),
       );
       expect(AppPreferences.defaults.copyWith(funMode: false).funMode, isFalse);
+    });
+  });
+
+  group('Alerts', () {
+    test('are on to start with, except the daily reminder', () {
+      const p = AppPreferences.defaults;
+      expect(p.funSounds, isTrue);
+      expect(p.budgetAlerts, isTrue);
+      expect(p.habitAlerts, isTrue);
+      expect(p.wrappedAlert, isTrue);
+      expect(p.dailyReminder, isFalse);
+      expect(p.dailyReminderMinutes, 21 * 60);
+    });
+
+    test('are saved and read back', () {
+      const p = AppPreferences(
+        funSounds: false,
+        budgetAlerts: false,
+        habitAlerts: false,
+        wrappedAlert: false,
+        dailyReminder: true,
+        dailyReminderMinutes: 8 * 60 + 30,
+      );
+
+      expect(AppPreferences.fromMap(p.toMap().cast<String, String>()), p);
+    });
+
+    test('stay on for anything that is not "false", off for not "true"', () {
+      final p = AppPreferences.fromMap({
+        PreferenceKeys.budgetAlerts: 'banana',
+        PreferenceKeys.dailyReminder: 'banana',
+      });
+
+      expect(p.budgetAlerts, isTrue);
+      expect(p.dailyReminder, isFalse);
+    });
+
+    test('keep the reminder time when what is saved is not a time', () {
+      for (final bad in ['soon', '-5', '1440', '']) {
+        expect(
+          AppPreferences.fromMap({PreferenceKeys.dailyReminderMinutes: bad})
+              .dailyReminderMinutes,
+          21 * 60,
+          reason: bad,
+        );
+      }
+    });
+
+    test('are part of equality and copyWith', () {
+      final base = AppPreferences.defaults;
+      for (final changed in [
+        base.copyWith(funSounds: false),
+        base.copyWith(budgetAlerts: false),
+        base.copyWith(habitAlerts: false),
+        base.copyWith(wrappedAlert: false),
+        base.copyWith(dailyReminder: true),
+        base.copyWith(dailyReminderMinutes: 600),
+      ]) {
+        expect(changed, isNot(base));
+      }
     });
   });
 }

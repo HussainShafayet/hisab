@@ -15,6 +15,7 @@ import 'package:hishab/features/budget/presentation/widgets/budget_limit_dialog.
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
@@ -154,6 +155,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       appBar: AppBar(
         title: Text(tr('Budget')),
         actions: [
+          const HelpButton('budget'),
           PopupMenuButton<void>(
             itemBuilder: (context) => [
               PopupMenuItem(

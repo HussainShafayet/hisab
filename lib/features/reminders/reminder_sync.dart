@@ -1,7 +1,10 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/notifications/alert_kind.dart';
 import 'package:hishab/core/notifications/reminder_scheduler.dart';
 import 'package:hishab/core/utils/clock.dart';
+import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/domain/credit_card.dart';
@@ -9,6 +12,9 @@ import 'package:hishab/features/accounts/presentation/providers/accounts_provide
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
+import 'package:hishab/features/reminders/domain/alerts.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+import 'package:hishab/features/transactions/data/activity_queries.dart';
 import 'package:hishab/features/zakat/data/zakat_settings_repository.dart';
 import 'package:hishab/features/zakat/domain/zakat.dart';
 import 'package:hishab/features/zakat/presentation/providers/zakat_providers.dart';
@@ -38,6 +44,7 @@ List<Reminder> loanRemindersFor(Iterable<DebtItem> items, DateTime now) {
             _loanIdBase +
             planned.item.debt.id * 2 +
             (planned.dayBefore ? 0 : 1),
+        kind: AlertKind.loan,
         title: planned.dayBefore
             ? tr('Loan due tomorrow')
             : tr('Loan due today'),
@@ -100,6 +107,7 @@ List<Reminder> zakatReminderFor(ZakatSettings settings, DateTime now) {
   return [
     Reminder(
       id: _zakatId,
+      kind: AlertKind.zakat,
       title: tr('Zakat day'),
       body: tr('Check how much zakat is due, under More > Zakat.'),
       when: _at(day),
@@ -117,11 +125,29 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
   final debts = ref.watch(debtsProvider).value;
   // Runs again when the zakat day changes.
   ref.watch(zakatSettingsProvider);
+  // And when an alert is switched on or off, its time changes, or the sound
+  // changes (the sound belongs to the channel a reminder goes to).
+  final (funSounds, dailyOn, dailyMinutes, wrappedOn) = ref.watch(
+    preferencesProvider.select(
+      (p) => (
+        p.funSounds,
+        p.dailyReminder,
+        p.dailyReminderMinutes,
+        p.wrappedAlert,
+      ),
+    ),
+  );
   if (rules == null || debts == null) return;
   final repository = ref.read(recurringRepositoryProvider);
   final now = ref.read(clockProvider)();
   await repository.addAutomatic(now);
   final accounts = await ref.read(accountsRepositoryProvider).getAccounts();
+  final db = ref.read(appDatabaseProvider);
+  final today = dateOnly(now);
+  final writtenToday =
+      await db.entryCount(today, today.add(const Duration(days: 1))) > 0;
+  final writtenThisMonth =
+      await db.entryCount(monthStart(now), addMonths(monthStart(now), 1)) > 0;
   await ref.read(reminderSchedulerProvider).replaceAll([
     ...remindersFor(await repository.getRules(), now),
     ...loanRemindersFor(debts, now),
@@ -130,5 +156,12 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
       ref.read(zakatSettingsProvider).value ?? ZakatSettings.defaults,
       now,
     ),
-  ]);
+    if (dailyOn)
+      ...dailyRemindersFor(
+        now: now,
+        minutes: dailyMinutes,
+        writtenToday: writtenToday,
+      ),
+    if (wrappedOn) ...wrappedReminderFor(now, hasEntries: writtenThisMonth),
+  ], funSounds: funSounds);
 });

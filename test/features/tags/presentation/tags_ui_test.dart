@@ -161,6 +161,7 @@ void main() {
 
       await typeAmount(tester, '500');
       await chooseCategory(tester, b.food);
+      await openMoreDetails(tester);
       await tapKey(tester, 'tag-$tag');
       await tester.tap(find.text('Save'));
       await tester.pumpAndSettle();
@@ -176,6 +177,7 @@ void main() {
 
       await typeAmount(tester, '500');
       await chooseCategory(tester, b.food);
+      await openMoreDetails(tester);
       await tapKey(tester, 'new-tag');
       await tester.enterText(find.byKey(const ValueKey('tag-name')), 'Tour');
       await tapKey(tester, 'tag-save');

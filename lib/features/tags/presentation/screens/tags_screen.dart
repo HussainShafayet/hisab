@@ -11,6 +11,7 @@ import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/tags/domain/tag.dart';
 import 'package:hishab/features/tags/presentation/providers/tags_providers.dart';
 import 'package:hishab/features/tags/presentation/widgets/tag_name_dialog.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 
 /// "12 Oct", or "12 Oct - 15 Oct" for a span of days; empty without a day.
@@ -45,7 +46,10 @@ class TagsScreen extends ConsumerWidget {
     final colors = context.financeColors;
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Trips & events'))),
+      appBar: AppBar(
+        title: Text(tr('Trips & events')),
+        actions: const [HelpButton('trips')],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => _newTag(context, ref),
         icon: const Icon(Icons.add),

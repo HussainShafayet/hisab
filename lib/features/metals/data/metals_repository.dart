@@ -29,7 +29,7 @@ class MetalsRepository {
     required int milligrams,
     required int purity,
     int? cost,
-  }) {
+  }) async {
     final clean = _validated(name, milligrams, purity, cost);
     return _db.metalsDao.insertHolding(
       MetalHoldingsCompanion.insert(

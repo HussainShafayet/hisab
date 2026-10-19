@@ -1,6 +1,7 @@
 /// Bangla for the monthly wrapped.
 const bnWrapped = <String, String>{
   'Month wrapped': 'মাসের সারসংক্ষেপ',
+  'Share this card': 'এই কার্ডটি শেয়ার করুন',
   'Your {month} wrapped is ready': 'আপনার {month} মাসের সারসংক্ষেপ তৈরি',
   'Your {month} in Hishab': 'হিসাবে আপনার {month}',
   'Nothing written yet': 'এখনও কিছু লেখা হয়নি',

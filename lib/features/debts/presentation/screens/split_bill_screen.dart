@@ -21,6 +21,7 @@ import 'package:hishab/features/categories/presentation/widgets/category_picker_
 import 'package:hishab/features/debts/domain/split.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/debts/presentation/widgets/day_field.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// One friend of the split and the controller of their part.
 class _Friend {
@@ -247,7 +248,10 @@ class _SplitBillScreenState extends ConsumerState<SplitBillScreen> {
     ].take(6);
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Split a bill'))),
+      appBar: AppBar(
+        title: Text(tr('Split a bill')),
+        actions: const [HelpButton('split')],
+      ),
       body: Column(
         children: [
           Expanded(

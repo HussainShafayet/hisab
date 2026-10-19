@@ -4,6 +4,7 @@ import 'package:hishab/core/app_info.dart';
 import 'package:hishab/core/l10n/app_language.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/notifications/reminder_scheduler.dart';
 import 'package:hishab/features/settings/data/settings_repository.dart';
 import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
@@ -11,6 +12,7 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/widgets/amount_keypad.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
+import '../../../helpers/fake_reminder_scheduler.dart';
 import '../../../helpers/fixtures.dart';
 import '../../../helpers/form_actions.dart';
 import '../../../helpers/pump_app.dart';
@@ -75,7 +77,7 @@ void main() {
           tester.widget<ChoiceChip>(find.byKey(ValueKey(key))).selected;
       expect(selected('language-english'), isTrue);
       expect(selected('theme-system'), isTrue);
-      expect(selected('amount-entry-keyboard'), isTrue);
+      expect(selected('amount-entry-calculator'), isTrue);
       expect(selected('week-start-sunday'), isTrue);
       expect(
         tester
@@ -384,16 +386,29 @@ void main() {
   });
 
   group('typing the amount', () {
-    testWithDatabase('can start with the calculator', (tester, db) async {
+    testWithDatabase('can start with the keyboard', (tester, db) async {
       useTallScreen(tester);
       await seedBasics(db);
       await pumpAppWithDatabase(tester, db);
       await openSettings(tester);
-      await tapChip(tester, 'amount-entry-calculator');
-      expect((await saved(db)).amountEntry, AmountEntry.calculator);
+      await tapChip(tester, 'amount-entry-keyboard');
+      expect((await saved(db)).amountEntry, AmountEntry.keyboard);
 
       await tester.tap(find.byType(BackButton));
       await tester.pumpAndSettle();
+      await openAddForm(tester);
+
+      expect(find.byType(AmountKeypad), findsNothing);
+      expect(tester.widget<TextField>(amountField).focusNode!.hasFocus, isTrue);
+    });
+
+    testWithDatabase('starts with the calculator by default', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
       await openAddForm(tester);
 
       expect(find.byType(AmountKeypad), findsOneWidget);
@@ -402,16 +417,6 @@ void main() {
         tester.widget<TextField>(amountField).focusNode!.hasFocus,
         isFalse,
       );
-    });
-
-    testWithDatabase('starts with the keyboard by default', (tester, db) async {
-      useTallScreen(tester);
-      await seedBasics(db);
-      await pumpAppWithDatabase(tester, db);
-      await openAddForm(tester);
-
-      expect(find.byType(AmountKeypad), findsNothing);
-      expect(tester.widget<TextField>(amountField).focusNode!.hasFocus, isTrue);
     });
 
     testWithDatabase('can still switch to the keyboard from the calculator', (
@@ -454,6 +459,129 @@ void main() {
       await tester.tap(fun());
       await tester.pumpAndSettle();
       expect((await saved(db)).funMode, isTrue);
+    });
+  });
+
+  group('Alerts', () {
+    Finder tile(String key) => find.byKey(ValueKey(key));
+    bool on(WidgetTester tester, String key) =>
+        tester.widget<SwitchListTile>(tile(key)).value;
+
+    testWithDatabase('are on to start with, but the daily reminder', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openSettings(tester);
+      await tester.ensureVisible(tile('fun-sounds'));
+
+      for (final key in [
+        'fun-sounds',
+        'budget-alerts',
+        'habit-alerts',
+        'wrapped-alert',
+      ]) {
+        expect(on(tester, key), isTrue, reason: key);
+      }
+      expect(on(tester, 'daily-reminder'), isFalse);
+      expect(tile('daily-reminder-time'), findsNothing);
+    });
+
+    testWithDatabase('each can be turned off, and is saved', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openSettings(tester);
+
+      for (final key in [
+        'fun-sounds',
+        'budget-alerts',
+        'habit-alerts',
+        'wrapped-alert',
+      ]) {
+        await tester.ensureVisible(tile(key));
+        await tester.tap(tile(key));
+        await tester.pumpAndSettle();
+        expect(on(tester, key), isFalse, reason: key);
+      }
+
+      final p = await saved(db);
+      expect(p.funSounds, isFalse);
+      expect(p.budgetAlerts, isFalse);
+      expect(p.habitAlerts, isFalse);
+      expect(p.wrappedAlert, isFalse);
+    });
+
+    testWithDatabase('the daily reminder asks to allow notifications', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final scheduler = FakeReminderScheduler();
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [reminderSchedulerProvider.overrideWithValue(scheduler)],
+      );
+      await openSettings(tester);
+
+      await tester.ensureVisible(tile('daily-reminder'));
+      await tester.tap(tile('daily-reminder'));
+      await tester.pumpAndSettle();
+
+      expect(scheduler.permissionRequests, 1);
+      expect((await saved(db)).dailyReminder, isTrue);
+      expect(tile('daily-reminder-time'), findsOneWidget);
+      expect(find.text('9:00 PM'), findsOneWidget);
+
+      // Turning it off asks for nothing.
+      await tester.tap(tile('daily-reminder'));
+      await tester.pumpAndSettle();
+      expect(scheduler.permissionRequests, 1);
+      expect((await saved(db)).dailyReminder, isFalse);
+      expect(tile('daily-reminder-time'), findsNothing);
+    });
+
+    testWithDatabase('turning one on asks to allow notifications too', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await db.settingsDao.put(PreferenceKeys.budgetAlerts, 'false');
+      final scheduler = FakeReminderScheduler();
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [reminderSchedulerProvider.overrideWithValue(scheduler)],
+      );
+      await openSettings(tester);
+
+      await tester.ensureVisible(tile('budget-alerts'));
+      await tester.tap(tile('budget-alerts'));
+      await tester.pumpAndSettle();
+
+      expect(scheduler.permissionRequests, 1);
+      expect((await saved(db)).budgetAlerts, isTrue);
+    });
+
+    testWithDatabase('the reminder time can be chosen', (tester, db) async {
+      useTallScreen(tester);
+      await db.settingsDao.put(PreferenceKeys.dailyReminder, 'true');
+      await pumpAppWithDatabase(tester, db);
+      await openSettings(tester);
+
+      await tester.ensureVisible(tile('daily-reminder-time'));
+      await tester.tap(tile('daily-reminder-time'));
+      await tester.pumpAndSettle();
+      // The dial opens on the saved time; accept it as it is.
+      expect(find.text('Select time'), findsOneWidget);
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+
+      expect((await saved(db)).dailyReminderMinutes, 21 * 60);
     });
   });
 

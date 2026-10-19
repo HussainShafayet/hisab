@@ -10,6 +10,7 @@ import 'package:hishab/features/accounts/presentation/screens/account_form_scree
 import 'package:hishab/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/backup_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/csv_import_screen.dart';
+import 'package:hishab/features/bazar/presentation/screens/bazar_prices_screen.dart';
 import 'package:hishab/features/bazar/presentation/screens/bazar_screen.dart';
 import 'package:hishab/features/budget/presentation/screens/budget_screen.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
@@ -24,6 +25,8 @@ import 'package:hishab/features/debts/presentation/screens/split_bill_screen.dar
 import 'package:hishab/features/goals/presentation/screens/goal_detail_screen.dart';
 import 'package:hishab/features/goals/presentation/screens/goal_form_screen.dart';
 import 'package:hishab/features/goals/presentation/screens/goals_screen.dart';
+import 'package:hishab/features/help/presentation/screens/guide_topic_screen.dart';
+import 'package:hishab/features/help/presentation/screens/help_screen.dart';
 import 'package:hishab/features/investments/presentation/screens/investment_detail_screen.dart';
 import 'package:hishab/features/investments/presentation/screens/investment_form_screen.dart';
 import 'package:hishab/features/investments/presentation/screens/investments_screen.dart';
@@ -38,6 +41,7 @@ import 'package:hishab/features/recurring/presentation/screens/recurring_screen.
 import 'package:hishab/features/reports/presentation/screens/reports_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/more_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/settings_screen.dart';
+import 'package:hishab/features/transactions/presentation/screens/add_several_screen.dart';
 import 'package:hishab/features/transactions/presentation/screens/transaction_form_screen.dart';
 import 'package:hishab/features/transactions/presentation/screens/transactions_screen.dart';
 
@@ -163,9 +167,30 @@ final routerProvider = Provider<GoRouter>((ref) {
                     builder: (context, state) => const MetalsScreen(),
                   ),
                   GoRoute(
+                    path: 'help',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const HelpScreen(),
+                    routes: [
+                      GoRoute(
+                        path: ':id',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => GuideTopicScreen(
+                          topicId: state.pathParameters['id'] ?? '',
+                        ),
+                      ),
+                    ],
+                  ),
+                  GoRoute(
                     path: 'bazar',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const BazarScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'prices',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => const BazarPricesScreen(),
+                      ),
+                    ],
                   ),
                   GoRoute(
                     path: 'tags',
@@ -401,6 +426,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           ),
           prefillNote: state.uri.queryParameters['prefillNote'],
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.addSeveral,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const AddSeveralScreen(),
       ),
       GoRoute(
         path: '/transaction/:id',

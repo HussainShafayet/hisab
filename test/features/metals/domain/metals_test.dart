@@ -63,11 +63,14 @@ void main() {
     test('a bhori price and a gram price turn into each other', () {
       const bhori = 18000000; // 180,000 taka for a bhori of 22K
       final gram = gramPriceFromBhori(Metal.gold, bhori);
-      expect(bhoriPriceFromGram(Metal.gold, gram), closeTo(bhori, 1));
+      // The price of a gram is a whole number of poisha, and a bhori holds
+      // about 10.7 grams of pure gold, so the round trip is off by up to
+      // half a poisha for each of those grams.
+      expect(bhoriPriceFromGram(Metal.gold, gram), closeTo(bhori, 6));
       // A 22K bhori is worth what the price says.
       expect(
         holdingValue(milligrams: 11664, purity: 917, gramPrice: gram),
-        closeTo(bhori, 2),
+        closeTo(bhori, 6),
       );
     });
 

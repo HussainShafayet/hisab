@@ -35,6 +35,7 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
 import 'package:hishab/features/transactions/presentation/widgets/amount_keypad.dart';
 import 'package:hishab/features/transactions/presentation/widgets/amount_text_formatter.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 
 /// Adds a transaction, edits the one with [editId], or adds a copy of the one
@@ -153,6 +154,14 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   /// Whether the amount is typed with the calculator keypad, so it can be a
   /// sum like `1200+350`. Otherwise it is a plain number typed on the keyboard.
   bool _calculator = false;
+
+  /// Whether the calculator keypad is on screen. It opens for a new entry and
+  /// closes when a category, an account or the date is being chosen, so the
+  /// rest of the form is in view; tapping the amount opens it again.
+  bool _keypadOpen = false;
+
+  /// Whether the extra fields (trip or event, feeling) are shown.
+  bool _moreOpen = false;
   bool _saving = false;
   String? _error;
 
@@ -180,10 +189,12 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     _calculator =
         _isAdding &&
         ref.read(preferencesProvider).amountEntry == AmountEntry.calculator;
+    _keypadOpen = _calculator;
     _amount.text = source == null ? '' : poishaToInput(source.amount);
     _note.text = source?.note ?? '';
     _tagId = source?.tagId;
     _feeling = source?.feeling;
+    _moreOpen = _tagId != null || _feeling != null;
     final usd = source?.usdAmount;
     _usd.text = usd == null ? '' : poishaToInput(usd);
     _day = dateOnly(_isEditing ? source!.date : now);
@@ -312,9 +323,30 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       FocusScope.of(context).unfocus();
       setState(() {
         _calculator = true;
+        _keypadOpen = true;
         _error = null;
       });
     }
+  }
+
+  void _openKeypad() {
+    if (!_calculator || _keypadOpen) return;
+    FocusScope.of(context).unfocus();
+    setState(() => _keypadOpen = true);
+  }
+
+  void _closeKeypad() {
+    if (_keypadOpen) setState(() => _keypadOpen = false);
+  }
+
+  /// Takes [id] as the category. A new entry then has its amount, so the
+  /// keypad makes room for the rest of the form.
+  void _setCategory(int id) {
+    setState(() {
+      _categoryId = id;
+      _error = null;
+      if (_isAdding) _keypadOpen = false;
+    });
   }
 
   void _onKey(String key) {
@@ -411,6 +443,13 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     }
   }
 
+  /// Opens the "Add several" screen. When it saved something the single form
+  /// has nothing left to do, so it closes too.
+  Future<void> _addSeveral() async {
+    final saved = await context.push<bool>(AppRoutes.addSeveral);
+    if (saved == true && mounted) context.pop(true);
+  }
+
   Future<void> _saveAndClose() async {
     // The screen that opened the form can tell it was saved (true).
     if (await _save() && mounted) context.pop(true);
@@ -435,6 +474,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   }
 
   Future<void> _pickDate() async {
+    _closeKeypad();
     final today = dateOnly(ref.read(clockProvider)());
     final picked = await showDatePicker(
       context: context,
@@ -465,6 +505,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
 
   Future<void> _chooseCategory() async {
     _amountFocus.unfocus();
+    _closeKeypad();
     final options = _data.options;
     final pick = await showCategoryPicker(
       context,
@@ -478,10 +519,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     if (!mounted) return;
     switch (pick) {
       case CategoryPicked(:final id):
-        setState(() {
-          _categoryId = id;
-          _error = null;
-        });
+        _setCategory(id);
       case CategoryAddRequested():
         await _addCategory();
       case CategoryTopLevelChosen() || null:
@@ -497,6 +535,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     int? disabled,
   }) async {
     _amountFocus.unfocus();
+    _closeKeypad();
     final id = await showAccountPicker(
       context,
       title: title,
@@ -604,6 +643,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     required String placeholder,
     required VoidCallback onTap,
     required Map<int, int> balances,
+    bool stacked = false,
   }) {
     final account = _account(accountId);
     if (account == null) {
@@ -619,6 +659,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     return KeyedSubtree(
       key: key,
       child: AccountCard(
+        compact: true,
+        stacked: stacked,
         account: account,
         caption: caption,
         balance: balance,
@@ -706,6 +748,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         color: amountColor,
         calculator: _calculator,
         autofocus: _isAdding && !_calculator,
+        keypadClosed: _calculator && !_keypadOpen,
+        onTap: _openKeypad,
         onToggleCalculator: _toggleCalculator,
         onChanged: _onAmountChanged,
         onSubmitted: _onAmountSubmitted,
@@ -751,7 +795,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       if (_type == TransactionType.transfer)
         ..._transferFields(context, balances)
       else ...[
-        _categoryTile(context),
+        _categoryArea(context),
         const SizedBox(height: 12),
         _accountCard(
           key: const ValueKey('account-field'),
@@ -765,12 +809,6 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             onChosen: (id) => _accountId = id,
           ),
         ),
-        const SizedBox(height: 16),
-        _tagSection(context),
-        if (_type == TransactionType.expense) ...[
-          const SizedBox(height: 16),
-          _feelingSection(),
-        ],
       ],
       if (_dollarCard != null) ...[
         const SizedBox(height: 16),
@@ -822,9 +860,13 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         textCapitalization: TextCapitalization.sentences,
         decoration: InputDecoration(labelText: tr('Note')),
       ),
+      // A transfer only has a fee to add, and only when it is new.
+      if (_type != TransactionType.transfer ||
+          (!_isEditing && _data.options.accounts.length >= 2))
+        _moreDetails(context),
     ];
 
-    final keypad = _calculator && !textFieldFocused
+    final keypad = _calculator && _keypadOpen && !textFieldFocused
         ? AmountKeypad(onKey: _onKey)
         : null;
 
@@ -871,7 +913,21 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     final isShort = MediaQuery.sizeOf(context).height < 520;
 
     return Scaffold(
-      appBar: AppBar(title: title),
+      appBar: AppBar(
+        title: title,
+        actions: [
+          const HelpButton('transactions'),
+          if (_isAdding &&
+              widget.payCardId == null &&
+              widget.prefillAmount == null)
+            IconButton(
+              key: const ValueKey('add-several'),
+              tooltip: tr('Add several'),
+              icon: const Icon(Icons.playlist_add),
+              onPressed: _addSeveral,
+            ),
+        ],
+      ),
       body: isShort
           ? ListView(
               children: [
@@ -930,58 +986,201 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     }
     final canSwap = _accountId != null && _toAccountId != null;
     return [
-      _accountCard(
-        key: const ValueKey('from-field'),
-        accountId: _accountId,
-        caption: tr('From'),
-        placeholder: tr('Where does the money come from?'),
-        balances: balances,
-        onTap: () => _chooseAccount(
-          title: tr('Move money from'),
-          selected: _accountId,
-          disabled: _toAccountId,
-          onChosen: (id) => _accountId = id,
+      Stack(
+        alignment: Alignment.center,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: _accountCard(
+                  key: const ValueKey('from-field'),
+                  accountId: _accountId,
+                  caption: tr('From'),
+                  placeholder: tr('From'),
+                  stacked: true,
+                  balances: balances,
+                  onTap: () => _chooseAccount(
+                    title: tr('Move money from'),
+                    selected: _accountId,
+                    disabled: _toAccountId,
+                    onChosen: (id) => _accountId = id,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _accountCard(
+                  key: const ValueKey('to-field'),
+                  accountId: _toAccountId,
+                  caption: tr('To'),
+                  placeholder: tr('To'),
+                  stacked: true,
+                  balances: balances,
+                  onTap: () => _chooseAccount(
+                    title: tr('Move money to'),
+                    selected: _toAccountId,
+                    disabled: _accountId,
+                    onChosen: (id) => _toAccountId = id,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          IconButton.filledTonal(
+            key: const ValueKey('swap-accounts'),
+            tooltip: tr('Swap From and To'),
+            icon: const Icon(Icons.swap_horiz),
+            onPressed: canSwap
+                ? () => setState(() {
+                    final from = _accountId;
+                    _accountId = _toAccountId;
+                    _toAccountId = from;
+                  })
+                : null,
+          ),
+        ],
+      ),
+    ];
+  }
+
+  /// The category: while none is chosen and some are used often, a grid of
+  /// those (and "All"), one tap each; otherwise the tile with the chosen one.
+  Widget _categoryArea(BuildContext context) {
+    final options = _data.options;
+    final frequent = options.frequentIdsFor(_type);
+    if (_categoryId != null || frequent.isEmpty) return _categoryTile(context);
+
+    final byId = {for (final c in options.categoriesFor(_type)) c.id: c};
+    final shown = [
+      for (final id in frequent)
+        if (byId[id] != null) byId[id]!,
+    ];
+    if (shown.isEmpty) return _categoryTile(context);
+
+    final theme = Theme.of(context);
+    Widget tile({
+      required Key key,
+      required Widget avatar,
+      required String label,
+      required VoidCallback onTap,
+      bool dashed = false,
+    }) => Material(
+      color: dashed
+          ? Colors.transparent
+          : theme.colorScheme.surfaceContainerHigh,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(14),
+        side: dashed
+            ? BorderSide(color: theme.colorScheme.outline)
+            : BorderSide.none,
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: InkWell(
+        key: key,
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              avatar,
+              const SizedBox(height: 4),
+              Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelMedium,
+              ),
+            ],
+          ),
         ),
       ),
-      Align(
-        child: IconButton(
-          key: const ValueKey('swap-accounts'),
-          tooltip: tr('Swap From and To'),
-          icon: const Icon(Icons.swap_vert),
-          onPressed: canSwap
-              ? () => setState(() {
-                  final from = _accountId;
-                  _accountId = _toAccountId;
-                  _toAccountId = from;
-                })
-              : null,
+    );
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _SectionLabel(
+          _type == TransactionType.income
+              ? tr('Income category')
+              : tr('Expense category'),
         ),
-      ),
-      _accountCard(
-        key: const ValueKey('to-field'),
-        accountId: _toAccountId,
-        caption: tr('To'),
-        placeholder: tr('Where does the money go?'),
-        balances: balances,
-        onTap: () => _chooseAccount(
-          title: tr('Move money to'),
-          selected: _toAccountId,
-          disabled: _accountId,
-          onChosen: (id) => _toAccountId = id,
-        ),
-      ),
-      if (!_isEditing) ...[
-        const SizedBox(height: 16),
-        MoneyFormField(
-          controller: _fee,
-          focusNode: _feeFocus,
-          label: tr('Fee (optional)'),
-          isRequired: false,
-          onChanged: (_) => setState(() {}),
-          helperText: tr('Saved as an expense on the "From" account.'),
+        GridView(
+          key: const ValueKey('quick-categories'),
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            mainAxisExtent: 76,
+            mainAxisSpacing: 8,
+            crossAxisSpacing: 8,
+          ),
+          children: [
+            for (final category in shown)
+              tile(
+                key: ValueKey('quick-category-${category.id}'),
+                avatar: CategoryAvatar(
+                  icon: category.icon,
+                  color: category.color,
+                  radius: 16,
+                ),
+                label: category.name,
+                onTap: () => _setCategory(category.id),
+              ),
+            tile(
+              key: const ValueKey('category-field'),
+              dashed: true,
+              avatar: CircleAvatar(
+                radius: 16,
+                backgroundColor: theme.colorScheme.surfaceContainerHighest,
+                child: Icon(
+                  Icons.more_horiz,
+                  size: 18,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              label: tr('All'),
+              onTap: _chooseCategory,
+            ),
+          ],
         ),
       ],
-    ];
+    );
+  }
+
+  /// The trip or event and the feeling, folded away: most entries have
+  /// neither.
+  Widget _moreDetails(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextButton.icon(
+          key: const ValueKey('more-details'),
+          onPressed: () => setState(() => _moreOpen = !_moreOpen),
+          icon: Icon(_moreOpen ? Icons.expand_less : Icons.expand_more),
+          iconAlignment: IconAlignment.end,
+          label: Text(_moreOpen ? tr('Fewer details') : tr('More details')),
+        ),
+        if (_moreOpen)
+          if (_type == TransactionType.transfer)
+            MoneyFormField(
+              controller: _fee,
+              focusNode: _feeFocus,
+              label: tr('Fee (optional)'),
+              isRequired: false,
+              onChanged: (_) => setState(() {}),
+              helperText: tr('Saved as an expense on the "From" account.'),
+            )
+          else ...[
+            _tagSection(context),
+            if (_type == TransactionType.expense) ...[
+              const SizedBox(height: 16),
+              _feelingSection(),
+            ],
+          ],
+      ],
+    );
   }
 
   /// Three chips for how an expense felt. Tapping the one chosen clears it.
@@ -1163,11 +1362,19 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
                 ),
               ),
               const SizedBox(width: 8),
-              Icon(
-                Icons.search,
-                color: theme.colorScheme.onSurfaceVariant,
-                semanticLabel: tr('Search categories'),
-              ),
+              if (selected != null)
+                Text(
+                  tr('Change'),
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    color: theme.colorScheme.primary,
+                  ),
+                )
+              else
+                Icon(
+                  Icons.search,
+                  color: theme.colorScheme.onSurfaceVariant,
+                  semanticLabel: tr('Search categories'),
+                ),
             ],
           ),
         ),
@@ -1272,6 +1479,8 @@ class _AmountInput extends StatelessWidget {
     required this.focusNode,
     required this.color,
     required this.calculator,
+    required this.keypadClosed,
+    required this.onTap,
     required this.autofocus,
     required this.onToggleCalculator,
     required this.onChanged,
@@ -1282,6 +1491,13 @@ class _AmountInput extends StatelessWidget {
   final FocusNode focusNode;
   final Color color;
   final bool calculator;
+
+  /// The calculator is on but its keypad is put away: show how to bring it
+  /// back.
+  final bool keypadClosed;
+
+  /// A tap on the amount, which opens the keypad again.
+  final VoidCallback onTap;
   final bool autofocus;
   final VoidCallback onToggleCalculator;
   final ValueChanged<String> onChanged;
@@ -1324,6 +1540,7 @@ class _AmountInput extends StatelessWidget {
                         ? null
                         : [AmountTextFormatter()],
                     textInputAction: TextInputAction.done,
+                    onTap: onTap,
                     onChanged: onChanged,
                     onSubmitted: onSubmitted,
                     style: style,
@@ -1341,6 +1558,13 @@ class _AmountInput extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (keypadClosed)
+                  TextButton.icon(
+                    key: const ValueKey('amount-edit'),
+                    onPressed: onTap,
+                    icon: const Icon(Icons.dialpad, size: 18),
+                    label: Text(tr('Edit')),
+                  ),
                 IconButton(
                   key: const ValueKey('calculator-toggle'),
                   tooltip: calculator

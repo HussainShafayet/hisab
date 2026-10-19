@@ -18,6 +18,8 @@ class AccountCard extends StatelessWidget {
     this.selected = false,
     this.onTap,
     this.trailing,
+    this.compact = false,
+    this.stacked = false,
     super.key,
   });
 
@@ -38,6 +40,13 @@ class AccountCard extends StatelessWidget {
 
   /// Replaces the check, for example a "change" arrow.
   final Widget? trailing;
+
+  /// A slimmer card for a form: less padding, no kind under the name.
+  final bool compact;
+
+  /// The balance under the name instead of beside it, for a card that sits
+  /// in half the width of the screen.
+  final bool stacked;
 
   static const _white = Colors.white;
   static const _whiteSoft = Color(0xCCFFFFFF);
@@ -60,11 +69,58 @@ class AccountCard extends StatelessWidget {
         (selected ? const Icon(Icons.check_circle, color: _white) : null);
     // "Cash" under an account called "Cash" says nothing.
     final notes = [
-      if (account.name.trim().toLowerCase() != account.type.label.toLowerCase())
+      if (!compact &&
+          account.name.trim().toLowerCase() != account.type.label.toLowerCase())
         account.type.label,
       if (account.isArchived) tr('Archived'),
       if (!account.includeInTotal) tr('Not in total'),
     ];
+
+    Widget balanceColumn(CrossAxisAlignment align, Alignment fit) => Column(
+      crossAxisAlignment: align,
+      children: [
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (low) ...[
+              const Icon(
+                Icons.warning_amber_rounded,
+                size: 14,
+                color: Color(0xFFFFE082),
+              ),
+              const SizedBox(width: 2),
+            ],
+            Flexible(
+              child: Text(
+                card
+                    ? (balance! > 0 ? tr('In credit') : tr('Owed'))
+                    : low
+                    ? tr('Below zero')
+                    : tr('Balance'),
+                key: ValueKey('balance-label-${account.id}'),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: low ? const Color(0xFFFFE082) : _whiteSoft,
+                ),
+              ),
+            ),
+          ],
+        ),
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          alignment: fit,
+          child: Text(
+            formatPoisha(card ? balance!.abs() : balance!),
+            key: ValueKey('balance-${account.id}'),
+            style: theme.textTheme.titleMedium?.tabular.copyWith(
+              color: low ? const Color(0xFFFFE082) : _white,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ),
+      ],
+    );
 
     return Semantics(
       button: onTap != null,
@@ -85,7 +141,9 @@ class AccountCard extends StatelessWidget {
           child: InkWell(
             onTap: onTap,
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+              padding: compact
+                  ? const EdgeInsets.fromLTRB(14, 8, 14, 8)
+                  : const EdgeInsets.fromLTRB(16, 12, 16, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -128,73 +186,27 @@ class AccountCard extends StatelessWidget {
                           ],
                         ),
                       ),
-                      if (balance != null) ...[
+                      if (balance != null && !stacked) ...[
                         const SizedBox(width: 8),
                         // Half of the row, whatever the card's width (a card can
                         // sit in a narrow place): a long amount shrinks to fit.
                         Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.end,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (low) ...[
-                                    const Icon(
-                                      Icons.warning_amber_rounded,
-                                      size: 14,
-                                      color: Color(0xFFFFE082),
-                                    ),
-                                    const SizedBox(width: 2),
-                                  ],
-                                  Flexible(
-                                    child: Text(
-                                      card
-                                          ? (balance! > 0
-                                                ? tr('In credit')
-                                                : tr('Owed'))
-                                          : low
-                                          ? tr('Below zero')
-                                          : tr('Balance'),
-                                      key: ValueKey(
-                                        'balance-label-${account.id}',
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: theme.textTheme.labelSmall
-                                          ?.copyWith(
-                                            color: low
-                                                ? const Color(0xFFFFE082)
-                                                : _whiteSoft,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              FittedBox(
-                                fit: BoxFit.scaleDown,
-                                alignment: Alignment.centerRight,
-                                child: Text(
-                                  formatPoisha(
-                                    card ? balance!.abs() : balance!,
-                                  ),
-                                  key: ValueKey('balance-${account.id}'),
-                                  style: theme.textTheme.titleMedium?.tabular
-                                      .copyWith(
-                                        color: low
-                                            ? const Color(0xFFFFE082)
-                                            : _white,
-                                        fontWeight: FontWeight.w600,
-                                      ),
-                                ),
-                              ),
-                            ],
+                          child: balanceColumn(
+                            CrossAxisAlignment.end,
+                            Alignment.centerRight,
                           ),
                         ),
                       ],
                       if (tail != null) ...[const SizedBox(width: 8), tail],
                     ],
                   ),
+                  if (stacked && balance != null) ...[
+                    const SizedBox(height: 6),
+                    balanceColumn(
+                      CrossAxisAlignment.start,
+                      Alignment.centerLeft,
+                    ),
+                  ],
                   if (card && account.usdLimit != null) ...[
                     const SizedBox(height: 8),
                     Text(

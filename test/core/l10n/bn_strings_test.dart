@@ -2,6 +2,9 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/features/fun/domain/quips.dart';
+import 'package:hishab/features/help/domain/guide.dart';
+import 'package:hishab/features/help/domain/guide_content.dart';
+import 'package:hishab/features/reminders/domain/alerts.dart';
 import 'package:hishab/core/l10n/bn_strings.dart';
 import 'package:hishab/features/backup/domain/import_mapping.dart';
 import 'package:hishab/features/backup/domain/sheet_date.dart';
@@ -82,6 +85,12 @@ List<String> translationKeysIn(String source) {
   return found ? (text: buffer.toString(), end: i) : null;
 }
 
+/// The guide's own text is chosen at run time, then passed to tr().
+final allGuideTexts = [
+  for (final group in guideGroups) group.title,
+  for (final topic in guideTopics) ...guideTextsOf(topic),
+];
+
 void main() {
   group('the dictionary', () {
     test('has a Bangla text for every entry', () {
@@ -160,6 +169,8 @@ void main() {
         'recurring item',
         // Takka's lines are chosen at run time, then passed to tr().
         ...allQuips,
+        ...dailyReminderLines,
+        ...allGuideTexts,
       ];
 
       for (final text in english) {
@@ -180,6 +191,8 @@ void main() {
         'loan',
         'recurring item',
         ...allQuips,
+        ...dailyReminderLines,
+        ...allGuideTexts,
       };
       for (final file in Directory('lib').listSync(recursive: true)) {
         if (file is! File || !file.path.endsWith('.dart')) continue;

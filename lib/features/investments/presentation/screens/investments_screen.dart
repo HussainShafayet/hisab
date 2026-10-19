@@ -9,6 +9,7 @@ import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/features/investments/presentation/providers/investments_providers.dart';
 import 'package:hishab/features/investments/presentation/widgets/investment_summary.dart';
 import 'package:hishab/features/investments/presentation/widgets/investment_tile.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// The money put into businesses and other ventures, and what each has made.
 class InvestmentsScreen extends ConsumerWidget {
@@ -19,7 +20,10 @@ class InvestmentsScreen extends ConsumerWidget {
     final investments = ref.watch(investmentsProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Investments'))),
+      appBar: AppBar(
+        title: Text(tr('Investments')),
+        actions: const [HelpButton('investments')],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.newInvestment),
         icon: const Icon(Icons.add),

@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/app_info.dart';
 import 'package:hishab/core/l10n/app_language.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/notifications/reminder_scheduler.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
 import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// Language, look, and how new transactions and weeks start.
 class SettingsScreen extends ConsumerWidget {
@@ -16,6 +18,34 @@ class SettingsScreen extends ConsumerWidget {
     WidgetRef ref,
     AppPreferences Function(AppPreferences current) change,
   ) => ref.read(settingsRepositoryProvider).update(change);
+
+  /// Switches an alert on or off. Switching one on asks the phone to allow
+  /// notifications first (Android 13 and later ask at run time).
+  Future<void> _setAlert(
+    WidgetRef ref,
+    bool on,
+    AppPreferences Function(AppPreferences current, bool on) change,
+  ) async {
+    if (on) await ref.read(reminderSchedulerProvider).requestPermission();
+    await _change(ref, (p) => change(p, on));
+  }
+
+  Future<void> _chooseReminderTime(
+    BuildContext context,
+    WidgetRef ref,
+    AppPreferences preferences,
+  ) async {
+    final minutes = preferences.dailyReminderMinutes;
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay(hour: minutes ~/ 60, minute: minutes % 60),
+    );
+    if (picked == null) return;
+    await _change(
+      ref,
+      (p) => p.copyWith(dailyReminderMinutes: picked.hour * 60 + picked.minute),
+    );
+  }
 
   Future<void> _chooseDefaultAccount(
     BuildContext context,
@@ -87,7 +117,10 @@ class SettingsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Settings'))),
+      appBar: AppBar(
+        title: Text(tr('Settings')),
+        actions: const [HelpButton('settings')],
+      ),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 32),
         children: [
@@ -147,7 +180,7 @@ class SettingsScreen extends ConsumerWidget {
               ),
               _Choice<AmountEntry>(
                 label: tr('Type the amount with'),
-                hint: tr('The calculator is always one tap away.'),
+                hint: tr('You can switch any time while typing.'),
                 keyPrefix: 'amount-entry',
                 value: preferences.amountEntry,
                 options: [
@@ -207,6 +240,109 @@ class SettingsScreen extends ConsumerWidget {
                 onChanged: (value) =>
                     _change(ref, (p) => p.copyWith(funMode: value)),
               ),
+            ],
+          ),
+          _Section(
+            title: tr('Alerts'),
+            children: [
+              SwitchListTile(
+                key: const ValueKey('fun-sounds'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.music_note_outlined),
+                title: Text(tr('Funny alert sounds')),
+                subtitle: Text(
+                  tr(
+                    'Each alert plays its own silly sound. Off uses your '
+                    "phone's usual one.",
+                  ),
+                ),
+                value: preferences.funSounds,
+                onChanged: (value) =>
+                    _change(ref, (p) => p.copyWith(funSounds: value)),
+              ),
+              SwitchListTile(
+                key: const ValueKey('budget-alerts'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.speed_outlined),
+                title: Text(tr('Budget alerts')),
+                subtitle: Text(
+                  tr(
+                    "A word when this month's budget is nearly used up or "
+                    'crossed.',
+                  ),
+                ),
+                value: preferences.budgetAlerts,
+                onChanged: (value) => _setAlert(
+                  ref,
+                  value,
+                  (p, on) => p.copyWith(budgetAlerts: on),
+                ),
+              ),
+              SwitchListTile(
+                key: const ValueKey('habit-alerts'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.repeat),
+                title: Text(tr('Habit alerts')),
+                subtitle: Text(
+                  tr(
+                    'When the same kind of spending keeps coming back, like '
+                    'the fifth rickshaw this week.',
+                  ),
+                ),
+                value: preferences.habitAlerts,
+                onChanged: (value) => _setAlert(
+                  ref,
+                  value,
+                  (p, on) => p.copyWith(habitAlerts: on),
+                ),
+              ),
+              SwitchListTile(
+                key: const ValueKey('wrapped-alert'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.auto_awesome_outlined),
+                title: Text(tr('Month wrapped alert')),
+                subtitle: Text(
+                  tr("A nudge when your month's wrapped is ready."),
+                ),
+                value: preferences.wrappedAlert,
+                onChanged: (value) => _setAlert(
+                  ref,
+                  value,
+                  (p, on) => p.copyWith(wrappedAlert: on),
+                ),
+              ),
+              SwitchListTile(
+                key: const ValueKey('daily-reminder'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.edit_notifications_outlined),
+                title: Text(tr('Daily reminder')),
+                subtitle: Text(
+                  tr(
+                    "An evening nudge to write the day's entries, only on "
+                    'days you have not.',
+                  ),
+                ),
+                value: preferences.dailyReminder,
+                onChanged: (value) => _setAlert(
+                  ref,
+                  value,
+                  (p, on) => p.copyWith(dailyReminder: on),
+                ),
+              ),
+              if (preferences.dailyReminder)
+                ListTile(
+                  key: const ValueKey('daily-reminder-time'),
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.schedule),
+                  title: Text(tr('Reminder time')),
+                  subtitle: Text(
+                    TimeOfDay(
+                      hour: preferences.dailyReminderMinutes ~/ 60,
+                      minute: preferences.dailyReminderMinutes % 60,
+                    ).format(context),
+                  ),
+                  onTap: () => _chooseReminderTime(context, ref, preferences),
+                ),
             ],
           ),
           _Section(

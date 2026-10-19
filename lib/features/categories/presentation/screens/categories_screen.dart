@@ -17,6 +17,7 @@ import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// The categories as a tree: each one can be opened and closed to show or
 /// hide what is inside it.
@@ -97,6 +98,7 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
       appBar: AppBar(
         title: Text(tr('Categories')),
         actions: [
+          const HelpButton('categories'),
           if (parents.isNotEmpty)
             IconButton(
               key: const ValueKey('collapse-all'),

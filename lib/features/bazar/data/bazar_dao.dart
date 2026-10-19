@@ -35,6 +35,20 @@ class BazarDao extends DatabaseAccessor<AppDatabase> with _$BazarDaoMixin {
   Future<int> deleteDone() =>
       (delete(shoppingItems)..where((i) => i.isDone.equals(true))).go();
 
+  /// Removes everything on the list. Returns how many went.
+  Future<int> deleteAllItems() => delete(shoppingItems).go();
+
+  /// Every remembered price, the newest first.
+  Stream<List<ItemPriceRow>> watchPrices() =>
+      (select(itemPrices)..orderBy([
+            (p) => OrderingTerm.desc(p.updatedAt),
+            (p) => OrderingTerm.desc(p.id),
+          ]))
+          .watch();
+
+  Future<int> deletePrice(String key) =>
+      (delete(itemPrices)..where((p) => p.nameKey.equals(key))).go();
+
   Future<List<ItemPriceRow>> getAllPrices() =>
       (select(itemPrices)..orderBy([(p) => OrderingTerm.asc(p.id)])).get();
 

@@ -129,6 +129,212 @@ void main() {
     });
   });
 
+  group('changing the list', () {
+    testWithDatabase('adds an item with how many and the price', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await enter(tester, 'bazar-name', 'Egg');
+      await tapKey(tester, 'bazar-add-details');
+      // The form starts with what was typed.
+      expect(find.text('Add an item'), findsWidgets);
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('item-name')))
+            .controller!
+            .text,
+        'Egg',
+      );
+      await enter(tester, 'item-quantity', '12');
+      await enter(tester, 'item-price', '15');
+      await tapKey(tester, 'item-save');
+
+      final item = (await db.bazarDao.getAllItems()).single;
+      expect(item.name, 'Egg');
+      expect(item.quantity, 12);
+      expect(item.price, 1500);
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('bazar-name')))
+            .controller!
+            .text,
+        isEmpty,
+      );
+    });
+
+    testWithDatabase('adding with details can be cancelled', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tapKey(tester, 'bazar-add-details');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(await db.bazarDao.getAllItems(), isEmpty);
+    });
+
+    testWithDatabase('every row has a menu to edit it', (tester, db) async {
+      useTallScreen(tester);
+      final id = await addItem(db, 'Rice');
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tapKey(tester, 'item-menu-$id');
+      await tapKey(tester, 'item-edit-$id');
+      await enter(tester, 'item-name', 'Miniket rice');
+      await tapKey(tester, 'item-save');
+
+      expect((await db.bazarDao.getAllItems()).single.name, 'Miniket rice');
+    });
+
+    testWithDatabase('every row has a menu to delete it, with undo', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await addItem(db, 'Rice', quantity: 2, price: 12000);
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tapKey(tester, 'item-menu-$id');
+      await tapKey(tester, 'item-delete-$id');
+      expect(await db.bazarDao.getAllItems(), isEmpty);
+      expect(find.text('Removed Rice'), findsOneWidget);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      final item = (await db.bazarDao.getAllItems()).single;
+      expect(item.name, 'Rice');
+      expect(item.quantity, 2);
+      expect(item.price, 12000);
+    });
+
+    testWithDatabase('swiping an item away can be undone too', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final id = await addItem(db, 'Rice');
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tester.drag(
+        find.byKey(ValueKey('dismiss-$id')),
+        const Offset(-600, 0),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('Removed Rice'), findsOneWidget);
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect((await db.bazarDao.getAllItems()).single.name, 'Rice');
+    });
+
+    testWithDatabase('removes the bought items after asking', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await addItem(db, 'Rice', done: true);
+      await addItem(db, 'Oil');
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tapKey(tester, 'bazar-menu');
+      await tapKey(tester, 'bazar-menu-bought');
+      expect(find.text('Remove the bought items?'), findsOneWidget);
+      await tapKey(tester, 'bazar-confirm');
+
+      expect(
+        [for (final i in await db.bazarDao.getAllItems()) i.name],
+        ['Oil'],
+      );
+      // No expense was made.
+      expect(
+        await db.transactionsDao.getBetween(DateTime(2000), DateTime(2100)),
+        isEmpty,
+      );
+    });
+
+    testWithDatabase('has nothing to remove when nothing is ticked', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await addItem(db, 'Oil');
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tapKey(tester, 'bazar-menu');
+
+      expect(
+        tester
+            .widget<PopupMenuItem<String>>(
+              find.byKey(const ValueKey('bazar-menu-bought')),
+            )
+            .enabled,
+        isFalse,
+      );
+    });
+
+    testWithDatabase('clears the whole list after asking', (tester, db) async {
+      useTallScreen(tester);
+      await addItem(db, 'Rice');
+      await addItem(db, 'Oil', done: true);
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tapKey(tester, 'bazar-menu');
+      await tapKey(tester, 'bazar-menu-clear');
+      expect(find.text('All 2 items will be removed.'), findsOneWidget);
+      await tapKey(tester, 'bazar-confirm');
+
+      expect(await db.bazarDao.getAllItems(), isEmpty);
+      expect(find.text('Your list is empty'), findsOneWidget);
+    });
+
+    testWithDatabase('keeps the list when clearing is cancelled', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await addItem(db, 'Rice');
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tapKey(tester, 'bazar-menu');
+      await tapKey(tester, 'bazar-menu-clear');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(await db.bazarDao.getAllItems(), hasLength(1));
+    });
+
+    testWithDatabase('the menu opens the remembered prices', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tapKey(tester, 'bazar-menu');
+      await tapKey(tester, 'bazar-menu-prices');
+
+      expect(find.text('Remembered prices'), findsOneWidget);
+      expect(find.text('No remembered prices yet'), findsOneWidget);
+    });
+  });
+
   group('remembered prices', () {
     testWithDatabase('are offered as chips that add the item with its price', (
       tester,

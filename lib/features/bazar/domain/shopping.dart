@@ -34,6 +34,26 @@ class PriceSuggestion {
   final int price;
 }
 
+/// A price kept for next time, as the Remembered prices screen shows it.
+class RememberedPrice {
+  const RememberedPrice({
+    required this.name,
+    required this.price,
+    required this.updatedAt,
+  });
+
+  final String name;
+
+  /// The price of one, in poisha.
+  final int price;
+
+  /// When it was last set.
+  final DateTime updatedAt;
+
+  /// What finds it again: the name, trimmed and in lower case.
+  String get key => priceKey(name);
+}
+
 /// What the list adds up to.
 class ShoppingTotals {
   const ShoppingTotals({

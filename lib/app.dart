@@ -6,6 +6,7 @@ import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_router.dart';
 import 'package:hishab/core/theme/app_theme.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
+import 'package:hishab/features/reminders/alert_watcher.dart';
 import 'package:hishab/features/reminders/reminder_sync.dart';
 import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
@@ -37,6 +38,8 @@ class _HishabAppState extends ConsumerState<HishabApp> {
     // Adds what is due for the recurring items that add themselves, and sets
     // their reminders. Kept alive here for as long as the app runs.
     ref.watch(reminderSyncProvider);
+    // Funny alerts for the budget and for habits, when an expense is written.
+    ref.watch(alertWatcherProvider);
     final preferences = ref.watch(preferencesProvider);
     // Set before anything below is built, so every `tr` already answers in
     // the chosen language.

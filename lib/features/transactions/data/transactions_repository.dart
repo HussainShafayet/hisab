@@ -88,6 +88,23 @@ class TransactionsRepository {
     });
   }
 
+  /// Saves each of [inputs] on its own, in order (the "Add several" screen).
+  /// A row that fails does not stop the others, and does not undo the ones
+  /// saved before it. The result has one entry for each input: null when it
+  /// was saved, otherwise the words to show the person for that row.
+  Future<List<String?>> addTransactions(List<TransactionInput> inputs) async {
+    final results = <String?>[];
+    for (final input in inputs) {
+      try {
+        await addTransaction(input);
+        results.add(null);
+      } on Object catch (e) {
+        results.add(describeError(e));
+      }
+    }
+    return results;
+  }
+
   /// Replaces what was saved for transaction [id]. The type may change, for
   /// example from expense to transfer. The account and category it already
   /// uses may be archived; any other account or category must not be.

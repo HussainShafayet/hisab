@@ -11,6 +11,7 @@ import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/metals/domain/metals.dart';
 import 'package:hishab/features/metals/presentation/providers/metals_providers.dart';
 import 'package:hishab/features/metals/presentation/widgets/holding_sheet.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 
 const _goldColor = Color(0xFFD4A017);
@@ -167,7 +168,7 @@ class _MetalsScreenState extends ConsumerState<MetalsScreen> {
     }
 
     return Scaffold(
-      appBar: AppBar(title: title),
+      appBar: AppBar(title: title, actions: const [HelpButton('metals')]),
       floatingActionButton: FloatingActionButton.extended(
         key: const ValueKey('metals-add'),
         onPressed: () => _edit(prices),

@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/notifications/alert_kind.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 /// A notification to show at [when] (local time).
@@ -10,19 +12,30 @@ class Reminder {
     required this.title,
     required this.body,
     required this.when,
+    this.kind = AlertKind.bill,
   });
 
   final int id;
   final String title;
   final String body;
   final DateTime when;
+
+  /// Decides the channel and the sound.
+  final AlertKind kind;
 }
 
 /// Puts reminders on the phone's notification schedule.
 abstract class ReminderScheduler {
   /// Makes [reminders] the only scheduled ones: what was scheduled before is
-  /// cancelled. Reminders in the past are ignored.
-  Future<void> replaceAll(List<Reminder> reminders);
+  /// cancelled. Reminders in the past are ignored. With [funSounds] each kind
+  /// plays its own funny sound; without, the phone's usual one.
+  Future<void> replaceAll(List<Reminder> reminders, {bool funSounds = true});
+
+  /// Shows [reminder] right now (its time is ignored), like the budget alert.
+  Future<void> showNow(Reminder reminder, {bool funSounds = true});
+
+  /// Takes the notifications with these ids off the schedule.
+  Future<void> cancel(Iterable<int> ids);
 
   /// Asks the person to allow notifications (Android 13 and later ask at run
   /// time). True when they are allowed.
@@ -34,7 +47,16 @@ class NoopReminderScheduler implements ReminderScheduler {
   const NoopReminderScheduler();
 
   @override
-  Future<void> replaceAll(List<Reminder> reminders) async {}
+  Future<void> replaceAll(
+    List<Reminder> reminders, {
+    bool funSounds = true,
+  }) async {}
+
+  @override
+  Future<void> showNow(Reminder reminder, {bool funSounds = true}) async {}
+
+  @override
+  Future<void> cancel(Iterable<int> ids) async {}
 
   @override
   Future<bool> requestPermission() async => true;
@@ -56,22 +78,40 @@ class PluginReminderScheduler implements ReminderScheduler {
   final FlutterLocalNotificationsPlugin _plugin;
   Future<void>? _ready;
 
-  static const _channel = AndroidNotificationDetails(
-    'recurring',
-    'Recurring transactions',
-    channelDescription: 'Reminders for bills and income that repeat',
-    importance: Importance.defaultImportance,
-    priority: Priority.defaultPriority,
+  /// The channel of a kind: loud enough to show on screen, and with the kind's
+  /// funny sound when [funSounds] is on.
+  static AndroidNotificationDetails detailsFor(
+    AlertKind kind, {
+    required bool funSounds,
+  }) => AndroidNotificationDetails(
+    funSounds ? '${kind.channelId}_fun' : kind.channelId,
+    funSounds ? tr('{name} (funny sound)', {'name': kind.label}) : kind.label,
+    importance: Importance.high,
+    priority: Priority.high,
+    sound: funSounds ? RawResourceAndroidNotificationSound(kind.sound) : null,
   );
 
-  Future<void> _initialize() => _ready ??= _plugin.initialize(
-    settings: const InitializationSettings(
-      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
-    ),
-  );
+  Future<void> _initialize() => _ready ??= _initializeNow();
+
+  Future<void> _initializeNow() async {
+    await _plugin.initialize(
+      settings: const InitializationSettings(
+        android: AndroidInitializationSettings('@mipmap/ic_launcher'),
+      ),
+    );
+    // The one channel older versions made; each kind has its own now.
+    await _plugin
+        .resolvePlatformSpecificImplementation<
+          AndroidFlutterLocalNotificationsPlugin
+        >()
+        ?.deleteNotificationChannel(channelId: 'recurring');
+  }
 
   @override
-  Future<void> replaceAll(List<Reminder> reminders) async {
+  Future<void> replaceAll(
+    List<Reminder> reminders, {
+    bool funSounds = true,
+  }) async {
     try {
       await _initialize();
       await _plugin.cancelAll();
@@ -87,13 +127,44 @@ class PluginReminderScheduler implements ReminderScheduler {
             tz.UTC,
             reminder.when.millisecondsSinceEpoch,
           ),
-          notificationDetails: const NotificationDetails(android: _channel),
+          notificationDetails: NotificationDetails(
+            android: detailsFor(reminder.kind, funSounds: funSounds),
+          ),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
         );
       }
     } on Object catch (error) {
       // A reminder that cannot be scheduled must never break the app.
       debugPrint('Could not schedule reminders: $error');
+    }
+  }
+
+  @override
+  Future<void> showNow(Reminder reminder, {bool funSounds = true}) async {
+    try {
+      await _initialize();
+      await _plugin.show(
+        id: reminder.id,
+        title: reminder.title,
+        body: reminder.body,
+        notificationDetails: NotificationDetails(
+          android: detailsFor(reminder.kind, funSounds: funSounds),
+        ),
+      );
+    } on Object catch (error) {
+      debugPrint('Could not show an alert: $error');
+    }
+  }
+
+  @override
+  Future<void> cancel(Iterable<int> ids) async {
+    try {
+      await _initialize();
+      for (final id in ids) {
+        await _plugin.cancel(id: id);
+      }
+    } on Object catch (error) {
+      debugPrint('Could not cancel reminders: $error');
     }
   }
 

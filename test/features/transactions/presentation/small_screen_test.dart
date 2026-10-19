@@ -677,6 +677,8 @@ void main() {
       await pumpAppWithDatabase(tester, db);
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
+      // The keypad sits at the end of the long list here: type on the keyboard.
+      await turnKeyboardOn(tester);
 
       // The form is one long list here, so scroll to each part like a user.
       // The Note text field has a Scrollable of its own: take the outer one.
@@ -710,8 +712,7 @@ void main() {
       await tester.tap(find.byType(FloatingActionButton));
       await tester.pumpAndSettle();
 
-      await turnCalculatorOn(tester);
-
+      // A new transaction starts with the keypad, at the end of the list.
       expect(tester.takeException(), isNull);
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('key-+')),

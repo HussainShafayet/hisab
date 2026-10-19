@@ -1,5 +1,9 @@
+import 'dart:ui' as ui;
+
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/clock.dart';
@@ -7,6 +11,7 @@ import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/fun/domain/takka_mood.dart';
 import 'package:hishab/features/fun/domain/wrapped.dart';
@@ -138,11 +143,43 @@ class WrappedScreen extends ConsumerStatefulWidget {
 class _WrappedScreenState extends ConsumerState<WrappedScreen> {
   final _controller = PageController();
   var _page = 0;
+  var _sharing = false;
+
+  /// One key per card, to find the card on screen and turn it into a picture.
+  final _captureKeys = <int, GlobalKey>{};
 
   @override
   void dispose() {
     _controller.dispose();
     super.dispose();
+  }
+
+  /// Sends the card on screen to the share sheet as a picture (PNG).
+  Future<void> _shareCard(DateTime month) async {
+    if (_sharing) return;
+    final messenger = ScaffoldMessenger.of(context);
+    final gateway = ref.read(fileGatewayProvider);
+    setState(() => _sharing = true);
+    try {
+      final boundary =
+          _captureKeys[_page]?.currentContext?.findRenderObject()
+              as RenderRepaintBoundary?;
+      if (boundary == null) return;
+      final image = await boundary.toImage(pixelRatio: 3);
+      final data = await image.toByteData(format: ui.ImageByteFormat.png);
+      image.dispose();
+      if (data == null) throw StateError('The card could not be drawn.');
+      await gateway.share(
+        fileName:
+            'hishab-wrapped-${DateFormat('yyyy-MM').format(month)}-${_page + 1}.png',
+        bytes: data.buffer.asUint8List(),
+        mimeType: 'image/png',
+      );
+    } on Object {
+      messenger.showError(tr('Could not open the share sheet.'));
+    } finally {
+      if (mounted) setState(() => _sharing = false);
+    }
   }
 
   @override
@@ -153,9 +190,21 @@ class _WrappedScreenState extends ConsumerState<WrappedScreen> {
     );
     final data = ref.watch(wrappedProvider(month));
     final title = Text(tr('Month wrapped'));
+    final shareable = data.asData?.value.isEmpty == false;
 
     return Scaffold(
-      appBar: AppBar(title: title),
+      appBar: AppBar(
+        title: title,
+        actions: [
+          if (shareable)
+            IconButton(
+              key: const ValueKey('wrapped-share'),
+              tooltip: tr('Share this card'),
+              icon: const Icon(Icons.share_outlined),
+              onPressed: _sharing ? null : () => _shareCard(month),
+            ),
+        ],
+      ),
       body: data.when(
         loading: () => const LoadingView(),
         error: (error, _) => ErrorView(message: describeError(error)),
@@ -170,7 +219,11 @@ class _WrappedScreenState extends ConsumerState<WrappedScreen> {
                   onPageChanged: (i) => setState(() => _page = i),
                   children: [
                     for (final (i, page) in pages.indexed)
-                      _Card(page: page, index: i),
+                      _Card(
+                        page: page,
+                        index: i,
+                        captureKey: _captureKeys.putIfAbsent(i, GlobalKey.new),
+                      ),
                   ],
                 ),
               ),
@@ -204,10 +257,17 @@ class _WrappedScreenState extends ConsumerState<WrappedScreen> {
 }
 
 class _Card extends StatelessWidget {
-  const _Card({required this.page, required this.index});
+  const _Card({
+    required this.page,
+    required this.index,
+    required this.captureKey,
+  });
 
   final WrapPage page;
   final int index;
+
+  /// Marks the part that is turned into a picture when the card is shared.
+  final GlobalKey captureKey;
 
   @override
   Widget build(BuildContext context) {
@@ -222,65 +282,100 @@ class _Card extends StatelessWidget {
     final tint = tints[index % tints.length];
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
-      child: DecoratedBox(
-        key: ValueKey('wrapped-card-$index'),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [tint, colors.surface],
-          ),
-          borderRadius: BorderRadius.circular(28),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (page.mood != null)
-                Takka(mood: page.mood!, size: 96)
-              else
-                Icon(page.icon, size: 64, color: colors.primary),
-              const SizedBox(height: 24),
-              Text(
-                page.title,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 8),
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  page.big,
-                  key: ValueKey('wrapped-big-$index'),
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.displaySmall?.tabular.copyWith(
-                    fontWeight: FontWeight.w800,
+      padding: const EdgeInsets.fromLTRB(4, 12, 4, 20),
+      child: Column(
+        children: [
+          Expanded(
+            // The card and a small name tag make the picture that is shared;
+            // the Done button stays out of it.
+            child: RepaintBoundary(
+              key: captureKey,
+              child: ColoredBox(
+                color: colors.surface,
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: DecoratedBox(
+                          key: ValueKey('wrapped-card-$index'),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                              colors: [tint, colors.surface],
+                            ),
+                            borderRadius: BorderRadius.circular(28),
+                          ),
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                if (page.mood != null)
+                                  Takka(mood: page.mood!, size: 96)
+                                else
+                                  Icon(
+                                    page.icon,
+                                    size: 64,
+                                    color: colors.primary,
+                                  ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  page.title,
+                                  textAlign: TextAlign.center,
+                                  style: theme.textTheme.titleMedium?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    page.big,
+                                    key: ValueKey('wrapped-big-$index'),
+                                    textAlign: TextAlign.center,
+                                    style: theme.textTheme.displaySmall?.tabular
+                                        .copyWith(fontWeight: FontWeight.w800),
+                                  ),
+                                ),
+                                if (page.caption != null) ...[
+                                  const SizedBox(height: 12),
+                                  Text(
+                                    page.caption!,
+                                    textAlign: TextAlign.center,
+                                    style: theme.textTheme.bodyLarge,
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Text(
+                        'Hishab',
+                        style: theme.textTheme.labelLarge?.copyWith(
+                          color: colors.onSurfaceVariant,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ),
-              if (page.caption != null) ...[
-                const SizedBox(height: 12),
-                Text(
-                  page.caption!,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.bodyLarge,
-                ),
-              ],
-              if (page.last) ...[
-                const SizedBox(height: 24),
-                FilledButton(
-                  key: const ValueKey('wrapped-done'),
-                  onPressed: () => Navigator.of(context).maybePop(),
-                  child: Text(tr('Done')),
-                ),
-              ],
-            ],
+            ),
           ),
-        ),
+          if (page.last)
+            Padding(
+              padding: const EdgeInsets.only(top: 12),
+              child: FilledButton(
+                key: const ValueKey('wrapped-done'),
+                onPressed: () => Navigator.of(context).maybePop(),
+                child: Text(tr('Done')),
+              ),
+            ),
+        ],
       ),
     );
   }

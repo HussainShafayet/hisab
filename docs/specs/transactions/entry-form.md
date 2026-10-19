@@ -52,3 +52,38 @@ number by default; the calculator is there when wanted.
 - `test/features/transactions/domain/amount_calculator_test.dart`
   (`sanitizeAmountText`, `expressionHasOperator`)
 - `test/features/transactions/presentation/amount_text_formatter_test.dart`
+
+## Smaller and easier (keypad first)
+Design: the canvas "Hishab add transaction redesign" (artboards 4 and 5).
+
+- **Keypad first.** Typing the amount with the calculator keypad is the
+  default (Settings > Type the amount with, still switchable to the keyboard,
+  and the button beside the amount switches while typing). A new entry opens
+  with the keypad on screen.
+- **The keypad makes room.** Choosing a category (from the grid or the list),
+  an account or the date puts the keypad away so the note, *More details* and
+  Save are in view. A small *Edit* button beside the amount, or a tap on the
+  amount, brings it back. Editing an existing entry starts with it away.
+- **Quick categories.** While no category is chosen and some are used often
+  (last three months, `frequentIdsFor`), a 4-column grid shows them with an
+  *All* tile (`category-field`) that opens the full list; one tap chooses. Once
+  a category is chosen, or when nothing was used yet, the single category tile
+  is shown as before.
+- **Slimmer account cards** (`AccountCard(compact: true)`): less padding, no
+  account kind under the name; the balance and *After this* lines are the same.
+- **More details.** The trip or event and the feeling are folded under a
+  *More details* button (it opens by itself when the entry already has one of
+  them). On a new transfer the same button holds the *Fee*; there is no button
+  when editing a transfer (the fee is only for new ones). The dollars of a
+  credit card stay out in the open, since they only appear when they matter.
+- **Transfer.** From and To are two slim cards side by side
+  (`AccountCard(stacked: true)`: the balance under the name), with the swap
+  button (`swap-accounts`) between them. A card not chosen yet is a tile that
+  says *From* or *To*.
+- A chosen category shows *Change* beside it (the tile opens the list).
+
+Tests: `transaction_form_screen_test.dart` (groups *the amount*, *the keypad
+and the quick categories*, *more details*), `feeling_ui_test.dart`,
+`tags_ui_test.dart`, `settings_screen_test.dart` (calculator by default).
+Test helpers: `typeAmount` presses keypad keys when the keypad is the entry
+mode, `turnKeyboardOn`, `turnCalculatorOn`, `openMoreDetails`.
