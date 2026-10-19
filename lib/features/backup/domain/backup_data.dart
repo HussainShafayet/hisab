@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:hishab/features/challenges/domain/challenge.dart';
 import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
@@ -28,7 +29,8 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 /// 10: how an expense felt (`feeling` on a transaction). An older file has
 /// none of what came after it, and is read as having none.
 /// 11: business investments (`investments`, `investmentEntries`).
-const backupFormatVersion = 11;
+/// 12: spending challenges (`challenges`).
+const backupFormatVersion = 12;
 
 const _appId = 'hishab';
 
@@ -667,6 +669,57 @@ class BackupInvestment {
   };
 }
 
+class BackupChallenge {
+  const BackupChallenge({
+    required this.id,
+    required this.title,
+    required this.kind,
+    required this.categoryId,
+    required this.limit,
+    required this.startDate,
+    required this.endDate,
+    required this.createdAt,
+  });
+
+  factory BackupChallenge.fromJson(Map<String, Object?> json) {
+    const where = 'A challenge';
+    return BackupChallenge(
+      id: _int(json, 'id', where),
+      title: _string(json, 'title', where),
+      kind: _string(json, 'kind', where),
+      categoryId: _intOrNull(json, 'categoryId', where),
+      limit: _int(json, 'limit', where),
+      startDate: _date(json, 'startDate', where),
+      endDate: _date(json, 'endDate', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final String title;
+
+  /// The name of a [ChallengeKind].
+  final String kind;
+  final int? categoryId;
+
+  /// In poisha.
+  final int limit;
+  final DateTime startDate;
+  final DateTime endDate;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'title': title,
+    'kind': kind,
+    'categoryId': categoryId,
+    'limit': limit,
+    'startDate': _iso(startDate),
+    'endDate': _iso(endDate),
+    'createdAt': _iso(createdAt),
+  };
+}
+
 class BackupInvestmentEntry {
   const BackupInvestmentEntry({
     required this.id,
@@ -861,6 +914,7 @@ class BackupData {
     this.metalHoldings = const [],
     this.investments = const [],
     this.investmentEntries = const [],
+    this.challenges = const [],
   });
 
   /// Reads and checks backup text. Throws a [ValidationException] that says
@@ -956,6 +1010,10 @@ class BackupData {
         for (final item in _optionalList(json, 'investmentEntries'))
           BackupInvestmentEntry.fromJson(_object(item, 'An investment line')),
       ],
+      challenges: [
+        for (final item in _optionalList(json, 'challenges'))
+          BackupChallenge.fromJson(_object(item, 'A challenge')),
+      ],
     );
     data._checkLinks();
     return data;
@@ -977,6 +1035,7 @@ class BackupData {
   final List<BackupMetalHolding> metalHoldings;
   final List<BackupInvestment> investments;
   final List<BackupInvestmentEntry> investmentEntries;
+  final List<BackupChallenge> challenges;
 
   Map<String, Object?> toJson() => {
     'app': _appId,
@@ -997,6 +1056,7 @@ class BackupData {
     'metalHoldings': [for (final m in metalHoldings) m.toJson()],
     'investments': [for (final i in investments) i.toJson()],
     'investmentEntries': [for (final e in investmentEntries) e.toJson()],
+    'challenges': [for (final c in challenges) c.toJson()],
   };
 
   /// The categories with every category after the one it is inside, so they
@@ -1050,6 +1110,21 @@ class BackupData {
       }
     }
 
+    uniqueIds(challenges.map((c) => c.id), 'challenges');
+    for (final c in challenges) {
+      if (!ChallengeKind.values.any((k) => k.name == c.kind)) {
+        _damaged('challenge ${c.id} is of "${c.kind}", which is not a kind.');
+      }
+      if (c.limit < 0 || c.endDate.isBefore(c.startDate)) {
+        _damaged('challenge ${c.id} has a limit or days that cannot be.');
+      }
+      final category = c.categoryId;
+      if (category != null && !categoryIds.contains(category)) {
+        _damaged(
+          'challenge ${c.id} points to a category that is not in the file.',
+        );
+      }
+    }
     uniqueIds(investments.map((i) => i.id), 'investments');
     uniqueIds(investmentEntries.map((e) => e.id), 'investment lines');
     final investmentIds = {for (final i in investments) i.id};

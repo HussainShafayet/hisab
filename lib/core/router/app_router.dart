@@ -16,6 +16,8 @@ import 'package:hishab/features/budget/presentation/screens/budget_screen.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/screens/categories_screen.dart';
 import 'package:hishab/features/categories/presentation/screens/category_form_screen.dart';
+import 'package:hishab/features/challenges/presentation/screens/challenge_form_screen.dart';
+import 'package:hishab/features/challenges/presentation/screens/challenges_screen.dart';
 import 'package:hishab/features/dashboard/presentation/screens/dashboard_screen.dart';
 import 'package:hishab/features/debts/presentation/screens/debt_detail_screen.dart';
 import 'package:hishab/features/debts/presentation/screens/debt_form_screen.dart';
@@ -30,6 +32,7 @@ import 'package:hishab/features/help/presentation/screens/help_screen.dart';
 import 'package:hishab/features/investments/presentation/screens/investment_detail_screen.dart';
 import 'package:hishab/features/investments/presentation/screens/investment_form_screen.dart';
 import 'package:hishab/features/investments/presentation/screens/investments_screen.dart';
+import 'package:hishab/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_form_screen.dart';
 import 'package:hishab/features/tags/presentation/screens/tag_detail_screen.dart';
 import 'package:hishab/features/fun/presentation/screens/badges_screen.dart';
@@ -208,6 +211,34 @@ final routerProvider = Provider<GoRouter>((ref) {
                         },
                       ),
                     ],
+                  ),
+                  GoRoute(
+                    path: 'challenges',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const ChallengesScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'new',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) =>
+                            const ChallengeFormScreen(),
+                      ),
+                      GoRoute(
+                        path: ':id/edit',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) {
+                          final id = _idOf(state);
+                          return id == null
+                              ? const _InvalidIdScreen('challenge')
+                              : ChallengeFormScreen(challengeId: id);
+                        },
+                      ),
+                    ],
+                  ),
+                  GoRoute(
+                    path: 'notifications',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const NotificationsScreen(),
                   ),
                   GoRoute(
                     path: 'investments',

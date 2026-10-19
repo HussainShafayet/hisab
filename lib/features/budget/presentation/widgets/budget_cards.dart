@@ -132,6 +132,18 @@ class OverallBudgetCard extends StatelessWidget {
                   ),
                 ],
               ),
+              if (item.carriedOver > 0) ...[
+                const SizedBox(height: 2),
+                Text(
+                  tr('Includes {amount} left over from last month', {
+                    'amount': formatPoisha(item.carriedOver),
+                  }),
+                  key: const ValueKey('overall-carried'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
               if (pace != null) ...[
                 const SizedBox(height: 4),
                 Text(
@@ -236,6 +248,16 @@ class CategoryBudgetTile extends StatelessWidget {
                     }),
                     style: theme.textTheme.bodySmall,
                   ),
+                  if (item.carriedOver > 0)
+                    Text(
+                      tr('Includes {amount} left over from last month', {
+                        'amount': formatPoisha(item.carriedOver),
+                      }),
+                      key: ValueKey('carried-${item.categoryId}'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                   const SizedBox(height: 6),
                   BudgetProgressBar(progress: progress),
                   const SizedBox(height: 4),

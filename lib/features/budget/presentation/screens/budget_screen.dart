@@ -7,6 +7,7 @@ import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/month_switcher.dart';
+import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
 import 'package:hishab/features/budget/presentation/providers/budget_providers.dart';
@@ -16,6 +17,7 @@ import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
 class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
@@ -45,7 +47,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       context: context,
       builder: (context) => BudgetLimitDialog(
         title: tr('Monthly budget'),
-        initialAmount: current?.limit,
+        initialAmount: current?.setAmount,
         canRemove: current != null,
       ),
     );
@@ -65,7 +67,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       context: context,
       builder: (context) => BudgetLimitDialog(
         title: tr('{name} budget', {'name': item.categoryName}),
-        initialAmount: item.limit,
+        initialAmount: item.setAmount,
         canRemove: true,
       ),
     );
@@ -221,11 +223,14 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       padding: const EdgeInsets.only(bottom: 96),
       children: [
         if (overall != null)
-          OverallBudgetCard(
-            item: overall,
-            month: _month,
-            today: now,
-            onTap: () => _editOverall(overall),
+          arriving(
+            0,
+            OverallBudgetCard(
+              item: overall,
+              month: _month,
+              today: now,
+              onTap: () => _editOverall(overall),
+            ),
           )
         else
           Card(
@@ -239,6 +244,20 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               onTap: () => _editOverall(null),
             ),
           ),
+        SwitchListTile(
+          key: const ValueKey('rollover-switch'),
+          secondary: const Icon(Icons.redo),
+          title: Text(tr('Carry over what is left')),
+          subtitle: Text(
+            tr("Money you do not spend is added to next month's budget."),
+          ),
+          value: ref.watch(preferencesProvider.select((p) => p.budgetRollover)),
+          onChanged: (value) => _run(
+            () => ref
+                .read(settingsRepositoryProvider)
+                .update((p) => p.copyWith(budgetRollover: value)),
+          ),
+        ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 4),
           child: Text(tr('By category'), style: theme.textTheme.titleSmall),
@@ -253,13 +272,16 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               ),
             ),
           ),
-        for (final item in data.categories)
-          CategoryBudgetTile(
-            key: ValueKey('budget-${item.categoryId}'),
-            item: item,
-            month: _month,
-            today: now,
-            onTap: () => _editCategory(item),
+        for (final (index, item) in data.categories.indexed)
+          arriving(
+            index + 1,
+            CategoryBudgetTile(
+              key: ValueKey('budget-${item.categoryId}'),
+              item: item,
+              month: _month,
+              today: now,
+              onTap: () => _editCategory(item),
+            ),
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),

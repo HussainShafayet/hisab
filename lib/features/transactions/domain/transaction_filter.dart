@@ -1,5 +1,6 @@
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -12,6 +13,10 @@ class TransactionFilter {
     this.categoryScope = const {},
     this.accountId,
     this.range,
+    this.minAmount,
+    this.maxAmount,
+    this.tagId,
+    this.feeling,
   });
 
   /// Matched against the note, the category name and the amount.
@@ -32,22 +37,42 @@ class TransactionFilter {
   /// A custom date range. When set it replaces the month being browsed.
   final DateRange? range;
 
+  /// The smallest and the largest amount to show, in poisha, both included.
+  /// Either may be left out.
+  final int? minAmount;
+  final int? maxAmount;
+
+  /// The trip or event (tag) the transactions belong to.
+  final int? tagId;
+
+  /// How the spending felt (needed, wanted, regret).
+  final Feeling? feeling;
+
   /// Whether anything is narrowing the list. A search text counts.
   bool get isActive =>
       query.trim().isNotEmpty ||
       type != null ||
       categoryId != null ||
       accountId != null ||
-      range != null;
+      range != null ||
+      hasAmountRange ||
+      tagId != null ||
+      feeling != null;
+
+  bool get hasAmountRange => minAmount != null || maxAmount != null;
 
   /// How many of the options in the filter sheet are set (the search text is
   /// not one of them: it has its own field).
-  int get sheetOptionCount => [
-    type,
-    categoryId,
-    accountId,
-    range,
-  ].where((option) => option != null).length;
+  int get sheetOptionCount =>
+      [
+        type,
+        categoryId,
+        accountId,
+        range,
+        tagId,
+        feeling,
+      ].where((option) => option != null).length +
+      (hasAmountRange ? 1 : 0);
 
   TransactionFilter withQuery(String query) => TransactionFilter(
     query: query,
@@ -56,6 +81,10 @@ class TransactionFilter {
     categoryScope: categoryScope,
     accountId: accountId,
     range: range,
+    minAmount: minAmount,
+    maxAmount: maxAmount,
+    tagId: tagId,
+    feeling: feeling,
   );
 
   /// The same filter without the custom date range.
@@ -65,6 +94,10 @@ class TransactionFilter {
     categoryId: categoryId,
     categoryScope: categoryScope,
     accountId: accountId,
+    minAmount: minAmount,
+    maxAmount: maxAmount,
+    tagId: tagId,
+    feeling: feeling,
   );
 
   /// The same filter without the options of the filter sheet.
@@ -99,6 +132,14 @@ List<TransactionItem> applyTransactionFilter(
         (item.date.isBefore(range.start) || !item.date.isBefore(range.end))) {
       return false;
     }
+    if (filter.minAmount != null && item.amount < filter.minAmount!) {
+      return false;
+    }
+    if (filter.maxAmount != null && item.amount > filter.maxAmount!) {
+      return false;
+    }
+    if (filter.tagId != null && item.tagId != filter.tagId) return false;
+    if (filter.feeling != null && item.feeling != filter.feeling) return false;
     if (text.isEmpty) return true;
     return item.note.toLowerCase().contains(text) ||
         (item.categoryName?.toLowerCase().contains(text) ?? false) ||

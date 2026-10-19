@@ -44,6 +44,10 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [reminders](reminders/) | [Funny alerts](reminders/funny-alerts.md) | 28 |
 | [help](help/) | [User guide](help/user-guide.md) | 29 |
 | [transactions](transactions/) | [Add several](transactions/add-several.md) | 28 |
+| [notifications](notifications/) | [Notification history](notifications/notification-history.md) | 30 |
+| [transactions](transactions/) | [Search filters](transactions/search-filters.md) | 31 |
+| [budget](budget/) | [Carry over what is left](budget/carry-over.md) | 32 |
+| [challenges](challenges/) | [Spending challenges](challenges/spending-challenges.md) | 33 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

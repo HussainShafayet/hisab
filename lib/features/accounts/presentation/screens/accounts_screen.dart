@@ -8,6 +8,7 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
+import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/show_archived_chip.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
@@ -55,7 +56,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
           // Room below the last card so the add button never covers it.
           padding: const EdgeInsets.only(bottom: 96),
           children: [
-            if (list.isNotEmpty) _TotalCard(accounts: list),
+            if (list.isNotEmpty) arriving(0, _TotalCard(accounts: list)),
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 4, 16, 12),
               child: ShowArchivedChip(
@@ -74,10 +75,13 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
                 ),
               )
             else
-              for (final item in list)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-                  child: _AccountCardTile(item: item),
+              for (final (index, item) in list.indexed)
+                arriving(
+                  index + 1,
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                    child: _AccountCardTile(item: item),
+                  ),
                 ),
           ],
         ),
@@ -128,9 +132,9 @@ class _TotalCard extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: Text(
-              formatPoisha(total),
-              key: const ValueKey('total-balance'),
+            child: AnimatedAmount(
+              poisha: total,
+              textKey: const ValueKey('total-balance'),
               style: theme.textTheme.displaySmall?.tabular.copyWith(
                 fontWeight: FontWeight.w700,
                 color: total < 0 ? const Color(0xFFFFE082) : _white,

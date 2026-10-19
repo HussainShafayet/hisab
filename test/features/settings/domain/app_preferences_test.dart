@@ -101,6 +101,7 @@ void main() {
         PreferenceKeys.wrappedAlert: 'true',
         PreferenceKeys.dailyReminder: 'false',
         PreferenceKeys.dailyReminderMinutes: '1260',
+        PreferenceKeys.budgetRollover: 'false',
       });
     });
 
@@ -259,6 +260,45 @@ void main() {
       ]) {
         expect(changed, isNot(base));
       }
+    });
+  });
+
+  group('carrying a budget over', () {
+    test('is off by default and saved as true or false', () {
+      expect(AppPreferences.defaults.budgetRollover, isFalse);
+      expect(
+        AppPreferences.defaults.toMap()[PreferenceKeys.budgetRollover],
+        'false',
+      );
+      expect(
+        const AppPreferences(budgetRollover: true)
+            .toMap()[PreferenceKeys.budgetRollover],
+        'true',
+      );
+    });
+
+    test('is on only when saved as exactly true', () {
+      expect(
+        AppPreferences.fromMap({PreferenceKeys.budgetRollover: 'true'})
+            .budgetRollover,
+        isTrue,
+      );
+      for (final saved in ['false', 'banana', '']) {
+        expect(
+          AppPreferences.fromMap({PreferenceKeys.budgetRollover: saved})
+              .budgetRollover,
+          isFalse,
+        );
+      }
+      expect(AppPreferences.fromMap({}).budgetRollover, isFalse);
+    });
+
+    test('copyWith changes it and equality notices', () {
+      final on = AppPreferences.defaults.copyWith(budgetRollover: true);
+
+      expect(on.budgetRollover, isTrue);
+      expect(on, isNot(AppPreferences.defaults));
+      expect(on.copyWith(budgetRollover: false), AppPreferences.defaults);
     });
   });
 }

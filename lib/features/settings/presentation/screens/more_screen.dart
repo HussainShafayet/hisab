@@ -95,6 +95,12 @@ class MoreScreen extends StatelessWidget {
             route: AppRoutes.wrapped(),
           ),
           _MoreTile(
+            icon: Icons.timer_outlined,
+            title: tr('Challenges'),
+            subtitle: tr('Dare yourself to spend less'),
+            route: AppRoutes.challenges,
+          ),
+          _MoreTile(
             icon: Icons.emoji_events_outlined,
             title: tr('Badges'),
             subtitle: tr('Streaks and rewards'),
@@ -112,6 +118,12 @@ class MoreScreen extends StatelessWidget {
             title: tr('Backup & export'),
             subtitle: tr('Keep your data safe'),
             route: AppRoutes.backup,
+          ),
+          _MoreTile(
+            icon: Icons.notifications_outlined,
+            title: tr('Notifications'),
+            subtitle: tr('What was sent and what is coming'),
+            route: AppRoutes.notifications,
           ),
           _MoreTile(
             icon: Icons.settings_outlined,

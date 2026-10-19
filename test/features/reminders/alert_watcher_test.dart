@@ -75,6 +75,19 @@ void main() {
       expect(scheduler.shown.single.body, contains('88%'));
     });
 
+    testWithDatabase('is kept in the notification history', (tester, db) async {
+      final b = await seedBasics(db);
+      await setBudget(db, 1000000);
+      await start(tester, db);
+
+      await spendNow(tester, db, b, 880000);
+
+      final logged = await db.notificationLogDao.getAll();
+      expect(logged.where((r) => r.immediate).map((r) => r.kind), [
+        AlertKind.budgetNear,
+      ]);
+    });
+
     testWithDatabase('comes once for each step, then stays quiet', (
       tester,
       db,

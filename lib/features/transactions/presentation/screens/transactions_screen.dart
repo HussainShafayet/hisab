@@ -8,6 +8,7 @@ import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
+import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/transaction_filter.dart';
@@ -239,14 +240,20 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     }
 
     final totals = totalsOf(shown);
+    // Only the first rows arrive one by one, so scrolling never replays it.
+    var arrived = 1;
     return ListView(
       // Room below the last row so the add button never covers it.
       padding: const EdgeInsets.only(bottom: 96),
       children: [
-        TransactionSummary(income: totals.income, expense: totals.expense),
+        arriving(
+          0,
+          TransactionSummary(income: totals.income, expense: totals.expense),
+        ),
         for (final group in groupByDay(shown)) ...[
           DayHeader(group: group, label: dayLabel(group.day, now)),
-          for (final item in group.items) _buildRow(context, item),
+          for (final item in group.items)
+            arriving(arrived++, _buildRow(context, item)),
         ],
       ],
     );

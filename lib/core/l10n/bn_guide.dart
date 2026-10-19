@@ -52,7 +52,7 @@ const bnGuide = <String, String>{
   'Needed, Wanted or Regret on an expense lets Home show how the month felt.': 'খরচে "দরকারি", "শখের" বা "পস্তাচ্ছি" দিলে হোম দেখাতে পারে মাসটা কেমন গেল।',
   'A tag (Trips & events) groups the expenses of a trip or an occasion.': 'ট্যাগ (ভ্রমণ ও অনুষ্ঠান) দিয়ে কোনো ভ্রমণ বা অনুষ্ঠানের খরচ একসাথে রাখা যায়।',
   'Finding and fixing': 'খোঁজা ও ঠিক করা',
-  'The Transactions tab lists everything, newest first. Use Search to find a note, category or amount, and Filter to narrow the list.': 'লেনদেন ট্যাবে সবকিছু নতুন আগে সাজানো। নোট, ক্যাটাগরি বা টাকার অঙ্ক খুঁজতে সার্চ, আর তালিকা ছোট করতে ফিল্টার ব্যবহার করুন।',
+  'The Transactions tab lists everything, newest first. Use Search to find a note, category or amount, and Filter to narrow the list by type, category, account, dates, an amount range, a trip or event, or how it felt.': 'লেনদেন ট্যাবে সবকিছু নতুন আগে সাজানো। নোট, ক্যাটাগরি বা টাকার অঙ্ক খুঁজতে সার্চ, আর তালিকা ছোট করতে ফিল্টার ব্যবহার করুন: ধরন, ক্যাটাগরি, অ্যাকাউন্ট, তারিখ, টাকার সীমা, ভ্রমণ বা অনুষ্ঠান, কিংবা কেমন লেগেছিল।',
   'Tap a transaction to open it, change it or delete it. Account balances follow at once.': 'লেনদেন ছুঁয়ে খুলুন, বদলান বা মুছুন। অ্যাকাউন্টের ব্যালেন্স সাথে সাথে মিলে যায়।',
   'A transfer moves money between your own accounts. It is not income and not an expense.': 'ট্রান্সফার মানে নিজের এক অ্যাকাউন্ট থেকে আরেকটিতে টাকা সরানো। এটা আয়ও না, খরচও না।',
   'Your wallets: cash, bKash, bank, cards.':
@@ -82,6 +82,9 @@ const bnGuide = <String, String>{
   'Setting it up': 'ঠিক করে নেওয়া',
   'Open the Budget tab and set the overall limit for the month.':
       'বাজেট ট্যাবে গিয়ে মাসের মোট সীমা ঠিক করুন।',
+  'Carrying over what is left': 'যা বাঁচে তা পরের মাসে নেওয়া',
+  'Switch on Carry over what is left on the Budget tab. Money you did not spend in a month is then added to the same budget of the next month, with a note on the card.': 'বাজেট ট্যাবে "যা বাঁচবে তা পরের মাসে নিন" চালু করুন। কোনো মাসে যে টাকা খরচ হয়নি তা পরের মাসের একই বাজেটে যোগ হবে, কার্ডে তার একটি লেখা থাকবে।',
+  'Only what is left is carried. Overspending does not make next month smaller. A month without that budget starts again from zero.': 'শুধু যা বাঁচে তা-ই যায়। বেশি খরচ করলে পরের মাস ছোট হয় না। যে মাসে সেই বাজেট নেই, সেখান থেকে আবার শূন্য থেকে শুরু।',
   'Optionally set limits for single categories, like Food. Copy last month\'s budget to save time.': 'চাইলে খাবারের মতো আলাদা ক্যাটাগরির সীমাও দিন। সময় বাঁচাতে গত মাসের বাজেট কপি করুন।',
   'Bars turn amber near the limit and red once it is crossed.':
       'সীমার কাছাকাছি গেলে বার হলুদ হয়, পেরিয়ে গেলে লাল।',
@@ -183,7 +186,7 @@ const bnGuide = <String, String>{
   'The playful side: a coin mascot, streaks, badges and a story of your month.':
       'মজার দিক: মুদ্রার মাসকট, ধারা, ব্যাজ আর মাসের গল্প।',
   'The fun parts': 'মজার অংশ',
-  'Takka is a small coin who comments on your day. Fun mode in Settings turns Takka, jokes and confetti on or off.': 'টাক্কা একটি ছোট্ট মুদ্রা যে আপনার দিন নিয়ে মন্তব্য করে। সেটিংসের "মজার মোড" টাক্কা, ঠাট্টা ও কনফেটি চালু বা বন্ধ করে।',
+  'Takka is a small coin who comments on your day. Fun mode in Settings turns Takka, jokes, confetti and the gentle motion on or off.': 'টাক্কা একটি ছোট্ট মুদ্রা যে আপনার দিন নিয়ে মন্তব্য করে। সেটিংসের "মজার মোড" টাক্কা, ঠাট্টা, কনফেটি ও হালকা নড়াচড়া চালু বা বন্ধ করে।',
   'Writing something every day grows your streak. Days with no spending count too. Badges reward milestones.': 'রোজ কিছু লিখলে আপনার ধারা বাড়ে। খরচহীন দিনও গোনা হয়। ব্যাজ দেয় মাইলফলকের পুরস্কার।',
   'Month wrapped is a short swipeable story of the month. Near the month\'s end it appears on Home. Share a card as a picture with the share button.': 'মাসের সারসংক্ষেপ হলো মাসের একটি ছোট সোয়াইপ-করা গল্প। মাসের শেষে এটি হোমে আসে। শেয়ার বোতামে একটি কার্ড ছবি হিসেবে শেয়ার করা যায়।',
   'Alerts and reminders': 'সতর্কতা ও রিমাইন্ডার',
@@ -197,6 +200,23 @@ const bnGuide = <String, String>{
   'Habit alerts come when the same kind of spending keeps coming back, like the fifth rickshaw this week.': 'একই ধরনের খরচ বারবার হলে অভ্যাসের সতর্কতা আসে, যেমন এই সপ্তাহের পঞ্চম রিকশা।',
   'The daily reminder nudges you in the evening if you have not written anything. The wrapped alert tells you when your month is ready.': 'দৈনিক রিমাইন্ডার সন্ধ্যায় মনে করায় যদি কিছু না লিখে থাকেন। সারসংক্ষেপের সতর্কতা জানায় মাস তৈরি হলে।',
   'Controlling them': 'নিয়ন্ত্রণ',
+  'Dare yourself to spend less, and see if you can do it.':
+      'নিজেকে কম খরচের চ্যালেঞ্জ দিন, দেখুন পারেন কিনা।',
+  'Starting one': 'শুরু করা',
+  'Open More > Challenges and press New challenge.':
+      'আরও > চ্যালেঞ্জসমূহ খুলে "নতুন চ্যালেঞ্জ" চাপুন।',
+  'Choose Spend nothing or Stay under a limit, what it is about (all spending, or a category like Rickshaw), and how long.': '"কিছু খরচ নয়" বা "সীমার নিচে থাকুন" বেছে নিন, কিসের উপর (সব খরচ, বা রিকশার মতো একটি ক্যাটাগরি), আর কতদিন।',
+  'The name is made for you. Change it if you like.':
+      'নাম নিজে থেকেই বসে যায়। চাইলে বদলে নিন।',
+  'How it is decided': 'কীভাবে ঠিক হয়',
+  'Only expenses count. Transfers and balance corrections do not. A category counts what is inside it too.': 'শুধু খরচ ধরা হয়। ট্রান্সফার আর ব্যালেন্স ঠিক করা ধরা হয় না। ক্যাটাগরির ভেতরের গুলোও ধরা হয়।',
+  'Going over the limit breaks the challenge at once, even before the last day. Staying within it to the last day wins, with confetti if Fun mode is on.': 'সীমা ছাড়ালে শেষ দিনের আগেই চ্যালেঞ্জ ভেঙে যায়। শেষ দিন পর্যন্ত সীমার মধ্যে থাকলে জয়, মজার মোড চালু থাকলে কনফেটিসহ।',
+  'The running challenge that ends soonest shows on Home.':
+      'যে চলমান চ্যালেঞ্জ সবচেয়ে আগে শেষ হবে সেটি হোমে দেখা যায়।',
+  'Seeing what came': 'কী কী এসেছে দেখা',
+  'Open More > Notifications. Sent lists what already came, newest first. Coming up lists what is set to show later.': 'আরও > নোটিফিকেশন খুলুন। "এসেছে"-তে যা এসে গেছে তা নতুনটা আগে দেখানো হয়। "সামনে আসছে"-তে যা পরে আসবে তা থাকে।',
+  'A reminder moves to Sent once its time has passed. If notifications were blocked on your phone, it did not show.': 'রিমাইন্ডারের সময় পার হলে সেটি "এসেছে"-তে চলে যায়। ফোনে নোটিফিকেশন বন্ধ থাকলে সেটি আসেনি।',
+  'The clear button empties Sent and leaves Coming up alone. The last 200 are kept, for up to 90 days.': 'মোছার বোতাম "এসেছে" খালি করে, "সামনে আসছে" ছোঁয় না। সর্বশেষ ২০০টি থাকে, সর্বোচ্চ ৯০ দিন।',
   'Open Settings > Alerts. Each alert has its own switch.':
       'সেটিংস > সতর্কতায় যান। প্রতিটি সতর্কতার আলাদা সুইচ আছে।',
   'Funny alert sounds off means your phone\'s usual notification sound.':

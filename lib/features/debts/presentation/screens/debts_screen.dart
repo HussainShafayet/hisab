@@ -7,6 +7,7 @@ import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/domain/credit_card.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
@@ -154,17 +155,21 @@ class _LoanList extends ConsumerWidget {
       children: [
         if (cards.isNotEmpty) ...[
           heading(tr('Credit cards')),
-          for (final card in cards)
-            CreditCardTile(
-              key: ValueKey('card-${card.account.id}'),
-              card: card,
-              today: today,
-              onTap: () => context.push(AppRoutes.editAccount(card.account.id)),
-              onPay: () => context.push(
-                AppRoutes.payCardBill(
-                  card.account.id,
-                  card.owed,
-                  usd: card.dollars.due,
+          for (final (index, card) in cards.indexed)
+            arriving(
+              index,
+              CreditCardTile(
+                key: ValueKey('card-${card.account.id}'),
+                card: card,
+                today: today,
+                onTap: () =>
+                    context.push(AppRoutes.editAccount(card.account.id)),
+                onPay: () => context.push(
+                  AppRoutes.payCardBill(
+                    card.account.id,
+                    card.owed,
+                    usd: card.dollars.due,
+                  ),
                 ),
               ),
             ),
@@ -199,7 +204,11 @@ class _LoanList extends ConsumerWidget {
               ),
             ),
           ),
-        for (final item in shown) LoanListItem(item: item, today: today),
+        for (final (index, item) in shown.indexed)
+          arriving(
+            cards.length + index,
+            LoanListItem(item: item, today: today),
+          ),
       ],
     );
   }
@@ -229,7 +238,8 @@ class _PeopleList extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.only(top: 4, bottom: 96),
       children: [
-        for (final person in people) _PersonTile(person: person, today: today),
+        for (final (index, person) in people.indexed)
+          arriving(index, _PersonTile(person: person, today: today)),
       ],
     );
   }

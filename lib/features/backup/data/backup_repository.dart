@@ -1,5 +1,6 @@
 import 'package:csv/csv.dart';
 import 'package:drift/drift.dart';
+import 'package:hishab/features/challenges/domain/challenge.dart';
 import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/l10n/translator.dart';
@@ -35,6 +36,7 @@ class BackupRepository {
     final metalHoldings = await _db.metalsDao.getAll();
     final investments = await _db.investmentsDao.getAllInvestments();
     final investmentEntries = await _db.investmentsDao.getAllEntries();
+    final challenges = await _db.challengesDao.getAll();
     return BackupData(
       exportedAt: now.toUtc(),
       accounts: [
@@ -197,6 +199,19 @@ class BackupRepository {
             date: e.date.toUtc(),
             note: e.note,
             createdAt: e.createdAt.toUtc(),
+          ),
+      ],
+      challenges: [
+        for (final c in challenges)
+          BackupChallenge(
+            id: c.id,
+            title: c.title,
+            kind: c.kind.name,
+            categoryId: c.categoryId,
+            limit: c.limitAmount,
+            startDate: c.startDate.toUtc(),
+            endDate: c.endDate.toUtc(),
+            createdAt: c.createdAt.toUtc(),
           ),
       ],
       investments: [
@@ -394,6 +409,19 @@ class BackupRepository {
                 createdAt: Value(p.createdAt),
               ),
           ]);
+          batch.insertAll(_db.challenges, [
+            for (final c in data.challenges)
+              ChallengesCompanion.insert(
+                id: Value(c.id),
+                title: c.title,
+                kind: ChallengeKind.values.byName(c.kind),
+                categoryId: Value(c.categoryId),
+                limitAmount: c.limit,
+                startDate: c.startDate,
+                endDate: c.endDate,
+                createdAt: Value(c.createdAt),
+              ),
+          ]);
           batch.insertAll(_db.investments, [
             for (final i in data.investments)
               InvestmentsCompanion.insert(
@@ -447,6 +475,7 @@ class BackupRepository {
   /// Rows that others point at go last: transactions and budgets first, then
   /// categories from the innermost out, then accounts.
   Future<void> _deleteEverything() async {
+    await _db.delete(_db.challenges).go();
     await _db.delete(_db.investmentEntries).go();
     await _db.delete(_db.investments).go();
     await _db.delete(_db.metalHoldings).go();

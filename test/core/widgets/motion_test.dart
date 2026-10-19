@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/widgets/confetti.dart';
 import 'package:hishab/core/widgets/motion.dart';
+import 'package:hishab/features/settings/domain/app_preferences.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
 Widget host(Widget child, {bool disableAnimations = false}) => MaterialApp(
   home: MediaQuery(
@@ -136,6 +139,83 @@ void main() {
       await tester.pumpWidget(card(3, off: true));
 
       expect(opacity(tester), 1);
+    });
+  });
+
+  group('Fun mode', () {
+    Widget app(Widget child, {required bool fun}) => ProviderScope(
+      overrides: [
+        preferencesProvider.overrideWithValue(AppPreferences(funMode: fun)),
+      ],
+      child: host(child),
+    );
+    double opacity(WidgetTester tester) => tester
+        .widget<Opacity>(
+          find.descendant(
+            of: find.byType(FadeSlideIn),
+            matching: find.byType(Opacity),
+          ),
+        )
+        .opacity;
+
+    testWidgets('on: a card still arrives and an amount still counts up', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        app(
+          const Column(
+            children: [
+              FadeSlideIn(child: Text('card')),
+              AnimatedAmount(poisha: 120000, textKey: ValueKey('amount')),
+            ],
+          ),
+          fun: true,
+        ),
+      );
+
+      expect(opacity(tester), 0);
+      expect(shown(tester), '৳0.00');
+      await tester.pumpAndSettle();
+    });
+
+    testWidgets('off: the card is there and the amount shown at once', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        app(
+          const Column(
+            children: [
+              FadeSlideIn(child: Text('card')),
+              AnimatedAmount(poisha: 120000, textKey: ValueKey('amount')),
+            ],
+          ),
+          fun: false,
+        ),
+      );
+
+      expect(opacity(tester), 1);
+      expect(shown(tester), '৳1,200.00');
+    });
+  });
+
+  group('arriving', () {
+    testWidgets('animates the first cards and leaves the rest plain', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        host(
+          Column(
+            children: [
+              for (var i = 0; i < arrivingCount + 2; i++)
+                arriving(i, Text('card $i')),
+            ],
+          ),
+        ),
+      );
+
+      expect(find.byType(FadeSlideIn), findsNWidgets(arrivingCount));
+      expect(find.text('card ${arrivingCount + 1}'), findsOneWidget);
+      await tester.pumpAndSettle();
     });
   });
 

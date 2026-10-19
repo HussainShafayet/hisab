@@ -11,6 +11,7 @@ import 'package:hishab/features/accounts/domain/credit_card.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
+import 'package:hishab/features/notifications/presentation/providers/notification_providers.dart';
 import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
 import 'package:hishab/features/reminders/domain/alerts.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
@@ -148,7 +149,7 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
       await db.entryCount(today, today.add(const Duration(days: 1))) > 0;
   final writtenThisMonth =
       await db.entryCount(monthStart(now), addMonths(monthStart(now), 1)) > 0;
-  await ref.read(reminderSchedulerProvider).replaceAll([
+  final reminders = [
     ...remindersFor(await repository.getRules(), now),
     ...loanRemindersFor(debts, now),
     ...cardRemindersFor(accounts, now),
@@ -163,5 +164,12 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
         writtenToday: writtenToday,
       ),
     if (wrappedOn) ...wrappedReminderFor(now, hasEntries: writtenThisMonth),
-  ], funSounds: funSounds);
+  ];
+  await ref
+      .read(reminderSchedulerProvider)
+      .replaceAll(reminders, funSounds: funSounds);
+  // The history behind More > Notifications.
+  await ref
+      .read(notificationLogRepositoryProvider)
+      .syncScheduled(reminders, now);
 });

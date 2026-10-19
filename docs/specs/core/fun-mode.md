@@ -16,15 +16,21 @@ Bangladesh, and gentle motion. It can all be turned off.
 - **Empty screens** show a sleepy Takka instead of the plain icon.
 - **Celebration**: confetti when the money that reaches a goal is added, and
   when a loan is paid off (the "All paid" button, or a payment that clears it).
-- **Motion**: amounts count up, the budget ring fills, the first Home cards
-  arrive one after another, and screens fade in. The cards are a little rounder.
-- **Settings > Fun > Fun mode** turns Takka, the lines and the confetti off
-  (default on). The phone's "remove animations" setting turns off all motion:
-  every animation then shows its end state at once.
+- **Motion**: amounts count up, the budget ring fills, the first cards or rows
+  of Home, Transactions, Accounts, Budget, Reports, Goals, Loans, the Bazar
+  list and Notifications arrive one after another (`arriving`: a fade and a
+  small slide, only for the first seven, so scrolling never replays it), and
+  screens fade in. The total on Accounts counts up. The cards are a little
+  rounder.
+- **Settings > Fun > Fun mode** turns Takka, the lines, the confetti and all of
+  the motion above off (default on). The phone's "remove animations" setting
+  does the same for motion: every animation then shows its end state at once.
 
 ## Rules
-- `motionOff(context)` is `MediaQuery.disableAnimations`; every animated widget
-  checks it. No animation repeats for ever, so a screen can settle.
+- `motionOff(context)` is true when `MediaQuery.disableAnimations` is set or
+  Fun mode is off; every animated widget checks it when it starts (it does not
+  follow a change while the animation runs). No animation repeats for ever, so
+  a screen can settle.
 - `pickQuip(inputs, nudge)` is pure: the line is `lines[(day of year + nudge) %
   count]`. Lines are English in the code and go through `tr()`; every line is in
   the Bangla dictionary (`allQuips` is part of the coverage test).
@@ -33,5 +39,5 @@ Bangladesh, and gentle motion. It can all be turned off.
 - Widget tests switch animations off (`testWithDatabase`).
 
 ## Tests
-- `test/features/fun/**`, `test/core/widgets/motion_test.dart`
+- `test/features/fun/**`, `test/core/widgets/motion_test.dart` (Fun mode off, `arriving`)
 - `test/features/settings/**` (the preference and the switch)

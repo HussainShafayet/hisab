@@ -7,6 +7,7 @@ import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/date_range_picker.dart';
 import 'package:hishab/core/widgets/month_switcher.dart';
+import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/range_banner.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/reports/domain/report_data.dart';
@@ -101,25 +102,28 @@ class _ReportContent extends StatelessWidget {
       // Room below the last row so the add button never covers it.
       padding: const EdgeInsets.only(bottom: 96),
       children: [
-        ReportSummaryCard(
-          totals: data.totals,
-          previousTotals: data.previousTotals,
-          previousLabel: isCustom
-              ? rangeLabel(data.previousRange)
-              : monthLabel(data.previousRange.start),
-          days: daysBetween(data.range.start, data.range.end),
-        ),
-        CategoryPieCard(
-          categories: data.categories,
-          incomeCategories: data.incomeCategories,
-        ),
-        CategoryTreeCard(
-          expense: data.expenseBranches,
-          income: data.incomeBranches,
-        ),
-        AccountBreakdownCard(accounts: data.accounts),
-        IncomeExpenseBarCard(months: data.months),
-        TopExpensesCard(items: data.topExpenses),
+        for (final (index, card) in [
+          ReportSummaryCard(
+            totals: data.totals,
+            previousTotals: data.previousTotals,
+            previousLabel: isCustom
+                ? rangeLabel(data.previousRange)
+                : monthLabel(data.previousRange.start),
+            days: daysBetween(data.range.start, data.range.end),
+          ),
+          CategoryPieCard(
+            categories: data.categories,
+            incomeCategories: data.incomeCategories,
+          ),
+          CategoryTreeCard(
+            expense: data.expenseBranches,
+            income: data.incomeBranches,
+          ),
+          AccountBreakdownCard(accounts: data.accounts),
+          IncomeExpenseBarCard(months: data.months),
+          TopExpensesCard(items: data.topExpenses),
+        ].indexed)
+          arriving(index, card),
       ],
     );
   }

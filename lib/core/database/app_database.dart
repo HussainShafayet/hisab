@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart';
 import 'package:drift_flutter/drift_flutter.dart';
+import 'package:hishab/core/notifications/alert_kind.dart';
 import 'package:hishab/features/accounts/data/accounts_dao.dart';
 import 'package:hishab/features/accounts/data/accounts_table.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
@@ -11,6 +12,9 @@ import 'package:hishab/features/categories/data/categories_dao.dart';
 import 'package:hishab/features/categories/data/categories_table.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
+import 'package:hishab/features/challenges/data/challenges_dao.dart';
+import 'package:hishab/features/challenges/data/challenges_table.dart';
+import 'package:hishab/features/challenges/domain/challenge.dart';
 import 'package:hishab/features/debts/data/debts_dao.dart';
 import 'package:hishab/features/debts/data/debts_table.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
@@ -22,6 +26,8 @@ import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/features/metals/data/metals_dao.dart';
 import 'package:hishab/features/metals/data/metals_table.dart';
 import 'package:hishab/features/metals/domain/metals.dart';
+import 'package:hishab/features/notifications/data/notification_log_dao.dart';
+import 'package:hishab/features/notifications/data/notification_log_table.dart';
 import 'package:hishab/features/recurring/data/recurring_dao.dart';
 import 'package:hishab/features/recurring/data/recurring_table.dart';
 import 'package:hishab/features/recurring/domain/recurring.dart';
@@ -64,6 +70,8 @@ final _budgetsMonthCategoryUnique = Index(
     MetalHoldings,
     Investments,
     InvestmentEntries,
+    NotificationLog,
+    Challenges,
   ],
   daos: [
     AccountsDao,
@@ -79,6 +87,8 @@ final _budgetsMonthCategoryUnique = Index(
     BazarDao,
     MetalsDao,
     InvestmentsDao,
+    NotificationLogDao,
+    ChallengesDao,
   ],
 )
 class AppDatabase extends _$AppDatabase {
@@ -97,6 +107,8 @@ class AppDatabase extends _$AppDatabase {
   /// 4: the `debts` and `debt_payments` tables (dhar / baki).
   /// 5: the `recurring_rules` table.
   /// 6: `accounts.credit_limit` and `accounts.bill_due_day` (credit cards).
+  /// 15: the `challenges` table (spending challenges).
+  /// 14: the `notification_log` table (More > Notifications).
   /// 13: the `investments` and `investment_entries` tables (business
   /// investments).
   /// 12: `transactions.feeling` (needed, wanted, regret).
@@ -107,7 +119,7 @@ class AppDatabase extends _$AppDatabase {
   /// 7: `transactions.usd_amount` and `accounts.usd_limit` (dollar spending
   /// on credit cards).
   @override
-  int get schemaVersion => 13;
+  int get schemaVersion => 15;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -171,6 +183,13 @@ class AppDatabase extends _$AppDatabase {
         await migrator.createTable(investments);
         await migrator.createTable(investmentEntries);
         await migrator.createIndex(idxInvestmentEntriesInvestmentId);
+      }
+      if (from < 14) {
+        await migrator.createTable(notificationLog);
+        await migrator.createIndex(idxNotificationLogAt);
+      }
+      if (from < 15) {
+        await migrator.createTable(challenges);
       }
     },
     beforeOpen: (details) async {
