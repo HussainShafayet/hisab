@@ -18,6 +18,7 @@ import 'package:hishab/core/l10n/bn_goals.dart';
 import 'package:hishab/core/l10n/bn_insights.dart';
 import 'package:hishab/core/l10n/bn_investments.dart';
 import 'package:hishab/core/l10n/bn_metals.dart';
+import 'package:hishab/core/l10n/bn_notifications.dart';
 import 'package:hishab/core/l10n/bn_overdrawn.dart';
 import 'package:hishab/core/l10n/bn_quick.dart';
 import 'package:hishab/core/l10n/bn_recurring.dart';
@@ -49,6 +50,7 @@ const bnStrings = <String, String>{
   ...bnInsights,
   ...bnInvestments,
   ...bnMetals,
+  ...bnNotifications,
   ...bnOverdrawn,
   ...bnQuick,
   ...bnRecurring,

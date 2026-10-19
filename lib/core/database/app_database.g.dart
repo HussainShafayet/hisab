@@ -7708,6 +7708,498 @@ class InvestmentEntriesCompanion extends UpdateCompanion<InvestmentEntryRow> {
   }
 }
 
+class $NotificationLogTable extends NotificationLog
+    with TableInfo<$NotificationLogTable, NotificationLogRow> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $NotificationLogTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<int> id = GeneratedColumn<int>(
+    'id',
+    aliasedName,
+    false,
+    hasAutoIncrement: true,
+    type: DriftSqlType.int,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'PRIMARY KEY AUTOINCREMENT',
+    ),
+  );
+  static const VerificationMeta _notifIdMeta = const VerificationMeta(
+    'notifId',
+  );
+  @override
+  late final GeneratedColumn<int> notifId = GeneratedColumn<int>(
+    'notif_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  late final GeneratedColumnWithTypeConverter<AlertKind, String> kind =
+      GeneratedColumn<String>(
+        'kind',
+        aliasedName,
+        false,
+        type: DriftSqlType.string,
+        requiredDuringInsert: true,
+      ).withConverter<AlertKind>($NotificationLogTable.$converterkind);
+  static const VerificationMeta _titleMeta = const VerificationMeta('title');
+  @override
+  late final GeneratedColumn<String> title = GeneratedColumn<String>(
+    'title',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _bodyMeta = const VerificationMeta('body');
+  @override
+  late final GeneratedColumn<String> body = GeneratedColumn<String>(
+    'body',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _atMeta = const VerificationMeta('at');
+  @override
+  late final GeneratedColumn<DateTime> at = GeneratedColumn<DateTime>(
+    'at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _immediateMeta = const VerificationMeta(
+    'immediate',
+  );
+  @override
+  late final GeneratedColumn<bool> immediate = GeneratedColumn<bool>(
+    'immediate',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("immediate" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  static const VerificationMeta _createdAtMeta = const VerificationMeta(
+    'createdAt',
+  );
+  @override
+  late final GeneratedColumn<DateTime> createdAt = GeneratedColumn<DateTime>(
+    'created_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.dateTime,
+    requiredDuringInsert: false,
+    defaultValue: currentDateAndTime,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    notifId,
+    kind,
+    title,
+    body,
+    at,
+    immediate,
+    createdAt,
+  ];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'notification_log';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<NotificationLogRow> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    }
+    if (data.containsKey('notif_id')) {
+      context.handle(
+        _notifIdMeta,
+        notifId.isAcceptableOrUnknown(data['notif_id']!, _notifIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_notifIdMeta);
+    }
+    if (data.containsKey('title')) {
+      context.handle(
+        _titleMeta,
+        title.isAcceptableOrUnknown(data['title']!, _titleMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_titleMeta);
+    }
+    if (data.containsKey('body')) {
+      context.handle(
+        _bodyMeta,
+        body.isAcceptableOrUnknown(data['body']!, _bodyMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_bodyMeta);
+    }
+    if (data.containsKey('at')) {
+      context.handle(_atMeta, at.isAcceptableOrUnknown(data['at']!, _atMeta));
+    } else if (isInserting) {
+      context.missing(_atMeta);
+    }
+    if (data.containsKey('immediate')) {
+      context.handle(
+        _immediateMeta,
+        immediate.isAcceptableOrUnknown(data['immediate']!, _immediateMeta),
+      );
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(
+        _createdAtMeta,
+        createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta),
+      );
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  NotificationLogRow map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return NotificationLogRow(
+      id: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}id'],
+      )!,
+      notifId: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}notif_id'],
+      )!,
+      kind: $NotificationLogTable.$converterkind.fromSql(
+        attachedDatabase.typeMapping.read(
+          DriftSqlType.string,
+          data['${effectivePrefix}kind'],
+        )!,
+      ),
+      title: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}title'],
+      )!,
+      body: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}body'],
+      )!,
+      at: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}at'],
+      )!,
+      immediate: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}immediate'],
+      )!,
+      createdAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.dateTime,
+        data['${effectivePrefix}created_at'],
+      )!,
+    );
+  }
+
+  @override
+  $NotificationLogTable createAlias(String alias) {
+    return $NotificationLogTable(attachedDatabase, alias);
+  }
+
+  static JsonTypeConverter2<AlertKind, String, String> $converterkind =
+      const EnumNameConverter<AlertKind>(AlertKind.values);
+}
+
+class NotificationLogRow extends DataClass
+    implements Insertable<NotificationLogRow> {
+  final int id;
+
+  /// The id the notification has on the phone.
+  final int notifId;
+  final AlertKind kind;
+  final String title;
+  final String body;
+  final DateTime at;
+  final bool immediate;
+  final DateTime createdAt;
+  const NotificationLogRow({
+    required this.id,
+    required this.notifId,
+    required this.kind,
+    required this.title,
+    required this.body,
+    required this.at,
+    required this.immediate,
+    required this.createdAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<int>(id);
+    map['notif_id'] = Variable<int>(notifId);
+    {
+      map['kind'] = Variable<String>(
+        $NotificationLogTable.$converterkind.toSql(kind),
+      );
+    }
+    map['title'] = Variable<String>(title);
+    map['body'] = Variable<String>(body);
+    map['at'] = Variable<DateTime>(at);
+    map['immediate'] = Variable<bool>(immediate);
+    map['created_at'] = Variable<DateTime>(createdAt);
+    return map;
+  }
+
+  NotificationLogCompanion toCompanion(bool nullToAbsent) {
+    return NotificationLogCompanion(
+      id: Value(id),
+      notifId: Value(notifId),
+      kind: Value(kind),
+      title: Value(title),
+      body: Value(body),
+      at: Value(at),
+      immediate: Value(immediate),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory NotificationLogRow.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return NotificationLogRow(
+      id: serializer.fromJson<int>(json['id']),
+      notifId: serializer.fromJson<int>(json['notifId']),
+      kind: $NotificationLogTable.$converterkind.fromJson(
+        serializer.fromJson<String>(json['kind']),
+      ),
+      title: serializer.fromJson<String>(json['title']),
+      body: serializer.fromJson<String>(json['body']),
+      at: serializer.fromJson<DateTime>(json['at']),
+      immediate: serializer.fromJson<bool>(json['immediate']),
+      createdAt: serializer.fromJson<DateTime>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<int>(id),
+      'notifId': serializer.toJson<int>(notifId),
+      'kind': serializer.toJson<String>(
+        $NotificationLogTable.$converterkind.toJson(kind),
+      ),
+      'title': serializer.toJson<String>(title),
+      'body': serializer.toJson<String>(body),
+      'at': serializer.toJson<DateTime>(at),
+      'immediate': serializer.toJson<bool>(immediate),
+      'createdAt': serializer.toJson<DateTime>(createdAt),
+    };
+  }
+
+  NotificationLogRow copyWith({
+    int? id,
+    int? notifId,
+    AlertKind? kind,
+    String? title,
+    String? body,
+    DateTime? at,
+    bool? immediate,
+    DateTime? createdAt,
+  }) => NotificationLogRow(
+    id: id ?? this.id,
+    notifId: notifId ?? this.notifId,
+    kind: kind ?? this.kind,
+    title: title ?? this.title,
+    body: body ?? this.body,
+    at: at ?? this.at,
+    immediate: immediate ?? this.immediate,
+    createdAt: createdAt ?? this.createdAt,
+  );
+  NotificationLogRow copyWithCompanion(NotificationLogCompanion data) {
+    return NotificationLogRow(
+      id: data.id.present ? data.id.value : this.id,
+      notifId: data.notifId.present ? data.notifId.value : this.notifId,
+      kind: data.kind.present ? data.kind.value : this.kind,
+      title: data.title.present ? data.title.value : this.title,
+      body: data.body.present ? data.body.value : this.body,
+      at: data.at.present ? data.at.value : this.at,
+      immediate: data.immediate.present ? data.immediate.value : this.immediate,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotificationLogRow(')
+          ..write('id: $id, ')
+          ..write('notifId: $notifId, ')
+          ..write('kind: $kind, ')
+          ..write('title: $title, ')
+          ..write('body: $body, ')
+          ..write('at: $at, ')
+          ..write('immediate: $immediate, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, notifId, kind, title, body, at, immediate, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is NotificationLogRow &&
+          other.id == this.id &&
+          other.notifId == this.notifId &&
+          other.kind == this.kind &&
+          other.title == this.title &&
+          other.body == this.body &&
+          other.at == this.at &&
+          other.immediate == this.immediate &&
+          other.createdAt == this.createdAt);
+}
+
+class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
+  final Value<int> id;
+  final Value<int> notifId;
+  final Value<AlertKind> kind;
+  final Value<String> title;
+  final Value<String> body;
+  final Value<DateTime> at;
+  final Value<bool> immediate;
+  final Value<DateTime> createdAt;
+  const NotificationLogCompanion({
+    this.id = const Value.absent(),
+    this.notifId = const Value.absent(),
+    this.kind = const Value.absent(),
+    this.title = const Value.absent(),
+    this.body = const Value.absent(),
+    this.at = const Value.absent(),
+    this.immediate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  });
+  NotificationLogCompanion.insert({
+    this.id = const Value.absent(),
+    required int notifId,
+    required AlertKind kind,
+    required String title,
+    required String body,
+    required DateTime at,
+    this.immediate = const Value.absent(),
+    this.createdAt = const Value.absent(),
+  }) : notifId = Value(notifId),
+       kind = Value(kind),
+       title = Value(title),
+       body = Value(body),
+       at = Value(at);
+  static Insertable<NotificationLogRow> custom({
+    Expression<int>? id,
+    Expression<int>? notifId,
+    Expression<String>? kind,
+    Expression<String>? title,
+    Expression<String>? body,
+    Expression<DateTime>? at,
+    Expression<bool>? immediate,
+    Expression<DateTime>? createdAt,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (notifId != null) 'notif_id': notifId,
+      if (kind != null) 'kind': kind,
+      if (title != null) 'title': title,
+      if (body != null) 'body': body,
+      if (at != null) 'at': at,
+      if (immediate != null) 'immediate': immediate,
+      if (createdAt != null) 'created_at': createdAt,
+    });
+  }
+
+  NotificationLogCompanion copyWith({
+    Value<int>? id,
+    Value<int>? notifId,
+    Value<AlertKind>? kind,
+    Value<String>? title,
+    Value<String>? body,
+    Value<DateTime>? at,
+    Value<bool>? immediate,
+    Value<DateTime>? createdAt,
+  }) {
+    return NotificationLogCompanion(
+      id: id ?? this.id,
+      notifId: notifId ?? this.notifId,
+      kind: kind ?? this.kind,
+      title: title ?? this.title,
+      body: body ?? this.body,
+      at: at ?? this.at,
+      immediate: immediate ?? this.immediate,
+      createdAt: createdAt ?? this.createdAt,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<int>(id.value);
+    }
+    if (notifId.present) {
+      map['notif_id'] = Variable<int>(notifId.value);
+    }
+    if (kind.present) {
+      map['kind'] = Variable<String>(
+        $NotificationLogTable.$converterkind.toSql(kind.value),
+      );
+    }
+    if (title.present) {
+      map['title'] = Variable<String>(title.value);
+    }
+    if (body.present) {
+      map['body'] = Variable<String>(body.value);
+    }
+    if (at.present) {
+      map['at'] = Variable<DateTime>(at.value);
+    }
+    if (immediate.present) {
+      map['immediate'] = Variable<bool>(immediate.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<DateTime>(createdAt.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('NotificationLogCompanion(')
+          ..write('id: $id, ')
+          ..write('notifId: $notifId, ')
+          ..write('kind: $kind, ')
+          ..write('title: $title, ')
+          ..write('body: $body, ')
+          ..write('at: $at, ')
+          ..write('immediate: $immediate, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -7728,6 +8220,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $InvestmentsTable investments = $InvestmentsTable(this);
   late final $InvestmentEntriesTable investmentEntries =
       $InvestmentEntriesTable(this);
+  late final $NotificationLogTable notificationLog = $NotificationLogTable(
+    this,
+  );
   late final Index idxTransactionsDate = Index(
     'idx_transactions_date',
     'CREATE INDEX idx_transactions_date ON transactions (date)',
@@ -7752,6 +8247,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'idx_investment_entries_investment_id',
     'CREATE INDEX idx_investment_entries_investment_id ON investment_entries (investment_id)',
   );
+  late final Index idxNotificationLogAt = Index(
+    'idx_notification_log_at',
+    'CREATE INDEX idx_notification_log_at ON notification_log (at)',
+  );
   late final AccountsDao accountsDao = AccountsDao(this as AppDatabase);
   late final CategoriesDao categoriesDao = CategoriesDao(this as AppDatabase);
   late final TransactionsDao transactionsDao = TransactionsDao(
@@ -7767,6 +8266,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final BazarDao bazarDao = BazarDao(this as AppDatabase);
   late final MetalsDao metalsDao = MetalsDao(this as AppDatabase);
   late final InvestmentsDao investmentsDao = InvestmentsDao(
+    this as AppDatabase,
+  );
+  late final NotificationLogDao notificationLogDao = NotificationLogDao(
     this as AppDatabase,
   );
   @override
@@ -7790,12 +8292,14 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     metalHoldings,
     investments,
     investmentEntries,
+    notificationLog,
     idxTransactionsDate,
     idxTransactionsAccountId,
     idxTransactionsToAccountId,
     idxTransactionsCategoryId,
     idxGoalEntriesGoalId,
     idxInvestmentEntriesInvestmentId,
+    idxNotificationLogAt,
   ];
   @override
   StreamQueryUpdateRules get streamUpdateRules => const StreamQueryUpdateRules([
@@ -14883,6 +15387,277 @@ typedef $$InvestmentEntriesTableProcessedTableManager =
         bool transactionId,
       })
     >;
+typedef $$NotificationLogTableCreateCompanionBuilder =
+    NotificationLogCompanion Function({
+      Value<int> id,
+      required int notifId,
+      required AlertKind kind,
+      required String title,
+      required String body,
+      required DateTime at,
+      Value<bool> immediate,
+      Value<DateTime> createdAt,
+    });
+typedef $$NotificationLogTableUpdateCompanionBuilder =
+    NotificationLogCompanion Function({
+      Value<int> id,
+      Value<int> notifId,
+      Value<AlertKind> kind,
+      Value<String> title,
+      Value<String> body,
+      Value<DateTime> at,
+      Value<bool> immediate,
+      Value<DateTime> createdAt,
+    });
+
+class $$NotificationLogTableFilterComposer
+    extends Composer<_$AppDatabase, $NotificationLogTable> {
+  $$NotificationLogTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get notifId => $composableBuilder(
+    column: $table.notifId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnWithTypeConverterFilters<AlertKind, AlertKind, String> get kind =>
+      $composableBuilder(
+        column: $table.kind,
+        builder: (column) => ColumnWithTypeConverterFilters(column),
+      );
+
+  ColumnFilters<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get immediate => $composableBuilder(
+    column: $table.immediate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$NotificationLogTableOrderingComposer
+    extends Composer<_$AppDatabase, $NotificationLogTable> {
+  $$NotificationLogTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<int> get id => $composableBuilder(
+    column: $table.id,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get notifId => $composableBuilder(
+    column: $table.notifId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get kind => $composableBuilder(
+    column: $table.kind,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get title => $composableBuilder(
+    column: $table.title,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get body => $composableBuilder(
+    column: $table.body,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get at => $composableBuilder(
+    column: $table.at,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<bool> get immediate => $composableBuilder(
+    column: $table.immediate,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<DateTime> get createdAt => $composableBuilder(
+    column: $table.createdAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$NotificationLogTableAnnotationComposer
+    extends Composer<_$AppDatabase, $NotificationLogTable> {
+  $$NotificationLogTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<int> get id =>
+      $composableBuilder(column: $table.id, builder: (column) => column);
+
+  GeneratedColumn<int> get notifId =>
+      $composableBuilder(column: $table.notifId, builder: (column) => column);
+
+  GeneratedColumnWithTypeConverter<AlertKind, String> get kind =>
+      $composableBuilder(column: $table.kind, builder: (column) => column);
+
+  GeneratedColumn<String> get title =>
+      $composableBuilder(column: $table.title, builder: (column) => column);
+
+  GeneratedColumn<String> get body =>
+      $composableBuilder(column: $table.body, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get at =>
+      $composableBuilder(column: $table.at, builder: (column) => column);
+
+  GeneratedColumn<bool> get immediate =>
+      $composableBuilder(column: $table.immediate, builder: (column) => column);
+
+  GeneratedColumn<DateTime> get createdAt =>
+      $composableBuilder(column: $table.createdAt, builder: (column) => column);
+}
+
+class $$NotificationLogTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $NotificationLogTable,
+          NotificationLogRow,
+          $$NotificationLogTableFilterComposer,
+          $$NotificationLogTableOrderingComposer,
+          $$NotificationLogTableAnnotationComposer,
+          $$NotificationLogTableCreateCompanionBuilder,
+          $$NotificationLogTableUpdateCompanionBuilder,
+          (
+            NotificationLogRow,
+            BaseReferences<
+              _$AppDatabase,
+              $NotificationLogTable,
+              NotificationLogRow
+            >,
+          ),
+          NotificationLogRow,
+          PrefetchHooks Function()
+        > {
+  $$NotificationLogTableTableManager(
+    _$AppDatabase db,
+    $NotificationLogTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$NotificationLogTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$NotificationLogTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$NotificationLogTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                Value<int> notifId = const Value.absent(),
+                Value<AlertKind> kind = const Value.absent(),
+                Value<String> title = const Value.absent(),
+                Value<String> body = const Value.absent(),
+                Value<DateTime> at = const Value.absent(),
+                Value<bool> immediate = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => NotificationLogCompanion(
+                id: id,
+                notifId: notifId,
+                kind: kind,
+                title: title,
+                body: body,
+                at: at,
+                immediate: immediate,
+                createdAt: createdAt,
+              ),
+          createCompanionCallback:
+              ({
+                Value<int> id = const Value.absent(),
+                required int notifId,
+                required AlertKind kind,
+                required String title,
+                required String body,
+                required DateTime at,
+                Value<bool> immediate = const Value.absent(),
+                Value<DateTime> createdAt = const Value.absent(),
+              }) => NotificationLogCompanion.insert(
+                id: id,
+                notifId: notifId,
+                kind: kind,
+                title: title,
+                body: body,
+                at: at,
+                immediate: immediate,
+                createdAt: createdAt,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map(
+                (e) => (
+                  e.readTable<$NotificationLogTable, NotificationLogRow>(table),
+                  BaseReferences<
+                    _$AppDatabase,
+                    $NotificationLogTable,
+                    NotificationLogRow
+                  >(db, table, e),
+                ),
+              )
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$NotificationLogTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $NotificationLogTable,
+      NotificationLogRow,
+      $$NotificationLogTableFilterComposer,
+      $$NotificationLogTableOrderingComposer,
+      $$NotificationLogTableAnnotationComposer,
+      $$NotificationLogTableCreateCompanionBuilder,
+      $$NotificationLogTableUpdateCompanionBuilder,
+      (
+        NotificationLogRow,
+        BaseReferences<
+          _$AppDatabase,
+          $NotificationLogTable,
+          NotificationLogRow
+        >,
+      ),
+      NotificationLogRow,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -14918,4 +15693,6 @@ class $AppDatabaseManager {
       $$InvestmentsTableTableManager(_db, _db.investments);
   $$InvestmentEntriesTableTableManager get investmentEntries =>
       $$InvestmentEntriesTableTableManager(_db, _db.investmentEntries);
+  $$NotificationLogTableTableManager get notificationLog =>
+      $$NotificationLogTableTableManager(_db, _db.notificationLog);
 }

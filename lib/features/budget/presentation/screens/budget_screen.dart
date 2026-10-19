@@ -7,6 +7,7 @@ import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/month_switcher.dart';
+import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
 import 'package:hishab/features/budget/presentation/providers/budget_providers.dart';
@@ -221,11 +222,14 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       padding: const EdgeInsets.only(bottom: 96),
       children: [
         if (overall != null)
-          OverallBudgetCard(
-            item: overall,
-            month: _month,
-            today: now,
-            onTap: () => _editOverall(overall),
+          arriving(
+            0,
+            OverallBudgetCard(
+              item: overall,
+              month: _month,
+              today: now,
+              onTap: () => _editOverall(overall),
+            ),
           )
         else
           Card(
@@ -253,13 +257,16 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               ),
             ),
           ),
-        for (final item in data.categories)
-          CategoryBudgetTile(
-            key: ValueKey('budget-${item.categoryId}'),
-            item: item,
-            month: _month,
-            today: now,
-            onTap: () => _editCategory(item),
+        for (final (index, item) in data.categories.indexed)
+          arriving(
+            index + 1,
+            CategoryBudgetTile(
+              key: ValueKey('budget-${item.categoryId}'),
+              item: item,
+              month: _month,
+              today: now,
+              onTap: () => _editCategory(item),
+            ),
           ),
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),

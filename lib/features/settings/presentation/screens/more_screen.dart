@@ -114,6 +114,12 @@ class MoreScreen extends StatelessWidget {
             route: AppRoutes.backup,
           ),
           _MoreTile(
+            icon: Icons.notifications_outlined,
+            title: tr('Notifications'),
+            subtitle: tr('What was sent and what is coming'),
+            route: AppRoutes.notifications,
+          ),
+          _MoreTile(
             icon: Icons.settings_outlined,
             title: tr('Settings'),
             subtitle: tr('Language, look and alerts'),

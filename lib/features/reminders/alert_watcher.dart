@@ -4,6 +4,7 @@ import 'package:hishab/core/notifications/reminder_scheduler.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/features/budget/data/budgets_repository.dart';
+import 'package:hishab/features/notifications/presentation/providers/notification_providers.dart';
 import 'package:hishab/features/reminders/data/alert_queries.dart';
 import 'package:hishab/features/reminders/domain/alerts.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
@@ -28,6 +29,7 @@ final alertWatcherProvider = FutureProvider<void>((ref) async {
   final preferences = ref.watch(preferencesProvider);
   final db = ref.read(appDatabaseProvider);
   final scheduler = ref.read(reminderSchedulerProvider);
+  final log = ref.read(notificationLogRepositoryProvider);
   final now = ref.read(clockProvider)();
   final seen = ref.read(_seenProvider);
 
@@ -40,6 +42,7 @@ final alertWatcherProvider = FutureProvider<void>((ref) async {
   if (preferences.dailyReminder &&
       await db.entryCount(today, today.add(const Duration(days: 1))) > 0) {
     await scheduler.cancel([dailyReminderId(now)]);
+    await log.forgetScheduled([dailyReminderId(now)], now);
   }
   if (!isNew || !latest.isExpense) return;
 
@@ -64,6 +67,7 @@ final alertWatcherProvider = FutureProvider<void>((ref) async {
         );
         if (alert != null) {
           await scheduler.showNow(alert, funSounds: preferences.funSounds);
+          await log.recordShown(alert, now);
         }
       }
     }
@@ -78,16 +82,15 @@ final alertWatcherProvider = FutureProvider<void>((ref) async {
     final name = await db.categoryNameOf(categoryId);
     if (name != null && isHabit(stats.count) && markers[key] != day) {
       await remember(key, day);
-      await scheduler.showNow(
-        habitAlertFor(
-          categoryId: categoryId,
-          category: name,
-          count: stats.count,
-          total: stats.total,
-          now: now,
-        ),
-        funSounds: preferences.funSounds,
+      final alert = habitAlertFor(
+        categoryId: categoryId,
+        category: name,
+        count: stats.count,
+        total: stats.total,
+        now: now,
       );
+      await scheduler.showNow(alert, funSounds: preferences.funSounds);
+      await log.recordShown(alert, now);
     }
   }
 });

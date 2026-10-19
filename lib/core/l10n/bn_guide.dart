@@ -183,7 +183,7 @@ const bnGuide = <String, String>{
   'The playful side: a coin mascot, streaks, badges and a story of your month.':
       'মজার দিক: মুদ্রার মাসকট, ধারা, ব্যাজ আর মাসের গল্প।',
   'The fun parts': 'মজার অংশ',
-  'Takka is a small coin who comments on your day. Fun mode in Settings turns Takka, jokes and confetti on or off.': 'টাক্কা একটি ছোট্ট মুদ্রা যে আপনার দিন নিয়ে মন্তব্য করে। সেটিংসের "মজার মোড" টাক্কা, ঠাট্টা ও কনফেটি চালু বা বন্ধ করে।',
+  'Takka is a small coin who comments on your day. Fun mode in Settings turns Takka, jokes, confetti and the gentle motion on or off.': 'টাক্কা একটি ছোট্ট মুদ্রা যে আপনার দিন নিয়ে মন্তব্য করে। সেটিংসের "মজার মোড" টাক্কা, ঠাট্টা, কনফেটি ও হালকা নড়াচড়া চালু বা বন্ধ করে।',
   'Writing something every day grows your streak. Days with no spending count too. Badges reward milestones.': 'রোজ কিছু লিখলে আপনার ধারা বাড়ে। খরচহীন দিনও গোনা হয়। ব্যাজ দেয় মাইলফলকের পুরস্কার।',
   'Month wrapped is a short swipeable story of the month. Near the month\'s end it appears on Home. Share a card as a picture with the share button.': 'মাসের সারসংক্ষেপ হলো মাসের একটি ছোট সোয়াইপ-করা গল্প। মাসের শেষে এটি হোমে আসে। শেয়ার বোতামে একটি কার্ড ছবি হিসেবে শেয়ার করা যায়।',
   'Alerts and reminders': 'সতর্কতা ও রিমাইন্ডার',
@@ -197,6 +197,10 @@ const bnGuide = <String, String>{
   'Habit alerts come when the same kind of spending keeps coming back, like the fifth rickshaw this week.': 'একই ধরনের খরচ বারবার হলে অভ্যাসের সতর্কতা আসে, যেমন এই সপ্তাহের পঞ্চম রিকশা।',
   'The daily reminder nudges you in the evening if you have not written anything. The wrapped alert tells you when your month is ready.': 'দৈনিক রিমাইন্ডার সন্ধ্যায় মনে করায় যদি কিছু না লিখে থাকেন। সারসংক্ষেপের সতর্কতা জানায় মাস তৈরি হলে।',
   'Controlling them': 'নিয়ন্ত্রণ',
+  'Seeing what came': 'কী কী এসেছে দেখা',
+  'Open More > Notifications. Sent lists what already came, newest first. Coming up lists what is set to show later.': 'আরও > নোটিফিকেশন খুলুন। "এসেছে"-তে যা এসে গেছে তা নতুনটা আগে দেখানো হয়। "সামনে আসছে"-তে যা পরে আসবে তা থাকে।',
+  'A reminder moves to Sent once its time has passed. If notifications were blocked on your phone, it did not show.': 'রিমাইন্ডারের সময় পার হলে সেটি "এসেছে"-তে চলে যায়। ফোনে নোটিফিকেশন বন্ধ থাকলে সেটি আসেনি।',
+  'The clear button empties Sent and leaves Coming up alone. The last 200 are kept, for up to 90 days.': 'মোছার বোতাম "এসেছে" খালি করে, "সামনে আসছে" ছোঁয় না। সর্বশেষ ২০০টি থাকে, সর্বোচ্চ ৯০ দিন।',
   'Open Settings > Alerts. Each alert has its own switch.':
       'সেটিংস > সতর্কতায় যান। প্রতিটি সতর্কতার আলাদা সুইচ আছে।',
   'Funny alert sounds off means your phone\'s usual notification sound.':

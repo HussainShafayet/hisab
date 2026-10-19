@@ -8,6 +8,7 @@ import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
+import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/bazar/domain/shopping.dart';
 import 'package:hishab/features/bazar/presentation/providers/bazar_providers.dart';
@@ -296,15 +297,18 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
                   : ListView(
                       padding: const EdgeInsets.only(bottom: 16),
                       children: [
-                        for (final item in list)
-                          _ItemRow(
-                            key: ValueKey('item-${item.id}'),
-                            item: item,
-                            onTick: (done) => ref
-                                .read(bazarRepositoryProvider)
-                                .setDone(item.id, done: done),
-                            onEdit: () => _edit(item),
-                            onDelete: () => _remove(item),
+                        for (final (index, item) in list.indexed)
+                          arriving(
+                            index,
+                            _ItemRow(
+                              key: ValueKey('item-${item.id}'),
+                              item: item,
+                              onTick: (done) => ref
+                                  .read(bazarRepositoryProvider)
+                                  .setDone(item.id, done: done),
+                              onEdit: () => _edit(item),
+                              onDelete: () => _remove(item),
+                            ),
                           ),
                       ],
                     ),

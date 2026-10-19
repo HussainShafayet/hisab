@@ -1,10 +1,31 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
 /// True when the phone asks for no animations (a setting for people who feel
-/// ill from motion, or who want to save battery). Every animation in the app
-/// skips straight to its end then.
-bool motionOff(BuildContext context) => MediaQuery.disableAnimationsOf(context);
+/// ill from motion, or who want to save battery), or Fun mode is switched off
+/// in Settings. Every animation in the app skips straight to its end then.
+/// The setting is read when an animation starts, not followed while it runs.
+bool motionOff(BuildContext context) {
+  if (MediaQuery.disableAnimationsOf(context)) return true;
+  try {
+    final container = ProviderScope.containerOf(context, listen: false);
+    return !container.read(preferencesProvider).funMode;
+  } on StateError {
+    // Without the app's providers (a widget on its own) Fun mode is on.
+    return false;
+  }
+}
+
+/// How many cards or rows at the top of a screen arrive one by one.
+const arrivingCount = 7;
+
+/// [child] arrives with a fade and a slide when it is among the first
+/// [arrivingCount] of its screen, and is plain below them, so scrolling back
+/// up never replays an animation.
+Widget arriving(int index, Widget child) =>
+    index < arrivingCount ? FadeSlideIn(index: index, child: child) : child;
 
 /// An amount of taka that counts up to its value when it first shows, and
 /// counts from the old to the new value when it changes.

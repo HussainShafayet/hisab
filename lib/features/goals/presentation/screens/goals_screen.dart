@@ -7,6 +7,7 @@ import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/goals/domain/festival.dart';
 import 'package:hishab/features/goals/domain/goal.dart';
@@ -65,14 +66,17 @@ class GoalsScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.only(top: 8, bottom: 96),
             children: [
-              _Festivals(festivals: festivals, today: today),
-              _Summary(goals: list),
-              for (final item in list)
-                GoalTile(
-                  key: ValueKey('goal-${item.goal.id}'),
-                  item: item,
-                  today: today,
-                  onTap: () => context.push(AppRoutes.goal(item.goal.id)),
+              arriving(0, _Festivals(festivals: festivals, today: today)),
+              arriving(1, _Summary(goals: list)),
+              for (final (index, item) in list.indexed)
+                arriving(
+                  index + 2,
+                  GoalTile(
+                    key: ValueKey('goal-${item.goal.id}'),
+                    item: item,
+                    today: today,
+                    onTap: () => context.push(AppRoutes.goal(item.goal.id)),
+                  ),
                 ),
             ],
           );

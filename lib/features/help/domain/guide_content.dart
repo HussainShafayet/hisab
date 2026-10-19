@@ -332,7 +332,7 @@ const guideTopics = <GuideTopic>[
     route: AppRoutes.badges,
     sections: [
       GuideSection('The fun parts', [
-        'Takka is a small coin who comments on your day. Fun mode in Settings turns Takka, jokes and confetti on or off.',
+        'Takka is a small coin who comments on your day. Fun mode in Settings turns Takka, jokes, confetti and the gentle motion on or off.',
         'Writing something every day grows your streak. Days with no spending count too. Badges reward milestones.',
         'Month wrapped is a short swipeable story of the month. Near the month\'s end it appears on Home. Share a card as a picture with the share button.',
       ]),
@@ -351,6 +351,11 @@ const guideTopics = <GuideTopic>[
         'Budget alerts come when the month\'s budget is nearly used up and when it is crossed.',
         'Habit alerts come when the same kind of spending keeps coming back, like the fifth rickshaw this week.',
         'The daily reminder nudges you in the evening if you have not written anything. The wrapped alert tells you when your month is ready.',
+      ]),
+      GuideSection('Seeing what came', steps: true, [
+        'Open More > Notifications. Sent lists what already came, newest first. Coming up lists what is set to show later.',
+        'A reminder moves to Sent once its time has passed. If notifications were blocked on your phone, it did not show.',
+        'The clear button empties Sent and leaves Coming up alone. The last 200 are kept, for up to 90 days.',
       ]),
       GuideSection('Controlling them', steps: true, [
         'Open Settings > Alerts. Each alert has its own switch.',

@@ -136,6 +136,5 @@ class _DashboardContent extends ConsumerWidget {
 /// The first cards of Home arrive one after another. The ones further down
 /// are plain, so scrolling back up never replays an animation.
 List<Widget> _arriving(List<Widget> cards) => [
-  for (final (index, card) in cards.indexed)
-    if (index < 7) FadeSlideIn(index: index, child: card) else card,
+  for (final (index, card) in cards.indexed) arriving(index, card),
 ];

@@ -30,6 +30,7 @@ import 'package:hishab/features/help/presentation/screens/help_screen.dart';
 import 'package:hishab/features/investments/presentation/screens/investment_detail_screen.dart';
 import 'package:hishab/features/investments/presentation/screens/investment_form_screen.dart';
 import 'package:hishab/features/investments/presentation/screens/investments_screen.dart';
+import 'package:hishab/features/notifications/presentation/screens/notifications_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_form_screen.dart';
 import 'package:hishab/features/tags/presentation/screens/tag_detail_screen.dart';
 import 'package:hishab/features/fun/presentation/screens/badges_screen.dart';
@@ -208,6 +209,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                         },
                       ),
                     ],
+                  ),
+                  GoRoute(
+                    path: 'notifications',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const NotificationsScreen(),
                   ),
                   GoRoute(
                     path: 'investments',
