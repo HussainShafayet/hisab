@@ -106,7 +106,8 @@ void main() {
     await tester.pump();
 
     final gold = (await MetalsRepository(db).prices()).gold!;
-    expect(bhoriPriceFromGram(Metal.gold, gold), closeTo(18000000, 1));
+    // A gram price is whole poisha, so the bhori price is off by a few poisha.
+    expect(bhoriPriceFromGram(Metal.gold, gold), closeTo(18000000, 6));
   });
 
   testWithDatabase('fetches today\'s price', (tester, db) async {

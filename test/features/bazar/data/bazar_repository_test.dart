@@ -250,4 +250,134 @@ void main() {
       expect(read.itemPrices, isEmpty);
     });
   });
+
+  group('taking things off the list', () {
+    test('puts a removed item back as it was, ticked or not', () async {
+      final id = await repo.addItem('Rice', quantity: 2, price: 12000);
+      await repo.setDone(id, done: true);
+      final item = (await repo.watchItems().first).single;
+      await repo.deleteItem(id);
+      expect(await names(), isEmpty);
+
+      await repo.restoreItem(item);
+
+      final back = (await repo.watchItems().first).single;
+      expect(back.name, 'Rice');
+      expect(back.quantity, 2);
+      expect(back.price, 12000);
+      expect(back.isDone, isTrue);
+    });
+
+    test('removes the bought items and keeps the rest', () async {
+      final rice = await repo.addItem('Rice');
+      await repo.addItem('Oil');
+      await repo.setDone(rice, done: true);
+
+      final removed = await repo.removeBought();
+
+      expect(removed, 1);
+      expect(await names(), ['Oil']);
+    });
+
+    test('clears the whole list', () async {
+      await repo.addItem('Rice');
+      final oil = await repo.addItem('Oil');
+      await repo.setDone(oil, done: true);
+
+      expect(await repo.clearList(), 2);
+      expect(await names(), isEmpty);
+    });
+
+    test('clearing the list keeps the remembered prices', () async {
+      await repo.addItem('Rice', price: 12000);
+      final rice = (await repo.watchItems().first).single;
+      await repo.updateItem(rice.id, name: 'Rice', quantity: 1, price: 12000);
+
+      await repo.clearList();
+
+      expect((await repo.suggestions('')).single.name, 'Rice');
+    });
+  });
+
+  group('remembered prices', () {
+    Future<List<String>> pricesOf() async => [
+      for (final p in await repo.watchPrices().first) '${p.name} ${p.price}',
+    ];
+
+    test('are listed, the newest first', () async {
+      await repo.savePrice(name: 'Rice', price: 12000);
+      clock = now.add(const Duration(days: 1));
+      await repo.savePrice(name: 'Oil', price: 18000);
+
+      expect(await pricesOf(), ['Oil 18000', 'Rice 12000']);
+    });
+
+    test('can be added by hand', () async {
+      await repo.savePrice(name: '  Green Chilli ', price: 4000);
+
+      final price = (await repo.watchPrices().first).single;
+      expect(price.name, 'Green Chilli');
+      expect(price.key, 'green chilli');
+      // And the list uses it.
+      await repo.addItem('green chilli');
+      expect((await repo.watchItems().first).single.price, 4000);
+    });
+
+    test('can be changed', () async {
+      await repo.savePrice(name: 'Rice', price: 12000);
+
+      await repo.savePrice(name: 'Rice', price: 13500, replacing: 'Rice');
+
+      expect(await pricesOf(), ['Rice 13500']);
+    });
+
+    test('can be renamed, and the old name goes', () async {
+      await repo.savePrice(name: 'Rice', price: 12000);
+
+      await repo.savePrice(
+        name: 'Miniket rice',
+        price: 12000,
+        replacing: 'Rice',
+      );
+
+      expect(await pricesOf(), ['Miniket rice 12000']);
+    });
+
+    test('cannot be renamed to a name that has a price already', () async {
+      await repo.savePrice(name: 'Rice', price: 12000);
+      await repo.savePrice(name: 'Oil', price: 18000);
+
+      await expectLater(
+        repo.savePrice(name: 'oil', price: 100, replacing: 'Rice'),
+        throwsValidation('already saved'),
+      );
+
+      expect(await pricesOf(), unorderedEquals(['Rice 12000', 'Oil 18000']));
+    });
+
+    test('need a name and a price that is not negative', () async {
+      await expectLater(
+        repo.savePrice(name: '  ', price: 100),
+        throwsValidation('name'),
+      );
+      await expectLater(
+        repo.savePrice(name: 'Rice', price: -1),
+        throwsValidation('negative'),
+      );
+    });
+
+    test('can be removed and put back as they were', () async {
+      await repo.savePrice(name: 'Rice', price: 12000);
+      final price = (await repo.watchPrices().first).single;
+
+      await repo.deletePrice('RICE');
+      expect(await pricesOf(), isEmpty);
+      await repo.restorePrice(price);
+
+      final back = (await repo.watchPrices().first).single;
+      expect(back.name, 'Rice');
+      expect(back.price, 12000);
+      expect(back.updatedAt, price.updatedAt);
+    });
+  });
 }

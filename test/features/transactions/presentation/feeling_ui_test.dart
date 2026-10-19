@@ -23,6 +23,7 @@ void main() {
 
     await typeAmount(tester, '250');
     await chooseCategory(tester, b.food);
+    await openMoreDetails(tester);
     await tester.ensureVisible(chip(Feeling.regret));
     await tester.tap(chip(Feeling.regret));
     await tester.pump();
@@ -47,6 +48,7 @@ void main() {
 
     await typeAmount(tester, '250');
     await chooseCategory(tester, b.food);
+    await openMoreDetails(tester);
     await tester.ensureVisible(chip(Feeling.want));
     await tester.tap(chip(Feeling.want));
     await tester.pump();
@@ -68,6 +70,9 @@ void main() {
     await pumpAppWithDatabase(tester, db);
     await openAddForm(tester);
 
+    // Folded away until "More details" is opened.
+    expect(chip(Feeling.need), findsNothing);
+    await openMoreDetails(tester);
     expect(chip(Feeling.need), findsOneWidget);
     await tester.tap(find.text('Income'));
     await tester.pumpAndSettle();

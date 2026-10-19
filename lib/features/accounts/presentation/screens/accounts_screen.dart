@@ -18,6 +18,7 @@ import 'package:hishab/features/accounts/presentation/widgets/account_type_ui.da
 import 'package:hishab/features/accounts/presentation/widgets/adjust_balance_dialog.dart';
 import 'package:hishab/features/accounts/presentation/widgets/credit_card_tile.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// Every wallet as a card, with the total on top.
 class AccountsScreen extends ConsumerStatefulWidget {
@@ -35,7 +36,10 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
     final accounts = ref.watch(accountsProvider(_showArchived));
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Accounts'))),
+      appBar: AppBar(
+        title: Text(tr('Accounts')),
+        actions: const [HelpButton('accounts')],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.newAccount),
         icon: const Icon(Icons.add),

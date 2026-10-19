@@ -5,7 +5,7 @@ import 'package:hishab/features/transactions/domain/feeling_summary.dart';
 void main() {
   group('when the wrapped is on offer', () {
     test('in the last four days of a month, for that month', () {
-      expect(wrappedMonthFor(DateTime(2026, 10, 27)), DateTime(2026, 10));
+      expect(wrappedMonthFor(DateTime(2026, 10, 28)), DateTime(2026, 10));
       expect(wrappedMonthFor(DateTime(2026, 10, 31)), DateTime(2026, 10));
       expect(wrappedMonthFor(DateTime(2026, 2, 25)), DateTime(2026, 2));
     });
@@ -19,6 +19,7 @@ void main() {
     test('not in the middle of a month', () {
       expect(wrappedMonthFor(DateTime(2026, 10, 6)), isNull);
       expect(wrappedMonthFor(DateTime(2026, 10, 26)), isNull);
+      expect(wrappedMonthFor(DateTime(2026, 10, 27)), isNull);
       expect(wrappedMonthFor(DateTime(2026, 10, 11)), isNull);
     });
   });

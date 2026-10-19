@@ -12,6 +12,7 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/backup/domain/backup_data.dart';
 import 'package:hishab/features/backup/presentation/providers/backup_providers.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 
 enum _Delivery { save, share }
@@ -273,7 +274,10 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Backup & export'))),
+      appBar: AppBar(
+        title: Text(tr('Backup & export')),
+        actions: const [HelpButton('backup')],
+      ),
       body: Stack(
         children: [
           ListView(

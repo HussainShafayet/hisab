@@ -1,3 +1,6 @@
+import 'package:hishab/core/l10n/bn_add_several.dart';
+import 'package:hishab/core/l10n/bn_alerts.dart';
+import 'package:hishab/core/l10n/bn_guide.dart';
 import 'package:hishab/core/l10n/bn_afford.dart';
 import 'package:hishab/core/l10n/bn_badges.dart';
 import 'package:hishab/core/l10n/bn_bazar.dart';
@@ -6,6 +9,7 @@ import 'package:hishab/core/l10n/bn_core.dart';
 import 'package:hishab/core/l10n/bn_daily.dart';
 import 'package:hishab/core/l10n/bn_debts.dart';
 import 'package:hishab/core/l10n/bn_dollars.dart';
+import 'package:hishab/core/l10n/bn_entry_form.dart';
 import 'package:hishab/core/l10n/bn_errors.dart';
 import 'package:hishab/core/l10n/bn_feelings.dart';
 import 'package:hishab/core/l10n/bn_festivals.dart';
@@ -27,6 +31,7 @@ import 'package:hishab/core/l10n/bn_zakat.dart';
 ///
 /// Each feature keeps its own map (`bn_<feature>.dart`) and it is merged here.
 const bnStrings = <String, String>{
+  ...bnAddSeveral,
   ...bnAfford,
   ...bnBadges,
   ...bnBazar,
@@ -35,6 +40,7 @@ const bnStrings = <String, String>{
   ...bnDaily,
   ...bnDebts,
   ...bnDollars,
+  ...bnEntryForm,
   ...bnErrors,
   ...bnFeelings,
   ...bnFestivals,
@@ -50,5 +56,7 @@ const bnStrings = <String, String>{
   ...bnSplit,
   ...bnTags,
   ...bnWrapped,
+  ...bnAlerts,
+  ...bnGuide,
   ...bnZakat,
 };

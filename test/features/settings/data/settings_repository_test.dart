@@ -73,7 +73,7 @@ void main() {
         theme: ThemePreference.dark,
         language: AppLanguage.bangla,
         defaultAccountId: 5,
-        amountEntry: AmountEntry.calculator,
+        amountEntry: AmountEntry.keyboard,
         weekStart: WeekStart.saturday,
       );
 

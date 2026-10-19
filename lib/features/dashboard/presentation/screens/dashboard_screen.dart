@@ -30,6 +30,8 @@ import 'package:hishab/features/investments/presentation/widgets/investments_hom
 import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
 import 'package:hishab/features/recurring/presentation/widgets/due_recurring_card.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
+import 'package:hishab/features/help/presentation/widgets/welcome_card.dart';
 
 /// The Home tab: where the money stands this month at a glance.
 class DashboardScreen extends ConsumerWidget {
@@ -40,7 +42,10 @@ class DashboardScreen extends ConsumerWidget {
     final dashboard = ref.watch(dashboardProvider);
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Home'))),
+      appBar: AppBar(
+        title: Text(tr('Home')),
+        actions: const [HelpButton('home')],
+      ),
       body: dashboard.when(
         loading: () => const LoadingView(),
         error: (error, _) => ErrorView(
@@ -85,6 +90,7 @@ class _DashboardContent extends ConsumerWidget {
       // Room below the last row so the add button never covers it.
       padding: const EdgeInsets.only(bottom: 96),
       children: _arriving([
+        const WelcomeCard(),
         TakkaCard(inputs: quipInputs),
         const WrappedHomeCard(),
         const StreakCard(),

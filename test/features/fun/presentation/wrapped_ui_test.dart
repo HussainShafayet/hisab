@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/data/transactions_repository.dart';
 import 'package:hishab/features/transactions/domain/transaction_input.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
+import '../../../helpers/fake_file_gateway.dart';
 import '../../../helpers/fixtures.dart';
 import '../../../helpers/pump_app.dart';
 
@@ -46,6 +48,22 @@ Future<void> swipe(WidgetTester tester) async {
 
 String big(WidgetTester tester, int i) =>
     tester.widget<Text>(find.byKey(ValueKey('wrapped-big-$i'))).data!;
+
+/// Taps Share and waits until it is done. Drawing the card as a picture needs
+/// real time, not the test clock.
+Future<void> tapShare(WidgetTester tester) async {
+  final share = find.byKey(const ValueKey('wrapped-share'));
+  await tester.runAsync(() async {
+    await tester.tap(share);
+    for (var i = 0; i < 100; i++) {
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+      await tester.pump();
+      // The button is switched off while the card is being sent.
+      if (tester.widget<IconButton>(share).onPressed != null) break;
+    }
+  });
+  await tester.pump();
+}
 
 void main() {
   testWithDatabase('an empty month says nothing was written', (
@@ -99,6 +117,65 @@ void main() {
     // 7: the end.
     expect(find.byKey(const ValueKey('wrapped-done')), findsOneWidget);
     expect(find.text('See you next month!'), findsOneWidget);
+  });
+
+  group('sharing a card', () {
+    testWithDatabase('sends the card on screen as a PNG picture', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await spend(db, b, 5, 100000);
+      final gateway = FakeFileGateway();
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+      );
+      await openWrapped(tester);
+      await swipe(tester);
+
+      await tapShare(tester);
+
+      final file = gateway.shared.single;
+      expect(file.mimeType, 'image/png');
+      // The second card of October 2026.
+      expect(file.fileName, 'hishab-wrapped-2026-10-2.png');
+      expect(file.bytes.sublist(0, 4), [0x89, 0x50, 0x4E, 0x47]);
+    });
+
+    testWithDatabase('says so when the share sheet cannot open', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await spend(db, b, 5, 100000);
+      final gateway = FakeFileGateway()..failure = StateError('no sheet');
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+      );
+      await openWrapped(tester);
+
+      await tapShare(tester);
+
+      expect(find.text('Could not open the share sheet.'), findsOneWidget);
+      expect(gateway.shared, isEmpty);
+    });
+
+    testWithDatabase('has no Share button for an empty month', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await pumpAppWithDatabase(tester, db);
+      await openWrapped(tester);
+
+      expect(find.byKey(const ValueKey('wrapped-share')), findsNothing);
+    });
   });
 
   group('on Home', () {

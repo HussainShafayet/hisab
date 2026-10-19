@@ -33,6 +33,12 @@ abstract final class PreferenceKeys {
   static const amountEntry = 'amount_entry';
   static const weekStart = 'week_start';
   static const funMode = 'fun_mode';
+  static const funSounds = 'fun_sounds';
+  static const budgetAlerts = 'budget_alerts';
+  static const habitAlerts = 'habit_alerts';
+  static const wrappedAlert = 'wrapped_alert';
+  static const dailyReminder = 'daily_reminder';
+  static const dailyReminderMinutes = 'daily_reminder_minutes';
 }
 
 /// What the user chose in Settings.
@@ -41,9 +47,15 @@ class AppPreferences {
     this.theme = ThemePreference.system,
     this.language = AppLanguage.english,
     this.defaultAccountId,
-    this.amountEntry = AmountEntry.keyboard,
+    this.amountEntry = AmountEntry.calculator,
     this.weekStart = WeekStart.sunday,
     this.funMode = true,
+    this.funSounds = true,
+    this.budgetAlerts = true,
+    this.habitAlerts = true,
+    this.wrappedAlert = true,
+    this.dailyReminder = false,
+    this.dailyReminderMinutes = 21 * 60,
   });
 
   static const defaults = AppPreferences();
@@ -59,6 +71,25 @@ class AppPreferences {
   /// Takka the coin, little jokes and celebrations. Off makes a plain app.
   final bool funMode;
 
+  /// Notifications play their own funny sound. Off uses the phone's usual one.
+  final bool funSounds;
+
+  /// A notification when the month's budget is nearly used up or crossed.
+  final bool budgetAlerts;
+
+  /// A notification when the same kind of spending keeps coming back.
+  final bool habitAlerts;
+
+  /// A notification when the month's wrapped is ready.
+  final bool wrappedAlert;
+
+  /// A reminder every evening to write the day's entries, unless they were
+  /// already written.
+  final bool dailyReminder;
+
+  /// The time of that reminder, in minutes after midnight.
+  final int dailyReminderMinutes;
+
   AppPreferences copyWith({
     ThemePreference? theme,
     AppLanguage? language,
@@ -66,6 +97,12 @@ class AppPreferences {
     AmountEntry? amountEntry,
     WeekStart? weekStart,
     bool? funMode,
+    bool? funSounds,
+    bool? budgetAlerts,
+    bool? habitAlerts,
+    bool? wrappedAlert,
+    bool? dailyReminder,
+    int? dailyReminderMinutes,
   }) => AppPreferences(
     theme: theme ?? this.theme,
     language: language ?? this.language,
@@ -75,6 +112,12 @@ class AppPreferences {
     amountEntry: amountEntry ?? this.amountEntry,
     weekStart: weekStart ?? this.weekStart,
     funMode: funMode ?? this.funMode,
+    funSounds: funSounds ?? this.funSounds,
+    budgetAlerts: budgetAlerts ?? this.budgetAlerts,
+    habitAlerts: habitAlerts ?? this.habitAlerts,
+    wrappedAlert: wrappedAlert ?? this.wrappedAlert,
+    dailyReminder: dailyReminder ?? this.dailyReminder,
+    dailyReminderMinutes: dailyReminderMinutes ?? this.dailyReminderMinutes,
   );
 
   /// Reads saved preferences. Anything missing or not understood (a value
@@ -110,6 +153,16 @@ class AppPreferences {
       ),
       // Only an explicit "false" turns it off.
       funMode: saved[PreferenceKeys.funMode] != 'false',
+      funSounds: saved[PreferenceKeys.funSounds] != 'false',
+      budgetAlerts: saved[PreferenceKeys.budgetAlerts] != 'false',
+      habitAlerts: saved[PreferenceKeys.habitAlerts] != 'false',
+      wrappedAlert: saved[PreferenceKeys.wrappedAlert] != 'false',
+      // Off until the person turns it on.
+      dailyReminder: saved[PreferenceKeys.dailyReminder] == 'true',
+      dailyReminderMinutes: _minutesOfDay(
+        saved[PreferenceKeys.dailyReminderMinutes],
+        defaults.dailyReminderMinutes,
+      ),
     );
   }
 
@@ -122,7 +175,21 @@ class AppPreferences {
     PreferenceKeys.amountEntry: amountEntry.name,
     PreferenceKeys.weekStart: weekStart.name,
     PreferenceKeys.funMode: funMode.toString(),
+    PreferenceKeys.funSounds: funSounds.toString(),
+    PreferenceKeys.budgetAlerts: budgetAlerts.toString(),
+    PreferenceKeys.habitAlerts: habitAlerts.toString(),
+    PreferenceKeys.wrappedAlert: wrappedAlert.toString(),
+    PreferenceKeys.dailyReminder: dailyReminder.toString(),
+    PreferenceKeys.dailyReminderMinutes: dailyReminderMinutes.toString(),
   };
+
+  /// A saved time of day, or [fallback] when it is missing or not a time.
+  static int _minutesOfDay(String? saved, int fallback) {
+    final minutes = int.tryParse(saved ?? '');
+    return minutes != null && minutes >= 0 && minutes < 24 * 60
+        ? minutes
+        : fallback;
+  }
 
   @override
   bool operator ==(Object other) =>
@@ -132,7 +199,13 @@ class AppPreferences {
       other.defaultAccountId == defaultAccountId &&
       other.amountEntry == amountEntry &&
       other.weekStart == weekStart &&
-      other.funMode == funMode;
+      other.funMode == funMode &&
+      other.funSounds == funSounds &&
+      other.budgetAlerts == budgetAlerts &&
+      other.habitAlerts == habitAlerts &&
+      other.wrappedAlert == wrappedAlert &&
+      other.dailyReminder == dailyReminder &&
+      other.dailyReminderMinutes == dailyReminderMinutes;
 
   @override
   int get hashCode => Object.hash(
@@ -142,5 +215,11 @@ class AppPreferences {
     amountEntry,
     weekStart,
     funMode,
+    funSounds,
+    budgetAlerts,
+    habitAlerts,
+    wrappedAlert,
+    dailyReminder,
+    dailyReminderMinutes,
   );
 }

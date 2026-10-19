@@ -16,6 +16,11 @@ a year-in-review, so looking back is a treat and not a chore.
   (entries and days with no spending), *How it felt* (only when expenses were
   marked: regret, needed, wanted, Takka's line), then *See you next month!* with
   a **Done** button. An empty month is one card saying nothing was written.
+- A **Share** button in the app bar (not shown for an empty month) sends the
+  card on screen as a picture (PNG, with a small *Hishab* name tag) through the
+  phone's share sheet, so it can go to WhatsApp, Messenger and so on. The Done
+  button is not in the picture. If the share sheet cannot open, a message says
+  so.
 - Nothing is stored; it is worked out each time.
 
 ## Rules
@@ -26,7 +31,10 @@ a year-in-review, so looking back is a treat and not a chore.
 - Days with no spending are counted from the 1st (or the first day anything was
   written) up to the last day of the month, or yesterday in the running month
   (`spendFreeDays`).
-- Not shareable as a picture yet; a screenshot works.
+- The picture is drawn from the card itself (a `RepaintBoundary`, 3x), so it
+  looks like the screen. It needs no new package: sharing goes through
+  `FileGateway.share`. It shows real amounts, so it is only sent when the user
+  taps Share.
 
 ## Tests
 - `test/features/fun/domain/wrapped_test.dart`

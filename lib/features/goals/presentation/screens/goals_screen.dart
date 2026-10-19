@@ -13,6 +13,7 @@ import 'package:hishab/features/goals/domain/goal.dart';
 import 'package:hishab/features/goals/presentation/providers/goals_providers.dart';
 import 'package:hishab/features/goals/presentation/widgets/festival_tile.dart';
 import 'package:hishab/features/goals/presentation/widgets/goal_tile.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// The things being saved up for, with how far each one has come.
 class GoalsScreen extends ConsumerWidget {
@@ -24,7 +25,10 @@ class GoalsScreen extends ConsumerWidget {
     final today = ref.watch(clockProvider)();
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Savings goals'))),
+      appBar: AppBar(
+        title: Text(tr('Savings goals')),
+        actions: const [HelpButton('goals')],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.newGoal),
         icon: const Icon(Icons.add),

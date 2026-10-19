@@ -14,6 +14,7 @@ import 'package:hishab/features/accounts/presentation/widgets/credit_card_tile.d
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/debts/presentation/widgets/loan_list_item.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// Money lent and borrowed, and credit card bills: what I will get and what I
 /// will give, in three tabs (money coming in, money going out, and people).
@@ -39,6 +40,7 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
         appBar: AppBar(
           title: Text(tr('Loans')),
           actions: [
+            const HelpButton('loans'),
             IconButton(
               key: const ValueKey('split-bill'),
               tooltip: tr('Split a bill'),

@@ -12,6 +12,7 @@ import 'package:hishab/features/recurring/domain/recurring.dart';
 import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
 import 'package:hishab/features/recurring/presentation/widgets/due_recurring_card.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 
 /// "Every month" and so on.
@@ -74,7 +75,10 @@ class RecurringScreen extends ConsumerWidget {
     final colors = context.financeColors;
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Recurring'))),
+      appBar: AppBar(
+        title: Text(tr('Recurring')),
+        actions: const [HelpButton('recurring')],
+      ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: () => context.push(AppRoutes.newRecurring),
         icon: const Icon(Icons.add),

@@ -77,6 +77,9 @@ abstract final class AppRoutes {
   // Full-screen, opened above the bottom navigation.
   static const addTransaction = '/add';
 
+  /// Several transactions on one screen, saved with one tap.
+  static const addSeveral = '/add/several';
+
   /// Opens the add form pre-filled with a copy of transaction [id].
   static String duplicateTransaction(int id) => '/add?duplicate=$id';
 
@@ -91,6 +94,9 @@ abstract final class AppRoutes {
       '/add?prefillAmount=$amount&prefillNote=${Uri.encodeQueryComponent(note)}';
 
   static const bazar = '/more/bazar';
+  static const help = '/more/help';
+  static String helpTopic(String id) => '/more/help/$id';
+  static const bazarPrices = '/more/bazar/prices';
   static const zakat = '/more/zakat';
   static const metals = '/more/metals';
   static const badges = '/more/badges';

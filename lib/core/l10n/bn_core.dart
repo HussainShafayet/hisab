@@ -111,11 +111,8 @@ const bnCore = <String, String>{
       'একটি ফোল্ডার বেছে নিন, যেমন Downloads',
   'Choose account': 'অ্যাকাউন্ট বেছে নিন',
   'Choose an account.': 'একটি অ্যাকাউন্ট বেছে নিন।',
-  'Where does the money go?': 'যে অ্যাকাউন্টে টাকা যাবে সেটি বেছে নিন',
   'Choose the account the money goes to.':
       'যে অ্যাকাউন্টে টাকা যাবে সেটি বেছে নিন।',
-  'Where does the money come from?':
-      'যে অ্যাকাউন্ট থেকে টাকা যাবে সেটি বেছে নিন',
   'Choose the account these transactions belong to.':
       'এই লেনদেনগুলো কোন অ্যাকাউন্টের, সেটি বেছে নিন।',
   'Choose the column that has the amount.':
@@ -336,8 +333,6 @@ const bnCore = <String, String>{
   'The backup is damaged: {detail}': 'ব্যাকআপটি নষ্ট: {detail}',
   'The balance already matches.': 'ব্যালেন্স আগেই মিলে আছে।',
   'The budget must be above zero.': 'বাজেট শূন্যের বেশি হতে হবে।',
-  'The calculator is always one tap away.':
-      'ক্যালকুলেটর সবসময় এক চাপেই পাওয়া যায়।',
   'The category "{name}" is archived.': '"{name}" ক্যাটাগরিটি আর্কাইভ করা আছে।',
   'The category "{name}" is not an expense category.':
       '"{name}" খরচের ক্যাটাগরি নয়।',

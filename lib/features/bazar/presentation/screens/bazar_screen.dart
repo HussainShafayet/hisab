@@ -12,6 +12,7 @@ import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/bazar/domain/shopping.dart';
 import 'package:hishab/features/bazar/presentation/providers/bazar_providers.dart';
 import 'package:hishab/features/bazar/presentation/widgets/bazar_item_dialog.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// The bazar (shopping) list: add what is needed, tick what is bought, and
 /// turn the ticked items into one expense. Prices are remembered, so the next
@@ -47,8 +48,96 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
     }
   }
 
+  /// Adds an item with how many and the price, from a small form that starts
+  /// with what is typed.
+  Future<void> _addWithDetails() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repository = ref.read(bazarRepositoryProvider);
+    final edit = await showBazarItemDialog(context, name: _name.text.trim());
+    if (edit == null || !mounted) return;
+    try {
+      await repository.addItem(
+        edit.name,
+        quantity: edit.quantity,
+        price: edit.price,
+      );
+      setState(() {
+        _name.clear();
+        _error = null;
+      });
+    } on Object catch (e) {
+      messenger.showError(describeError(e));
+    }
+  }
+
+  /// Takes an item off the list, with a way to get it back.
+  Future<void> _remove(ShoppingItem item) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repository = ref.read(bazarRepositoryProvider);
+    await repository.deleteItem(item.id);
+    messenger.showMessage(
+      tr('Removed {name}', {'name': item.name}),
+      action: SnackBarAction(
+        label: tr('Undo'),
+        onPressed: () => repository.restoreItem(item),
+      ),
+    );
+  }
+
+  Future<bool> _confirm({
+    required String title,
+    required String message,
+  }) async {
+    final yes = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(tr('Cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('bazar-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(tr('Remove')),
+          ),
+        ],
+      ),
+    );
+    return yes ?? false;
+  }
+
+  Future<void> _removeBought(List<ShoppingItem> list) async {
+    final count = list.where((i) => i.isDone).length;
+    final yes = await _confirm(
+      title: tr('Remove the bought items?'),
+      message: plural(
+        count,
+        'The ticked item leaves the list. No expense is added; use Done '
+            'shopping for that.',
+        'The {n} ticked items leave the list. No expense is added; use Done '
+            'shopping for that.',
+      ),
+    );
+    if (yes) await ref.read(bazarRepositoryProvider).removeBought();
+  }
+
+  Future<void> _clear(List<ShoppingItem> list) async {
+    final yes = await _confirm(
+      title: tr('Clear the whole list?'),
+      message: plural(
+        list.length,
+        'The item will be removed.',
+        'All {n} items will be removed.',
+      ),
+    );
+    if (yes) await ref.read(bazarRepositoryProvider).clearList();
+  }
+
   Future<void> _edit(ShoppingItem item) async {
-    final edit = await showBazarItemDialog(context, item);
+    final edit = await showBazarItemDialog(context, item: item);
     if (edit == null || !mounted) return;
     try {
       await ref
@@ -93,7 +182,48 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
         ref.watch(priceSuggestionsProvider(query)).value ?? const [];
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Bazar list'))),
+      appBar: AppBar(
+        title: Text(tr('Bazar list')),
+        actions: [
+          const HelpButton('bazar'),
+          PopupMenuButton<String>(
+            key: const ValueKey('bazar-menu'),
+            onSelected: (choice) {
+              final list = items.value ?? const <ShoppingItem>[];
+              switch (choice) {
+                case 'prices':
+                  context.push(AppRoutes.bazarPrices);
+                case 'bought':
+                  _removeBought(list);
+                case 'clear':
+                  _clear(list);
+              }
+            },
+            itemBuilder: (context) {
+              final list = items.value ?? const <ShoppingItem>[];
+              return [
+                PopupMenuItem(
+                  key: const ValueKey('bazar-menu-prices'),
+                  value: 'prices',
+                  child: Text(tr('Remembered prices')),
+                ),
+                PopupMenuItem(
+                  key: const ValueKey('bazar-menu-bought'),
+                  value: 'bought',
+                  enabled: list.any((i) => i.isDone),
+                  child: Text(tr('Remove bought items')),
+                ),
+                PopupMenuItem(
+                  key: const ValueKey('bazar-menu-clear'),
+                  value: 'clear',
+                  enabled: list.isNotEmpty,
+                  child: Text(tr('Clear the list')),
+                ),
+              ];
+            },
+          ),
+        ],
+      ),
       body: Column(
         children: [
           Padding(
@@ -116,6 +246,12 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
+                IconButton(
+                  key: const ValueKey('bazar-add-details'),
+                  tooltip: tr('Add with how many and the price'),
+                  onPressed: _addWithDetails,
+                  icon: const Icon(Icons.playlist_add),
+                ),
                 IconButton.filled(
                   key: const ValueKey('bazar-add'),
                   tooltip: tr('Add'),
@@ -168,9 +304,7 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
                                 .read(bazarRepositoryProvider)
                                 .setDone(item.id, done: done),
                             onEdit: () => _edit(item),
-                            onDelete: () => ref
-                                .read(bazarRepositoryProvider)
-                                .deleteItem(item.id),
+                            onDelete: () => _remove(item),
                           ),
                       ],
                     ),
@@ -245,13 +379,33 @@ class _ItemRow extends StatelessWidget {
                 }),
           key: ValueKey('item-sub-${item.id}'),
         ),
-        trailing: price == null
-            ? null
-            : Text(
+        trailing: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (price != null)
+              Text(
                 formatPoisha(item.total),
                 key: ValueKey('item-total-${item.id}'),
                 style: theme.textTheme.titleSmall?.tabular,
               ),
+            PopupMenuButton<String>(
+              key: ValueKey('item-menu-${item.id}'),
+              onSelected: (choice) => choice == 'edit' ? onEdit() : onDelete(),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  key: ValueKey('item-edit-${item.id}'),
+                  value: 'edit',
+                  child: Text(tr('Edit')),
+                ),
+                PopupMenuItem(
+                  key: ValueKey('item-delete-${item.id}'),
+                  value: 'delete',
+                  child: Text(tr('Delete')),
+                ),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }

@@ -2,8 +2,8 @@
 
 What each part of Hishab is supposed to do, one folder per feature, mirroring
 `lib/features/`. A spec says what the user sees and what the rules are, and
-lists the tests that check it. Change the spec in the same commit as the
-behaviour.
+lists the tests that check it. Change the spec, and the matching topic of the
+[user guide](help/user-guide.md), in the same commit as the behaviour.
 
 | Folder | Spec | Milestone |
 |---|---|---|
@@ -41,6 +41,9 @@ behaviour.
 | [core](core/) | [Streaks and badges](core/badges-and-streaks.md) | 26 |
 | [budget](budget/) | [Can I afford it?](budget/can-i-afford-it.md) | 27 |
 | [core](core/) | [Month wrapped](core/month-wrapped.md) | 27 |
+| [reminders](reminders/) | [Funny alerts](reminders/funny-alerts.md) | 28 |
+| [help](help/) | [User guide](help/user-guide.md) | 29 |
+| [transactions](transactions/) | [Add several](transactions/add-several.md) | 28 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

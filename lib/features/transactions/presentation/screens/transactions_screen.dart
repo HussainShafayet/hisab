@@ -17,6 +17,7 @@ import 'package:hishab/core/widgets/month_switcher.dart';
 import 'package:hishab/core/widgets/range_banner.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_filter_sheet.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
   const TransactionsScreen({super.key});
@@ -159,6 +160,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               )
             : Text(tr('Transactions')),
         actions: [
+          const HelpButton('transactions'),
           IconButton(
             tooltip: _searching ? tr('Close search') : tr('Search'),
             icon: Icon(_searching ? Icons.close : Icons.search),

@@ -14,6 +14,15 @@ into one expense, with prices remembered for the next list.
   price` (or just the price, or *No price yet*) and the line total. Ticked items
   sink to the bottom. Tapping a row edits name, how many and the price of one;
   swiping it away deletes it.
+- Next to the add button, **Add with how many and the price** opens the same
+  form as editing, starting with what was typed, so an item can be added whole.
+- The menu at the top has *Remembered prices*, *Remove bought items* (the ticked
+  ones leave, no expense is made; asks first; off until something is ticked)
+  and *Clear the list* (asks first; off on an empty list).
+- **Remembered prices** (`/more/bazar/prices`) lists every price kept, newest
+  first, with the date. The add button adds one by hand (name and price); tapping
+  one, or its menu's *Edit*, changes the name and the price; *Delete* or a swipe
+  removes it, with **Undo**. The chips on the list follow these changes.
 - A bar at the bottom shows *Estimated X* for the whole list, how many are
   ticked and what they come to (or *Tick what you bought*), and how many items
   have no price. **Done shopping** (on once something is ticked) opens the add
@@ -32,8 +41,13 @@ into one expense, with prices remembered for the next list.
 - Schema version 10 adds `shopping_items` and `item_prices`. Backup format 8
   saves both; an older file reads as having none.
 
+- A remembered price can be renamed; a name that already has a price is refused
+  (*A price for X is already saved.*). Clearing the list or removing bought
+  items never touches the remembered prices.
+
 ## Tests
 - `test/features/bazar/domain/shopping_test.dart`
 - `test/features/bazar/data/bazar_repository_test.dart`
 - `test/features/bazar/presentation/bazar_screen_test.dart`
+- `test/features/bazar/presentation/bazar_prices_screen_test.dart`
 - `test/core/database/migration_test.dart` (version 9 to 10)

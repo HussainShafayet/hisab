@@ -16,10 +16,16 @@ final bazarItemsProvider = StreamProvider<List<ShoppingItem>>(
   (ref) => ref.watch(bazarRepositoryProvider).watchItems(),
 );
 
-/// Remembered prices that match what is being typed. It follows the list, so a
-/// price changed on the list shows up here too.
+/// Every remembered price, the newest first.
+final rememberedPricesProvider = StreamProvider<List<RememberedPrice>>(
+  (ref) => ref.watch(bazarRepositoryProvider).watchPrices(),
+);
+
+/// Remembered prices that match what is being typed. It follows the list and
+/// the prices, so a change to either shows up here too.
 final priceSuggestionsProvider = FutureProvider.autoDispose
     .family<List<PriceSuggestion>, String>((ref, query) {
       ref.watch(bazarItemsProvider);
+      ref.watch(rememberedPricesProvider);
       return ref.watch(bazarRepositoryProvider).suggestions(query);
     });

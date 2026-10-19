@@ -39,7 +39,7 @@ Future<void> giveCash5000(AppDatabase db, Basics b) => addTransaction(
 
 void main() {
   group('the amount', () {
-    testWithDatabase('is typed on the keyboard, with no keypad in the way', (
+    testWithDatabase('starts with the keypad, ready to be typed with', (
       tester,
       db,
     ) async {
@@ -49,8 +49,25 @@ void main() {
       await openAddForm(tester);
 
       expect(amountField, findsOneWidget);
+      expect(find.byType(AmountKeypad), findsOneWidget);
+      await tapCalcKeys(tester, '45');
+      expect(amountText(tester), '45');
+    });
+
+    testWithDatabase('can be typed on the keyboard instead', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+
+      await turnKeyboardOn(tester);
+
+      expect(amountField, findsOneWidget);
       expect(find.byType(AmountKeypad), findsNothing);
-      // A new transaction starts with the cursor in the amount.
+      // The cursor is in the amount.
       expect(
         FocusManager.instance.primaryFocus,
         tester.widget<TextField>(amountField).focusNode,
@@ -62,6 +79,7 @@ void main() {
       await seedBasics(db);
       await pumpAppWithDatabase(tester, db);
       await openAddForm(tester);
+      await turnKeyboardOn(tester);
 
       await typeAmount(tester, '12.345');
       expect(amountText(tester), '12.34');
@@ -105,6 +123,7 @@ void main() {
       await seedBasics(db);
       await pumpAppWithDatabase(tester, db);
       await openAddForm(tester);
+      await turnKeyboardOn(tester);
 
       await typeAmount(tester, '40');
       await tester.testTextInput.receiveAction(TextInputAction.done);
@@ -962,6 +981,7 @@ void main() {
       expect(accountOnCard('from-field', 'Cash'), findsOneWidget);
       await chooseAccount(tester, field: 'to-field', id: b.bkash);
       await typeAmount(tester, '1000');
+      await openMoreDetails(tester);
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Fee (optional)'),
         '15',
@@ -999,6 +1019,7 @@ void main() {
       await chooseAccount(tester, field: 'to-field', id: b.bkash);
 
       await typeAmount(tester, '1000');
+      await openMoreDetails(tester);
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Fee (optional)'),
         '15',
@@ -1090,6 +1111,7 @@ void main() {
       await tapText(tester, 'Transfer');
       await chooseAccount(tester, field: 'to-field', id: b.bkash);
       await typeAmount(tester, '500');
+      await openMoreDetails(tester);
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Fee (optional)'),
         '1.234',
@@ -1111,6 +1133,162 @@ void main() {
       await tapText(tester, 'Transfer');
 
       expect(find.text('You need two accounts'), findsOneWidget);
+    });
+  });
+
+  group('the keypad and the quick categories', () {
+    testWithDatabase('the keypad makes room once a category is chosen', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+
+      await typeAmount(tester, '100');
+      expect(find.byType(AmountKeypad), findsOneWidget);
+      expect(find.byKey(const ValueKey('amount-edit')), findsNothing);
+
+      await chooseCategory(tester, b.food);
+      expect(find.byType(AmountKeypad), findsNothing);
+      expect(find.byKey(const ValueKey('amount-edit')), findsOneWidget);
+      expect(amountText(tester), '100');
+
+      // Tapping the amount brings the keypad back.
+      await tester.tap(amountField);
+      await tester.pumpAndSettle();
+      expect(find.byType(AmountKeypad), findsOneWidget);
+      expect(find.byKey(const ValueKey('amount-edit')), findsNothing);
+    });
+
+    testWithDatabase('the Edit button brings the keypad back too', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+      await chooseCategory(tester, b.food);
+
+      await tester.tap(find.byKey(const ValueKey('amount-edit')));
+      await tester.pumpAndSettle();
+
+      expect(find.byType(AmountKeypad), findsOneWidget);
+    });
+
+    testWithDatabase('shows the often used categories as a grid', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      for (final day in [3, 4]) {
+        await addTransaction(
+          db,
+          type: TransactionType.expense,
+          amount: 5000,
+          accountId: b.cash,
+          categoryId: b.food,
+          date: DateTime(2026, 10, day),
+        );
+      }
+      await addTransaction(
+        db,
+        type: TransactionType.expense,
+        amount: 3000,
+        accountId: b.cash,
+        categoryId: b.transport,
+        date: DateTime(2026, 10, 5),
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+
+      expect(find.byKey(const ValueKey('quick-categories')), findsOneWidget);
+      expect(find.byKey(ValueKey('quick-category-${b.food}')), findsOneWidget);
+      expect(
+        find.byKey(ValueKey('quick-category-${b.transport}')),
+        findsOneWidget,
+      );
+      // "All" opens the full list.
+      expect(find.byKey(const ValueKey('category-field')), findsOneWidget);
+      expect(find.text('All'), findsOneWidget);
+    });
+
+    testWithDatabase('one tap on a quick category chooses it', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await addTransaction(
+        db,
+        type: TransactionType.expense,
+        amount: 5000,
+        accountId: b.cash,
+        categoryId: b.food,
+        date: DateTime(2026, 10, 3),
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+
+      await typeAmount(tester, '75');
+      await tester.tap(find.byKey(ValueKey('quick-category-${b.food}')));
+      await tester.pumpAndSettle();
+
+      // The grid gives way to the tile with the chosen category, and the
+      // keypad is put away.
+      expect(find.byKey(const ValueKey('quick-categories')), findsNothing);
+      expect(categoryShown(tester), 'Food');
+      expect(find.byType(AmountKeypad), findsNothing);
+
+      await tapText(tester, 'Save');
+      final saved = (await savedRows(db)).firstWhere((r) => r.amount == 7500);
+      expect(saved.categoryId, b.food);
+    });
+
+    testWithDatabase('has no grid while nothing has been used yet', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+
+      expect(find.byKey(const ValueKey('quick-categories')), findsNothing);
+      expect(find.byKey(const ValueKey('category-field')), findsOneWidget);
+    });
+  });
+
+  group('more details', () {
+    testWithDatabase('are folded away until asked for', (tester, db) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+
+      expect(find.byKey(const ValueKey('new-tag')), findsNothing);
+      expect(find.text('More details'), findsOneWidget);
+
+      await openMoreDetails(tester);
+      expect(find.byKey(const ValueKey('new-tag')), findsOneWidget);
+      expect(find.text('Fewer details'), findsOneWidget);
+
+      await openMoreDetails(tester);
+      expect(find.byKey(const ValueKey('new-tag')), findsNothing);
+    });
+
+    testWithDatabase('are not offered on a transfer', (tester, db) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+
+      await tapText(tester, 'Transfer');
+
+      expect(find.byKey(const ValueKey('more-details')), findsNothing);
     });
   });
 

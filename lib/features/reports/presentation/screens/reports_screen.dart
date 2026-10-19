@@ -13,6 +13,7 @@ import 'package:hishab/features/reports/domain/report_data.dart';
 import 'package:hishab/features/reports/presentation/providers/reports_providers.dart';
 import 'package:hishab/features/reports/presentation/widgets/category_tree_card.dart';
 import 'package:hishab/features/reports/presentation/widgets/report_cards.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// Where the money went: totals, spending by category, income against expense
 /// over the last months, and the biggest expenses. For a month, or any range
@@ -49,6 +50,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       appBar: AppBar(
         title: Text(tr('Reports')),
         actions: [
+          const HelpButton('reports'),
           IconButton(
             tooltip: tr('Custom date range'),
             icon: const Icon(Icons.date_range),

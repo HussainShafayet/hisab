@@ -8,22 +8,24 @@ import 'package:hishab/features/bazar/domain/shopping.dart';
 /// What was entered for an item.
 typedef BazarItemEdit = ({String name, int quantity, int? price});
 
-/// Edits [item]: its name, how many, and the price of one. Null when
-/// cancelled.
+/// Edits [item]: its name, how many, and the price of one. Without an [item]
+/// it adds a new one, starting with [name]. Null when cancelled.
 Future<BazarItemEdit?> showBazarItemDialog(
-  BuildContext context,
-  ShoppingItem item,
-) {
+  BuildContext context, {
+  ShoppingItem? item,
+  String name = '',
+}) {
   return showDialog<BazarItemEdit>(
     context: context,
-    builder: (context) => _BazarItemDialog(item: item),
+    builder: (context) => _BazarItemDialog(item: item, name: name),
   );
 }
 
 class _BazarItemDialog extends StatefulWidget {
-  const _BazarItemDialog({required this.item});
+  const _BazarItemDialog({required this.item, required this.name});
 
-  final ShoppingItem item;
+  final ShoppingItem? item;
+  final String name;
 
   @override
   State<_BazarItemDialog> createState() => _BazarItemDialogState();
@@ -31,10 +33,17 @@ class _BazarItemDialog extends StatefulWidget {
 
 class _BazarItemDialogState extends State<_BazarItemDialog> {
   final _formKey = GlobalKey<FormState>();
-  late final _name = TextEditingController(text: widget.item.name);
-  late final _quantity = TextEditingController(text: '${widget.item.quantity}');
+  late final _name = TextEditingController(
+    text: widget.item?.name ?? widget.name,
+  );
+  late final _quantity = TextEditingController(
+    text: '${widget.item?.quantity ?? 1}',
+  );
   late final _price = TextEditingController(
-    text: widget.item.price == null ? '' : poishaToInput(widget.item.price!),
+    text: switch (widget.item?.price) {
+      final price? => poishaToInput(price),
+      null => '',
+    },
   );
 
   @override
@@ -60,7 +69,7 @@ class _BazarItemDialogState extends State<_BazarItemDialog> {
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: Text(tr('Edit item')),
+      title: Text(widget.item == null ? tr('Add an item') : tr('Edit item')),
       content: Form(
         key: _formKey,
         child: SingleChildScrollView(

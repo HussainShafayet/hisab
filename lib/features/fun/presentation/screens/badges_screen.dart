@@ -5,6 +5,7 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/fun/domain/badges.dart';
 import 'package:hishab/features/fun/presentation/providers/badges_providers.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 IconData _iconOf(BadgeId id) => switch (id) {
   BadgeId.firstEntry => Icons.flag_outlined,
@@ -12,7 +13,7 @@ IconData _iconOf(BadgeId id) => switch (id) {
   BadgeId.streak7 => Icons.date_range_outlined,
   BadgeId.streak30 => Icons.emoji_events_outlined,
   BadgeId.spendFreeDay => Icons.nightlight_outlined,
-  BadgeId.spendFree10 => Icons.savings_outlined,
+  BadgeId.spendFree10 => Icons.local_fire_department_outlined,
   BadgeId.selfAware => Icons.self_improvement,
   BadgeId.regretFreeWeek => Icons.sentiment_very_satisfied_outlined,
   BadgeId.goalReached => Icons.star_outline,
@@ -30,7 +31,10 @@ class BadgesScreen extends ConsumerWidget {
     final report = ref.watch(badgeReportProvider);
     final theme = Theme.of(context);
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Badges'))),
+      appBar: AppBar(
+        title: Text(tr('Badges')),
+        actions: const [HelpButton('fun')],
+      ),
       body: report.when(
         loading: () => const LoadingView(),
         error: (error, _) => ErrorView(message: describeError(error)),

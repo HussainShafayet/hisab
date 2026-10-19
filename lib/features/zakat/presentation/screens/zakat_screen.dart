@@ -21,6 +21,7 @@ import 'package:hishab/features/reminders/reminder_sync.dart';
 import 'package:hishab/features/zakat/data/zakat_settings_repository.dart';
 import 'package:hishab/features/zakat/domain/zakat.dart';
 import 'package:hishab/features/zakat/presentation/providers/zakat_providers.dart';
+import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 
 /// A rough zakat calculator: what is held in the accounts and elsewhere, less
@@ -169,7 +170,10 @@ class _ZakatScreenState extends ConsumerState<ZakatScreen> {
     );
 
     return Scaffold(
-      appBar: AppBar(title: Text(tr('Zakat'))),
+      appBar: AppBar(
+        title: Text(tr('Zakat')),
+        actions: const [HelpButton('zakat')],
+      ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 32),
         children: [
