@@ -78,23 +78,30 @@ class WelcomeCard extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 8),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                TextButton(
-                  key: const ValueKey('welcome-dismiss'),
-                  onPressed: () => _put(ref),
-                  child: Text(tr('Not now')),
-                ),
-                FilledButton(
-                  key: const ValueKey('welcome-tour'),
-                  onPressed: () {
-                    _put(ref);
-                    context.push(AppRoutes.helpTopic('start'));
-                  },
-                  child: Text(tr('Take the tour')),
-                ),
-              ],
+            // A Wrap, not a Row: with big text or Bangla the two buttons do
+            // not fit side by side on a small phone.
+            Align(
+              alignment: AlignmentDirectional.centerEnd,
+              child: Wrap(
+                alignment: WrapAlignment.end,
+                crossAxisAlignment: WrapCrossAlignment.center,
+                spacing: 8,
+                children: [
+                  TextButton(
+                    key: const ValueKey('welcome-dismiss'),
+                    onPressed: () => _put(ref),
+                    child: Text(tr('Not now')),
+                  ),
+                  FilledButton(
+                    key: const ValueKey('welcome-tour'),
+                    onPressed: () {
+                      _put(ref);
+                      context.push(AppRoutes.helpTopic('start'));
+                    },
+                    child: Text(tr('Take the tour')),
+                  ),
+                ],
+              ),
             ),
           ],
         ),

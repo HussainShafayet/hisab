@@ -232,46 +232,63 @@ class AccountCard extends StatelessWidget {
                     const Divider(height: 1, color: Color(0x55FFFFFF)),
                     const SizedBox(height: 8),
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          card ? tr('Owed after this') : tr('After this'),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: _whiteSoft,
+                        // The label may wrap: two cards side by side on a
+                        // small phone, or big letters, leave it little room.
+                        Flexible(
+                          flex: 3,
+                          child: Text(
+                            card ? tr('Owed after this') : tr('After this'),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: _whiteSoft,
+                            ),
                           ),
                         ),
-                        const Spacer(),
-                        if (card
-                            ? (limit != null &&
-                                  account.usdLimit == null &&
-                                  -after > limit)
-                            : after < 0) ...[
-                          const Icon(
-                            Icons.warning_amber_rounded,
-                            size: 16,
-                            color: Color(0xFFFFE082),
-                          ),
-                          const SizedBox(width: 4),
-                        ],
+                        const SizedBox(width: 8),
                         Flexible(
-                          child: FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              formatPoisha(card ? after.abs() : after),
-                              key: ValueKey('balance-after-${account.id}'),
-                              style: theme.textTheme.titleSmall?.tabular
-                                  .copyWith(
-                                    color:
-                                        (card
-                                            ? (limit != null &&
-                                                  account.usdLimit == null &&
-                                                  -after > limit)
-                                            : after < 0)
-                                        ? const Color(0xFFFFE082)
-                                        : _white,
-                                    fontWeight: FontWeight.w700,
+                          flex: 2,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (card
+                                  ? (limit != null &&
+                                        account.usdLimit == null &&
+                                        -after > limit)
+                                  : after < 0) ...[
+                                const Icon(
+                                  Icons.warning_amber_rounded,
+                                  size: 16,
+                                  color: Color(0xFFFFE082),
+                                ),
+                                const SizedBox(width: 4),
+                              ],
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  alignment: Alignment.centerRight,
+                                  child: Text(
+                                    formatPoisha(card ? after.abs() : after),
+                                    key: ValueKey(
+                                      'balance-after-${account.id}',
+                                    ),
+                                    style: theme.textTheme.titleSmall?.tabular
+                                        .copyWith(
+                                          color:
+                                              (card
+                                                  ? (limit != null &&
+                                                        account.usdLimit ==
+                                                            null &&
+                                                        -after > limit)
+                                                  : after < 0)
+                                              ? const Color(0xFFFFE082)
+                                              : _white,
+                                          fontWeight: FontWeight.w700,
+                                        ),
                                   ),
-                            ),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],

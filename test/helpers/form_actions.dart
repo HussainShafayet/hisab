@@ -89,8 +89,16 @@ Future<void> chooseCategory(WidgetTester tester, int id) async {
 }
 
 /// What the category field of the form says.
-String categoryShown(WidgetTester tester) =>
-    tester.widget<Text>(find.byKey(const ValueKey('category-value'))).data!;
+String categoryShown(WidgetTester tester) {
+  final value = find.byKey(const ValueKey('category-value'));
+  if (value.evaluate().isEmpty) {
+    // Nothing chosen and some used often: the quick grid stands in for the
+    // tile.
+    expect(find.byKey(const ValueKey('quick-categories')), findsOneWidget);
+    return 'Choose a category';
+  }
+  return tester.widget<Text>(value).data!;
+}
 
 /// Opens the account sheet behind the field with key [field]
 /// (`account-field`, `from-field` or `to-field`) and taps the account [id].

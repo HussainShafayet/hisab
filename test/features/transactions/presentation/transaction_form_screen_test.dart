@@ -918,6 +918,9 @@ void main() {
       final b = await seedBasics(db);
       await pumpAppWithDatabase(tester, db);
       await openAddForm(tester);
+      // The cursor is only there when typing with the keyboard; with the
+      // keypad there is nothing to focus.
+      await turnKeyboardOn(tester);
       await typeAmount(tester, '25');
       await chooseCategory(tester, b.food);
 
@@ -1280,15 +1283,19 @@ void main() {
       expect(find.byKey(const ValueKey('new-tag')), findsNothing);
     });
 
-    testWithDatabase('are not offered on a transfer', (tester, db) async {
+    testWithDatabase('hold only the fee on a new transfer', (tester, db) async {
       useTallScreen(tester);
       await seedBasics(db);
       await pumpAppWithDatabase(tester, db);
       await openAddForm(tester);
 
       await tapText(tester, 'Transfer');
+      expect(find.text('Fee (optional)'), findsNothing);
 
-      expect(find.byKey(const ValueKey('more-details')), findsNothing);
+      await openMoreDetails(tester);
+
+      expect(find.text('Fee (optional)'), findsOneWidget);
+      expect(find.byKey(const ValueKey('new-tag')), findsNothing);
     });
   });
 

@@ -67,13 +67,19 @@ class StreakCard extends ConsumerWidget {
                   ],
                 ),
               ),
-              Text(
-                tr('{n} of {total} badges', {
-                  'n': report.earned,
-                  'total': report.badges.length,
-                }),
-                key: const ValueKey('streak-badges'),
-                style: theme.textTheme.labelMedium,
+              // Capped so a long text (Bangla, big letters) wraps onto a second
+              // line instead of pushing the row off a small screen.
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 88),
+                child: Text(
+                  tr('{n} of {total} badges', {
+                    'n': report.earned,
+                    'total': report.badges.length,
+                  }),
+                  key: const ValueKey('streak-badges'),
+                  textAlign: TextAlign.end,
+                  style: theme.textTheme.labelMedium,
+                ),
               ),
               Icon(
                 Icons.chevron_right,
