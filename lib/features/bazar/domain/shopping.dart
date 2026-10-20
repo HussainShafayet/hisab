@@ -1,3 +1,7 @@
+import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/utils/money.dart';
+import 'package:intl/intl.dart';
+
 /// One thing on the bazar list.
 class ShoppingItem {
   const ShoppingItem({
@@ -110,4 +114,26 @@ String bazarNote(Iterable<ShoppingItem> items, {int maxLength = 500}) {
   return text.length <= maxLength
       ? text
       : '${text.substring(0, maxLength - 1)}…';
+}
+
+/// The list as a message to send, like to a person who goes to the bazar:
+/// what is still to buy, each with how many and what it costs, and about what
+/// it adds up to. What is ticked is left out.
+String shoppingListText(Iterable<ShoppingItem> items, DateTime now) {
+  final toBuy = [
+    for (final item in items)
+      if (!item.isDone) item,
+  ];
+  final lines = [
+    tr('Bazar list · {date}', {'date': DateFormat('d MMM').format(now)}),
+    for (final item in toBuy)
+      '• ${item.name}'
+          '${item.quantity > 1 ? ' × ${item.quantity}' : ''}'
+          '${item.price != null ? ' · ${formatPoisha(item.total)}' : ''}',
+  ];
+  final total = toBuy.fold<int>(0, (sum, item) => sum + item.total);
+  if (total > 0) {
+    lines.add(tr('About {amount}', {'amount': formatPoisha(total)}));
+  }
+  return localizeDigits(lines.join('\n'));
 }

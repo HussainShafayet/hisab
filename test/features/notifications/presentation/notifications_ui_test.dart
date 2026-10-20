@@ -21,8 +21,18 @@ Reminder reminder(int id, String title, DateTime when, {AlertKind? kind}) =>
       kind: kind ?? AlertKind.bill,
     );
 
-Future<void> openNotifications(WidgetTester tester) =>
-    openFromMore(tester, 'Notifications');
+Future<void> openNotifications(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('notification-bell')));
+  await tester.pumpAndSettle();
+}
+
+int? badgeCount(WidgetTester tester) {
+  final badge = tester.widget<Badge>(
+    find.byKey(const ValueKey('notification-badge')),
+  );
+  if (!badge.isLabelVisible) return null;
+  return int.parse((badge.label! as Text).data!);
+}
 
 Future<void> showTab(WidgetTester tester, String key) async {
   await tester.tap(find.byKey(ValueKey(key)));
@@ -31,7 +41,10 @@ Future<void> showTab(WidgetTester tester, String key) async {
 
 void main() {
   group('the notifications screen', () {
-    testWithDatabase('opens from More and starts empty', (tester, db) async {
+    testWithDatabase('opens from the bell and starts empty', (
+      tester,
+      db,
+    ) async {
       await pumpAppWithDatabase(tester, db);
 
       await openNotifications(tester);
@@ -122,6 +135,124 @@ void main() {
       expect(find.text('History cleared'), findsOneWidget);
       await showTab(tester, 'tab-upcoming');
       expect(find.text('Takka is waiting'), findsWidgets);
+    });
+  });
+
+  group('seen and unseen', () {
+    Reminder note(int id, String title) => reminder(id, title, now);
+
+    testWithDatabase('the bell counts what has not been opened', (
+      tester,
+      db,
+    ) async {
+      final repo = NotificationLogRepository(db);
+      await pumpAppWithDatabase(tester, db);
+      expect(badgeCount(tester), isNull);
+
+      await repo.recordShown(note(1, 'One'), now);
+      await repo.recordShown(note(2, 'Two'), now);
+      await tester.pumpAndSettle();
+
+      expect(badgeCount(tester), 2);
+    });
+
+    testWithDatabase('a notification still to come is not counted', (
+      tester,
+      db,
+    ) async {
+      await db.settingsDao.put('daily_reminder', 'true');
+      await pumpAppWithDatabase(tester, db);
+
+      expect(badgeCount(tester), isNull);
+    });
+
+    testWithDatabase(
+      'unseen ones are marked, and opening one clears its mark',
+      (tester, db) async {
+        final repo = NotificationLogRepository(db);
+        await repo.recordShown(note(1, 'Budget almost used'), now);
+        await repo.recordShown(note(2, 'Habit alert'), now);
+        await pumpAppWithDatabase(tester, db);
+        expect(badgeCount(tester), 2);
+
+        await openNotifications(tester);
+        final ids = [
+          for (final r in await db.notificationLogDao.getAll()) r.id,
+        ];
+        for (final id in ids) {
+          expect(find.byKey(ValueKey('unseen-dot-$id')), findsOneWidget);
+        }
+
+        await tester.tap(find.byKey(ValueKey('notification-${ids.first}')));
+        await tester.pumpAndSettle();
+
+        final rows = {
+          for (final r in await db.notificationLogDao.getAll()) r.id: r.seen,
+        };
+        expect(rows[ids.first], isTrue);
+        expect(rows[ids.last], isFalse);
+      },
+    );
+
+    testWithDatabase('the double tick marks them all as read', (
+      tester,
+      db,
+    ) async {
+      final repo = NotificationLogRepository(db);
+      await repo.recordShown(note(1, 'One'), now);
+      await repo.recordShown(note(2, 'Two'), now);
+      await pumpAppWithDatabase(tester, db);
+      await openNotifications(tester);
+
+      await tester.tap(find.byKey(const ValueKey('mark-all-read')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('mark-all-read')), findsNothing);
+      expect(
+        (await db.notificationLogDao.getAll()).every((r) => r.seen),
+        isTrue,
+      );
+      // Back on Home, the bell has no number.
+      await tester.pageBack();
+      await tester.pumpAndSettle();
+      expect(badgeCount(tester), isNull);
+    });
+
+    testWithDatabase('the bell is on each of the main tabs', (
+      tester,
+      db,
+    ) async {
+      await pumpAppWithDatabase(tester, db);
+      for (final tab in ['Home', 'Transactions', 'Budget', 'Reports', 'More']) {
+        await tester.tap(
+          find.descendant(
+            of: find.byType(NavigationBar),
+            matching: find.text(tab),
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('notification-bell')),
+          findsOneWidget,
+          reason: tab,
+        );
+      }
+    });
+
+    testWithDatabase('More no longer has a Notifications row', (
+      tester,
+      db,
+    ) async {
+      await pumpAppWithDatabase(tester, db);
+      await tester.tap(
+        find.descendant(
+          of: find.byType(NavigationBar),
+          matching: find.text('More'),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Notifications'), findsNothing);
     });
   });
 

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/notifications/alert_kind.dart';
+import 'package:hishab/core/notifications/alert_route.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
@@ -23,6 +24,7 @@ class NotificationsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final lists = ref.watch(notificationsProvider);
     final hasSent = lists.value?.sent.isNotEmpty ?? false;
+    final hasUnseen = lists.value?.sent.any((n) => !n.seen) ?? false;
 
     return DefaultTabController(
       length: 2,
@@ -30,6 +32,15 @@ class NotificationsScreen extends ConsumerWidget {
         appBar: AppBar(
           title: Text(tr('Notifications')),
           actions: [
+            if (hasUnseen)
+              IconButton(
+                key: const ValueKey('mark-all-read'),
+                tooltip: tr('Mark all as read'),
+                icon: const Icon(Icons.done_all),
+                onPressed: () => ref
+                    .read(notificationLogRepositoryProvider)
+                    .markAllSeen(ref.read(clockProvider)()),
+              ),
             if (hasSent)
               IconButton(
                 key: const ValueKey('clear-notifications'),
@@ -165,7 +176,21 @@ class _NotificationList extends ConsumerWidget {
           ),
         );
       }
-      children.add(arriving(arrived++, _NotificationTile(item)));
+      children.add(
+        arriving(
+          arrived++,
+          _NotificationTile(
+            item,
+            shown: !item.at.isAfter(now),
+            onTap: () {
+              if (!item.seen && !item.at.isAfter(now)) {
+                ref.read(notificationLogRepositoryProvider).markSeen(item.id);
+              }
+              openRoute(context, routeForAlert(item.kind));
+            },
+          ),
+        ),
+      );
     }
     if (footnote != null) {
       children.add(
@@ -189,25 +214,56 @@ class _NotificationList extends ConsumerWidget {
 }
 
 class _NotificationTile extends StatelessWidget {
-  const _NotificationTile(this.item);
+  const _NotificationTile(
+    this.item, {
+    required this.shown,
+    required this.onTap,
+  });
 
   final LoggedNotification item;
+
+  /// It has shown already (it is not one that is still to come).
+  final bool shown;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final unseen = shown && !item.seen;
     return ListTile(
       key: ValueKey('notification-${item.id}'),
+      onTap: onTap,
       leading: CircleAvatar(
         backgroundColor: theme.colorScheme.secondaryContainer,
         foregroundColor: theme.colorScheme.onSecondaryContainer,
         child: Icon(_iconOf(item.kind)),
       ),
-      title: Text(item.title),
+      title: Text(
+        item.title,
+        style: unseen ? const TextStyle(fontWeight: FontWeight.w700) : null,
+      ),
       subtitle: Text(item.body),
-      trailing: Text(
-        localizeDigits(DateFormat('h:mm a').format(item.at)),
-        style: theme.textTheme.labelMedium,
+      trailing: Column(
+        mainAxisSize: MainAxisSize.min,
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.end,
+        children: [
+          Text(
+            localizeDigits(DateFormat('h:mm a').format(item.at)),
+            style: theme.textTheme.labelMedium,
+          ),
+          if (unseen)
+            Container(
+              key: ValueKey('unseen-dot-${item.id}'),
+              margin: const EdgeInsets.only(top: 6),
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primary,
+                shape: BoxShape.circle,
+              ),
+            ),
+        ],
       ),
     );
   }

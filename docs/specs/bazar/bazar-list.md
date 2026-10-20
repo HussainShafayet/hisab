@@ -16,7 +16,10 @@ into one expense, with prices remembered for the next list.
   swiping it away deletes it.
 - Next to the add button, **Add with how many and the price** opens the same
   form as editing, starting with what was typed, so an item can be added whole.
-- The menu at the top has *Remembered prices*, *Remove bought items* (the ticked
+- The menu at the top has *Share the list* (opens the share sheet with what is
+  still to buy as a message: the date, a line for each item with how many and
+  what it costs, and *About ৳X*; ticked items are left out; off when nothing
+  is left to buy; `shoppingListText`), *Remembered prices*, *Remove bought items* (the ticked
   ones leave, no expense is made; asks first; off until something is ticked)
   and *Clear the list* (asks first; off on an empty list).
 - **Remembered prices** (`/more/bazar/prices`) lists every price kept, newest

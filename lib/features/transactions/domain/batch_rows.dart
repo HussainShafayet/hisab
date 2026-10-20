@@ -1,5 +1,8 @@
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/features/transactions/domain/add_transaction_options.dart';
 import 'package:hishab/features/transactions/domain/amount_calculator.dart';
+import 'package:hishab/features/transactions/domain/quick_entry.dart';
 import 'package:hishab/features/transactions/domain/transaction_input.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -75,4 +78,32 @@ BatchParse parseBatchDraft(BatchDraft draft, DateTime date) {
     ),
     error: null,
   );
+}
+
+/// The rows that a block of text makes, one for each line that says anything:
+/// `rickshaw 50`, `lunch 120 bkash`, `+salary 30k`. Each line is read like the
+/// quick-type line of the add form ([parseQuickEntry]); a line with no account
+/// word uses [defaultAccountId]. A line with no amount still makes a row, for
+/// the person to finish.
+List<BatchDraft> draftsFromLines(
+  String text,
+  AddTransactionOptions options, {
+  required int? defaultAccountId,
+}) {
+  final drafts = <BatchDraft>[];
+  for (final line in text.split(RegExp(r'[\r\n]+'))) {
+    if (line.trim().isEmpty) continue;
+    final entry = parseQuickEntry(line, options);
+    if (entry.isEmpty) continue;
+    drafts.add(
+      BatchDraft(
+        type: entry.type,
+        amountText: entry.amount == null ? '' : poishaToInput(entry.amount!),
+        accountId: entry.account?.id ?? defaultAccountId,
+        categoryId: entry.category?.id,
+        note: entry.note,
+      ),
+    );
+  }
+  return drafts;
 }

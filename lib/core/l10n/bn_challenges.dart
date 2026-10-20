@@ -52,4 +52,13 @@ const bnChallenges = <String, String>{
   'The name can have at most {n} letters.':
       'নামে সর্বোচ্চ {n}টি অক্ষর থাকতে পারে।',
   'What it is about': 'কিসের উপর',
+  'No-spend day': 'কোনো খরচ নয়: এক দিন',
+  'No-spend weekend': 'কোনো খরচ নয়: সাপ্তাহিক ছুটি',
+  'No-spend week': 'কোনো খরচ নয়: এক সপ্তাহ',
+  'Rickshaw-free week': 'রিকশা ছাড়া এক সপ্তাহ',
+  'Quick start': 'এক ছোঁয়ায় শুরু',
+  'Start again when it ends': 'শেষ হলে আবার শুরু করুন',
+  'The same challenge, for the same number of days.':
+      'একই চ্যালেঞ্জ, একই কয়েক দিনের জন্য।',
+  'Repeats': 'আবার চলবে',
 };

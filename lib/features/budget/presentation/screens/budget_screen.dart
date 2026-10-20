@@ -4,6 +4,7 @@ import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/month_switcher.dart';
@@ -17,6 +18,7 @@ import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
+import 'package:hishab/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
 class BudgetScreen extends ConsumerStatefulWidget {
@@ -49,6 +51,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         title: tr('Monthly budget'),
         initialAmount: current?.setAmount,
         canRemove: current != null,
+        showNoCarry: ref.read(preferencesProvider).budgetRollover,
+        initialNoCarry: current?.noCarry ?? false,
       ),
     );
     if (result == null) return;
@@ -57,7 +61,11 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       if (result.remove) {
         await repository.removeBudget(current!.id);
       } else {
-        await repository.setBudget(month: _month, amount: result.amount!);
+        await repository.setBudget(
+          month: _month,
+          amount: result.amount!,
+          noCarry: result.noCarry,
+        );
       }
     });
   }
@@ -69,6 +77,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         title: tr('{name} budget', {'name': item.categoryName}),
         initialAmount: item.setAmount,
         canRemove: true,
+        showNoCarry: ref.read(preferencesProvider).budgetRollover,
+        initialNoCarry: item.noCarry,
       ),
     );
     if (result == null) return;
@@ -81,6 +91,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           month: _month,
           amount: result.amount!,
           categoryId: item.categoryId,
+          noCarry: result.noCarry,
         );
       }
     });
@@ -112,6 +123,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       builder: (context) => BudgetLimitDialog(
         title: tr('Add category budget'),
         categoryChoices: choices,
+        showNoCarry: ref.read(preferencesProvider).budgetRollover,
       ),
     );
     if (result == null) return;
@@ -122,9 +134,19 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
             month: _month,
             amount: result.amount!,
             categoryId: result.categoryId,
+            noCarry: result.noCarry,
           ),
     );
   }
+
+  /// The line under the carry over switch: what it does, or, while it is off,
+  /// how much of last month it would have added.
+  String _rolloverHint(bool on, int leftoverLastMonth) =>
+      !on && leftoverLastMonth > 0
+      ? tr('Last month {amount} was left. Switch on to add it to this month.', {
+          'amount': formatPoisha(leftoverLastMonth),
+        })
+      : tr("Money you do not spend is added to next month's budget.");
 
   Future<void> _copyLastMonth() async {
     final previous = addMonths(_month, -1);
@@ -157,6 +179,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       appBar: AppBar(
         title: Text(tr('Budget')),
         actions: [
+          const NotificationBell(),
           const HelpButton('budget'),
           PopupMenuButton<void>(
             itemBuilder: (context) => [
@@ -217,6 +240,11 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
   Widget _buildContent(MonthBudget data, DateTime now) {
     final theme = Theme.of(context);
     final overall = data.overall;
+    final rollover = ref.watch(
+      preferencesProvider.select((p) => p.budgetRollover),
+    );
+    final leftoverLastMonth =
+        ref.watch(lastMonthLeftoverProvider(_month)).value ?? 0;
 
     return ListView(
       // Room below the last row so the add button never covers it.
@@ -248,10 +276,8 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
           key: const ValueKey('rollover-switch'),
           secondary: const Icon(Icons.redo),
           title: Text(tr('Carry over what is left')),
-          subtitle: Text(
-            tr("Money you do not spend is added to next month's budget."),
-          ),
-          value: ref.watch(preferencesProvider.select((p) => p.budgetRollover)),
+          subtitle: Text(_rolloverHint(rollover, leftoverLastMonth)),
+          value: rollover,
           onChanged: (value) => _run(
             () => ref
                 .read(settingsRepositoryProvider)

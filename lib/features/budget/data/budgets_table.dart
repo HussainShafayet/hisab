@@ -21,6 +21,10 @@ class Budgets extends Table {
   /// In poisha, always positive.
   IntColumn get amount => integer()();
 
+  /// This budget takes nothing from the months before and passes nothing on,
+  /// even when carrying over is on.
+  BoolColumn get noCarry => boolean().withDefault(const Constant(false))();
+
   // drift needs literal strings here.
   @override
   List<String> get customConstraints => ['CHECK (amount > 0)'];

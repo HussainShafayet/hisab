@@ -42,4 +42,7 @@ const bnBazar = <String, String>{
   'Prices you enter on the list, and after shopping, are kept here for next time.':
       'তালিকায় ও বাজারের পরে আপনার দেওয়া দাম পরের বারের জন্য এখানে থাকে।',
   'Updated {date}': 'হালনাগাদ {date}',
+  'Bazar list · {date}': 'বাজারের তালিকা · {date}',
+  'About {amount}': 'মোট প্রায় {amount}',
+  'Share the list': 'তালিকা শেয়ার করুন',
 };

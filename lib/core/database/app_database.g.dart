@@ -2042,8 +2042,29 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, BudgetRow> {
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _noCarryMeta = const VerificationMeta(
+    'noCarry',
+  );
   @override
-  List<GeneratedColumn> get $columns => [id, month, categoryId, amount];
+  late final GeneratedColumn<bool> noCarry = GeneratedColumn<bool>(
+    'no_carry',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("no_carry" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
+  @override
+  List<GeneratedColumn> get $columns => [
+    id,
+    month,
+    categoryId,
+    amount,
+    noCarry,
+  ];
   @override
   String get aliasedName => _alias ?? actualTableName;
   @override
@@ -2081,6 +2102,12 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, BudgetRow> {
     } else if (isInserting) {
       context.missing(_amountMeta);
     }
+    if (data.containsKey('no_carry')) {
+      context.handle(
+        _noCarryMeta,
+        noCarry.isAcceptableOrUnknown(data['no_carry']!, _noCarryMeta),
+      );
+    }
     return context;
   }
 
@@ -2106,6 +2133,10 @@ class $BudgetsTable extends Budgets with TableInfo<$BudgetsTable, BudgetRow> {
         DriftSqlType.int,
         data['${effectivePrefix}amount'],
       )!,
+      noCarry: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}no_carry'],
+      )!,
     );
   }
 
@@ -2124,11 +2155,16 @@ class BudgetRow extends DataClass implements Insertable<BudgetRow> {
 
   /// In poisha, always positive.
   final int amount;
+
+  /// This budget takes nothing from the months before and passes nothing on,
+  /// even when carrying over is on.
+  final bool noCarry;
   const BudgetRow({
     required this.id,
     required this.month,
     this.categoryId,
     required this.amount,
+    required this.noCarry,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -2139,6 +2175,7 @@ class BudgetRow extends DataClass implements Insertable<BudgetRow> {
       map['category_id'] = Variable<int>(categoryId);
     }
     map['amount'] = Variable<int>(amount);
+    map['no_carry'] = Variable<bool>(noCarry);
     return map;
   }
 
@@ -2150,6 +2187,7 @@ class BudgetRow extends DataClass implements Insertable<BudgetRow> {
           ? const Value.absent()
           : Value(categoryId),
       amount: Value(amount),
+      noCarry: Value(noCarry),
     );
   }
 
@@ -2163,6 +2201,7 @@ class BudgetRow extends DataClass implements Insertable<BudgetRow> {
       month: serializer.fromJson<String>(json['month']),
       categoryId: serializer.fromJson<int?>(json['categoryId']),
       amount: serializer.fromJson<int>(json['amount']),
+      noCarry: serializer.fromJson<bool>(json['noCarry']),
     );
   }
   @override
@@ -2173,6 +2212,7 @@ class BudgetRow extends DataClass implements Insertable<BudgetRow> {
       'month': serializer.toJson<String>(month),
       'categoryId': serializer.toJson<int?>(categoryId),
       'amount': serializer.toJson<int>(amount),
+      'noCarry': serializer.toJson<bool>(noCarry),
     };
   }
 
@@ -2181,11 +2221,13 @@ class BudgetRow extends DataClass implements Insertable<BudgetRow> {
     String? month,
     Value<int?> categoryId = const Value.absent(),
     int? amount,
+    bool? noCarry,
   }) => BudgetRow(
     id: id ?? this.id,
     month: month ?? this.month,
     categoryId: categoryId.present ? categoryId.value : this.categoryId,
     amount: amount ?? this.amount,
+    noCarry: noCarry ?? this.noCarry,
   );
   BudgetRow copyWithCompanion(BudgetsCompanion data) {
     return BudgetRow(
@@ -2195,6 +2237,7 @@ class BudgetRow extends DataClass implements Insertable<BudgetRow> {
           ? data.categoryId.value
           : this.categoryId,
       amount: data.amount.present ? data.amount.value : this.amount,
+      noCarry: data.noCarry.present ? data.noCarry.value : this.noCarry,
     );
   }
 
@@ -2204,13 +2247,14 @@ class BudgetRow extends DataClass implements Insertable<BudgetRow> {
           ..write('id: $id, ')
           ..write('month: $month, ')
           ..write('categoryId: $categoryId, ')
-          ..write('amount: $amount')
+          ..write('amount: $amount, ')
+          ..write('noCarry: $noCarry')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, month, categoryId, amount);
+  int get hashCode => Object.hash(id, month, categoryId, amount, noCarry);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2218,7 +2262,8 @@ class BudgetRow extends DataClass implements Insertable<BudgetRow> {
           other.id == this.id &&
           other.month == this.month &&
           other.categoryId == this.categoryId &&
-          other.amount == this.amount);
+          other.amount == this.amount &&
+          other.noCarry == this.noCarry);
 }
 
 class BudgetsCompanion extends UpdateCompanion<BudgetRow> {
@@ -2226,17 +2271,20 @@ class BudgetsCompanion extends UpdateCompanion<BudgetRow> {
   final Value<String> month;
   final Value<int?> categoryId;
   final Value<int> amount;
+  final Value<bool> noCarry;
   const BudgetsCompanion({
     this.id = const Value.absent(),
     this.month = const Value.absent(),
     this.categoryId = const Value.absent(),
     this.amount = const Value.absent(),
+    this.noCarry = const Value.absent(),
   });
   BudgetsCompanion.insert({
     this.id = const Value.absent(),
     required String month,
     this.categoryId = const Value.absent(),
     required int amount,
+    this.noCarry = const Value.absent(),
   }) : month = Value(month),
        amount = Value(amount);
   static Insertable<BudgetRow> custom({
@@ -2244,12 +2292,14 @@ class BudgetsCompanion extends UpdateCompanion<BudgetRow> {
     Expression<String>? month,
     Expression<int>? categoryId,
     Expression<int>? amount,
+    Expression<bool>? noCarry,
   }) {
     return RawValuesInsertable({
       if (id != null) 'id': id,
       if (month != null) 'month': month,
       if (categoryId != null) 'category_id': categoryId,
       if (amount != null) 'amount': amount,
+      if (noCarry != null) 'no_carry': noCarry,
     });
   }
 
@@ -2258,12 +2308,14 @@ class BudgetsCompanion extends UpdateCompanion<BudgetRow> {
     Value<String>? month,
     Value<int?>? categoryId,
     Value<int>? amount,
+    Value<bool>? noCarry,
   }) {
     return BudgetsCompanion(
       id: id ?? this.id,
       month: month ?? this.month,
       categoryId: categoryId ?? this.categoryId,
       amount: amount ?? this.amount,
+      noCarry: noCarry ?? this.noCarry,
     );
   }
 
@@ -2282,6 +2334,9 @@ class BudgetsCompanion extends UpdateCompanion<BudgetRow> {
     if (amount.present) {
       map['amount'] = Variable<int>(amount.value);
     }
+    if (noCarry.present) {
+      map['no_carry'] = Variable<bool>(noCarry.value);
+    }
     return map;
   }
 
@@ -2291,7 +2346,8 @@ class BudgetsCompanion extends UpdateCompanion<BudgetRow> {
           ..write('id: $id, ')
           ..write('month: $month, ')
           ..write('categoryId: $categoryId, ')
-          ..write('amount: $amount')
+          ..write('amount: $amount, ')
+          ..write('noCarry: $noCarry')
           ..write(')'))
         .toString();
   }
@@ -7789,6 +7845,19 @@ class $NotificationLogTable extends NotificationLog
     ),
     defaultValue: const Constant(false),
   );
+  static const VerificationMeta _seenMeta = const VerificationMeta('seen');
+  @override
+  late final GeneratedColumn<bool> seen = GeneratedColumn<bool>(
+    'seen',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("seen" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -7810,6 +7879,7 @@ class $NotificationLogTable extends NotificationLog
     body,
     at,
     immediate,
+    seen,
     createdAt,
   ];
   @override
@@ -7862,6 +7932,12 @@ class $NotificationLogTable extends NotificationLog
         immediate.isAcceptableOrUnknown(data['immediate']!, _immediateMeta),
       );
     }
+    if (data.containsKey('seen')) {
+      context.handle(
+        _seenMeta,
+        seen.isAcceptableOrUnknown(data['seen']!, _seenMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -7907,6 +7983,10 @@ class $NotificationLogTable extends NotificationLog
         DriftSqlType.bool,
         data['${effectivePrefix}immediate'],
       )!,
+      seen: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}seen'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -7934,6 +8014,9 @@ class NotificationLogRow extends DataClass
   final String body;
   final DateTime at;
   final bool immediate;
+
+  /// The person has opened it from the bell. A new one is not seen.
+  final bool seen;
   final DateTime createdAt;
   const NotificationLogRow({
     required this.id,
@@ -7943,6 +8026,7 @@ class NotificationLogRow extends DataClass
     required this.body,
     required this.at,
     required this.immediate,
+    required this.seen,
     required this.createdAt,
   });
   @override
@@ -7959,6 +8043,7 @@ class NotificationLogRow extends DataClass
     map['body'] = Variable<String>(body);
     map['at'] = Variable<DateTime>(at);
     map['immediate'] = Variable<bool>(immediate);
+    map['seen'] = Variable<bool>(seen);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -7972,6 +8057,7 @@ class NotificationLogRow extends DataClass
       body: Value(body),
       at: Value(at),
       immediate: Value(immediate),
+      seen: Value(seen),
       createdAt: Value(createdAt),
     );
   }
@@ -7991,6 +8077,7 @@ class NotificationLogRow extends DataClass
       body: serializer.fromJson<String>(json['body']),
       at: serializer.fromJson<DateTime>(json['at']),
       immediate: serializer.fromJson<bool>(json['immediate']),
+      seen: serializer.fromJson<bool>(json['seen']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -8007,6 +8094,7 @@ class NotificationLogRow extends DataClass
       'body': serializer.toJson<String>(body),
       'at': serializer.toJson<DateTime>(at),
       'immediate': serializer.toJson<bool>(immediate),
+      'seen': serializer.toJson<bool>(seen),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -8019,6 +8107,7 @@ class NotificationLogRow extends DataClass
     String? body,
     DateTime? at,
     bool? immediate,
+    bool? seen,
     DateTime? createdAt,
   }) => NotificationLogRow(
     id: id ?? this.id,
@@ -8028,6 +8117,7 @@ class NotificationLogRow extends DataClass
     body: body ?? this.body,
     at: at ?? this.at,
     immediate: immediate ?? this.immediate,
+    seen: seen ?? this.seen,
     createdAt: createdAt ?? this.createdAt,
   );
   NotificationLogRow copyWithCompanion(NotificationLogCompanion data) {
@@ -8039,6 +8129,7 @@ class NotificationLogRow extends DataClass
       body: data.body.present ? data.body.value : this.body,
       at: data.at.present ? data.at.value : this.at,
       immediate: data.immediate.present ? data.immediate.value : this.immediate,
+      seen: data.seen.present ? data.seen.value : this.seen,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -8053,14 +8144,24 @@ class NotificationLogRow extends DataClass
           ..write('body: $body, ')
           ..write('at: $at, ')
           ..write('immediate: $immediate, ')
+          ..write('seen: $seen, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode =>
-      Object.hash(id, notifId, kind, title, body, at, immediate, createdAt);
+  int get hashCode => Object.hash(
+    id,
+    notifId,
+    kind,
+    title,
+    body,
+    at,
+    immediate,
+    seen,
+    createdAt,
+  );
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -8072,6 +8173,7 @@ class NotificationLogRow extends DataClass
           other.body == this.body &&
           other.at == this.at &&
           other.immediate == this.immediate &&
+          other.seen == this.seen &&
           other.createdAt == this.createdAt);
 }
 
@@ -8083,6 +8185,7 @@ class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
   final Value<String> body;
   final Value<DateTime> at;
   final Value<bool> immediate;
+  final Value<bool> seen;
   final Value<DateTime> createdAt;
   const NotificationLogCompanion({
     this.id = const Value.absent(),
@@ -8092,6 +8195,7 @@ class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
     this.body = const Value.absent(),
     this.at = const Value.absent(),
     this.immediate = const Value.absent(),
+    this.seen = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   NotificationLogCompanion.insert({
@@ -8102,6 +8206,7 @@ class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
     required String body,
     required DateTime at,
     this.immediate = const Value.absent(),
+    this.seen = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : notifId = Value(notifId),
        kind = Value(kind),
@@ -8116,6 +8221,7 @@ class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
     Expression<String>? body,
     Expression<DateTime>? at,
     Expression<bool>? immediate,
+    Expression<bool>? seen,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -8126,6 +8232,7 @@ class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
       if (body != null) 'body': body,
       if (at != null) 'at': at,
       if (immediate != null) 'immediate': immediate,
+      if (seen != null) 'seen': seen,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -8138,6 +8245,7 @@ class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
     Value<String>? body,
     Value<DateTime>? at,
     Value<bool>? immediate,
+    Value<bool>? seen,
     Value<DateTime>? createdAt,
   }) {
     return NotificationLogCompanion(
@@ -8148,6 +8256,7 @@ class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
       body: body ?? this.body,
       at: at ?? this.at,
       immediate: immediate ?? this.immediate,
+      seen: seen ?? this.seen,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -8178,6 +8287,9 @@ class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
     if (immediate.present) {
       map['immediate'] = Variable<bool>(immediate.value);
     }
+    if (seen.present) {
+      map['seen'] = Variable<bool>(seen.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -8194,6 +8306,7 @@ class NotificationLogCompanion extends UpdateCompanion<NotificationLogRow> {
           ..write('body: $body, ')
           ..write('at: $at, ')
           ..write('immediate: $immediate, ')
+          ..write('seen: $seen, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -8285,6 +8398,21 @@ class $ChallengesTable extends Challenges
     type: DriftSqlType.dateTime,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _repeatsMeta = const VerificationMeta(
+    'repeats',
+  );
+  @override
+  late final GeneratedColumn<bool> repeats = GeneratedColumn<bool>(
+    'repeats',
+    aliasedName,
+    false,
+    type: DriftSqlType.bool,
+    requiredDuringInsert: false,
+    defaultConstraints: GeneratedColumn.constraintIsAlways(
+      'CHECK ("repeats" IN (0, 1))',
+    ),
+    defaultValue: const Constant(false),
+  );
   static const VerificationMeta _createdAtMeta = const VerificationMeta(
     'createdAt',
   );
@@ -8306,6 +8434,7 @@ class $ChallengesTable extends Challenges
     limitAmount,
     startDate,
     endDate,
+    repeats,
     createdAt,
   ];
   @override
@@ -8364,6 +8493,12 @@ class $ChallengesTable extends Challenges
     } else if (isInserting) {
       context.missing(_endDateMeta);
     }
+    if (data.containsKey('repeats')) {
+      context.handle(
+        _repeatsMeta,
+        repeats.isAcceptableOrUnknown(data['repeats']!, _repeatsMeta),
+      );
+    }
     if (data.containsKey('created_at')) {
       context.handle(
         _createdAtMeta,
@@ -8409,6 +8544,10 @@ class $ChallengesTable extends Challenges
         DriftSqlType.dateTime,
         data['${effectivePrefix}end_date'],
       )!,
+      repeats: attachedDatabase.typeMapping.read(
+        DriftSqlType.bool,
+        data['${effectivePrefix}repeats'],
+      )!,
       createdAt: attachedDatabase.typeMapping.read(
         DriftSqlType.dateTime,
         data['${effectivePrefix}created_at'],
@@ -8440,6 +8579,10 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
   /// The first and the last day, both included, at local midnight.
   final DateTime startDate;
   final DateTime endDate;
+
+  /// When it is over, the same challenge starts again for the same number of
+  /// days.
+  final bool repeats;
   final DateTime createdAt;
   const ChallengeRow({
     required this.id,
@@ -8449,6 +8592,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     required this.limitAmount,
     required this.startDate,
     required this.endDate,
+    required this.repeats,
     required this.createdAt,
   });
   @override
@@ -8467,6 +8611,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     map['limit_amount'] = Variable<int>(limitAmount);
     map['start_date'] = Variable<DateTime>(startDate);
     map['end_date'] = Variable<DateTime>(endDate);
+    map['repeats'] = Variable<bool>(repeats);
     map['created_at'] = Variable<DateTime>(createdAt);
     return map;
   }
@@ -8482,6 +8627,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
       limitAmount: Value(limitAmount),
       startDate: Value(startDate),
       endDate: Value(endDate),
+      repeats: Value(repeats),
       createdAt: Value(createdAt),
     );
   }
@@ -8501,6 +8647,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
       limitAmount: serializer.fromJson<int>(json['limitAmount']),
       startDate: serializer.fromJson<DateTime>(json['startDate']),
       endDate: serializer.fromJson<DateTime>(json['endDate']),
+      repeats: serializer.fromJson<bool>(json['repeats']),
       createdAt: serializer.fromJson<DateTime>(json['createdAt']),
     );
   }
@@ -8517,6 +8664,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
       'limitAmount': serializer.toJson<int>(limitAmount),
       'startDate': serializer.toJson<DateTime>(startDate),
       'endDate': serializer.toJson<DateTime>(endDate),
+      'repeats': serializer.toJson<bool>(repeats),
       'createdAt': serializer.toJson<DateTime>(createdAt),
     };
   }
@@ -8529,6 +8677,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     int? limitAmount,
     DateTime? startDate,
     DateTime? endDate,
+    bool? repeats,
     DateTime? createdAt,
   }) => ChallengeRow(
     id: id ?? this.id,
@@ -8538,6 +8687,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     limitAmount: limitAmount ?? this.limitAmount,
     startDate: startDate ?? this.startDate,
     endDate: endDate ?? this.endDate,
+    repeats: repeats ?? this.repeats,
     createdAt: createdAt ?? this.createdAt,
   );
   ChallengeRow copyWithCompanion(ChallengesCompanion data) {
@@ -8553,6 +8703,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
           : this.limitAmount,
       startDate: data.startDate.present ? data.startDate.value : this.startDate,
       endDate: data.endDate.present ? data.endDate.value : this.endDate,
+      repeats: data.repeats.present ? data.repeats.value : this.repeats,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
     );
   }
@@ -8567,6 +8718,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
           ..write('limitAmount: $limitAmount, ')
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
+          ..write('repeats: $repeats, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -8581,6 +8733,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
     limitAmount,
     startDate,
     endDate,
+    repeats,
     createdAt,
   );
   @override
@@ -8594,6 +8747,7 @@ class ChallengeRow extends DataClass implements Insertable<ChallengeRow> {
           other.limitAmount == this.limitAmount &&
           other.startDate == this.startDate &&
           other.endDate == this.endDate &&
+          other.repeats == this.repeats &&
           other.createdAt == this.createdAt);
 }
 
@@ -8605,6 +8759,7 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
   final Value<int> limitAmount;
   final Value<DateTime> startDate;
   final Value<DateTime> endDate;
+  final Value<bool> repeats;
   final Value<DateTime> createdAt;
   const ChallengesCompanion({
     this.id = const Value.absent(),
@@ -8614,6 +8769,7 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
     this.limitAmount = const Value.absent(),
     this.startDate = const Value.absent(),
     this.endDate = const Value.absent(),
+    this.repeats = const Value.absent(),
     this.createdAt = const Value.absent(),
   });
   ChallengesCompanion.insert({
@@ -8624,6 +8780,7 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
     required int limitAmount,
     required DateTime startDate,
     required DateTime endDate,
+    this.repeats = const Value.absent(),
     this.createdAt = const Value.absent(),
   }) : title = Value(title),
        kind = Value(kind),
@@ -8638,6 +8795,7 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
     Expression<int>? limitAmount,
     Expression<DateTime>? startDate,
     Expression<DateTime>? endDate,
+    Expression<bool>? repeats,
     Expression<DateTime>? createdAt,
   }) {
     return RawValuesInsertable({
@@ -8648,6 +8806,7 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
       if (limitAmount != null) 'limit_amount': limitAmount,
       if (startDate != null) 'start_date': startDate,
       if (endDate != null) 'end_date': endDate,
+      if (repeats != null) 'repeats': repeats,
       if (createdAt != null) 'created_at': createdAt,
     });
   }
@@ -8660,6 +8819,7 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
     Value<int>? limitAmount,
     Value<DateTime>? startDate,
     Value<DateTime>? endDate,
+    Value<bool>? repeats,
     Value<DateTime>? createdAt,
   }) {
     return ChallengesCompanion(
@@ -8670,6 +8830,7 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
       limitAmount: limitAmount ?? this.limitAmount,
       startDate: startDate ?? this.startDate,
       endDate: endDate ?? this.endDate,
+      repeats: repeats ?? this.repeats,
       createdAt: createdAt ?? this.createdAt,
     );
   }
@@ -8700,6 +8861,9 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
     if (endDate.present) {
       map['end_date'] = Variable<DateTime>(endDate.value);
     }
+    if (repeats.present) {
+      map['repeats'] = Variable<bool>(repeats.value);
+    }
     if (createdAt.present) {
       map['created_at'] = Variable<DateTime>(createdAt.value);
     }
@@ -8716,6 +8880,7 @@ class ChallengesCompanion extends UpdateCompanion<ChallengeRow> {
           ..write('limitAmount: $limitAmount, ')
           ..write('startDate: $startDate, ')
           ..write('endDate: $endDate, ')
+          ..write('repeats: $repeats, ')
           ..write('createdAt: $createdAt')
           ..write(')'))
         .toString();
@@ -11479,12 +11644,14 @@ typedef $$BudgetsTableCreateCompanionBuilder = BudgetsCompanion Function({
   required String month,
   Value<int?> categoryId,
   required int amount,
+  Value<bool> noCarry,
 });
 typedef $$BudgetsTableUpdateCompanionBuilder = BudgetsCompanion Function({
   Value<int> id,
   Value<String> month,
   Value<int?> categoryId,
   Value<int> amount,
+  Value<bool> noCarry,
 });
 
 final class $$BudgetsTableReferences
@@ -11530,6 +11697,11 @@ class $$BudgetsTableFilterComposer
 
   ColumnFilters<int> get amount => $composableBuilder(
     column: $table.amount,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get noCarry => $composableBuilder(
+    column: $table.noCarry,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -11581,6 +11753,11 @@ class $$BudgetsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get noCarry => $composableBuilder(
+    column: $table.noCarry,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   $$CategoriesTableOrderingComposer get categoryId {
     final $$CategoriesTableOrderingComposer composer = $composerBuilder(
       composer: this,
@@ -11622,6 +11799,9 @@ class $$BudgetsTableAnnotationComposer
 
   GeneratedColumn<int> get amount =>
       $composableBuilder(column: $table.amount, builder: (column) => column);
+
+  GeneratedColumn<bool> get noCarry =>
+      $composableBuilder(column: $table.noCarry, builder: (column) => column);
 
   $$CategoriesTableAnnotationComposer get categoryId {
     final $$CategoriesTableAnnotationComposer composer = $composerBuilder(
@@ -11679,11 +11859,13 @@ class $$BudgetsTableTableManager
                 Value<String> month = const Value.absent(),
                 Value<int?> categoryId = const Value.absent(),
                 Value<int> amount = const Value.absent(),
+                Value<bool> noCarry = const Value.absent(),
               }) => BudgetsCompanion(
                 id: id,
                 month: month,
                 categoryId: categoryId,
                 amount: amount,
+                noCarry: noCarry,
               ),
           createCompanionCallback:
               ({
@@ -11691,11 +11873,13 @@ class $$BudgetsTableTableManager
                 required String month,
                 Value<int?> categoryId = const Value.absent(),
                 required int amount,
+                Value<bool> noCarry = const Value.absent(),
               }) => BudgetsCompanion.insert(
                 id: id,
                 month: month,
                 categoryId: categoryId,
                 amount: amount,
+                noCarry: noCarry,
               ),
           withReferenceMapper: (p0) => p0
               .map(
@@ -16014,6 +16198,7 @@ typedef $$NotificationLogTableCreateCompanionBuilder =
       required String body,
       required DateTime at,
       Value<bool> immediate,
+      Value<bool> seen,
       Value<DateTime> createdAt,
     });
 typedef $$NotificationLogTableUpdateCompanionBuilder =
@@ -16025,6 +16210,7 @@ typedef $$NotificationLogTableUpdateCompanionBuilder =
       Value<String> body,
       Value<DateTime> at,
       Value<bool> immediate,
+      Value<bool> seen,
       Value<DateTime> createdAt,
     });
 
@@ -16070,6 +16256,11 @@ class $$NotificationLogTableFilterComposer
 
   ColumnFilters<bool> get immediate => $composableBuilder(
     column: $table.immediate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get seen => $composableBuilder(
+    column: $table.seen,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16123,6 +16314,11 @@ class $$NotificationLogTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get seen => $composableBuilder(
+    column: $table.seen,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -16158,6 +16354,9 @@ class $$NotificationLogTableAnnotationComposer
 
   GeneratedColumn<bool> get immediate =>
       $composableBuilder(column: $table.immediate, builder: (column) => column);
+
+  GeneratedColumn<bool> get seen =>
+      $composableBuilder(column: $table.seen, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -16207,6 +16406,7 @@ class $$NotificationLogTableTableManager
                 Value<String> body = const Value.absent(),
                 Value<DateTime> at = const Value.absent(),
                 Value<bool> immediate = const Value.absent(),
+                Value<bool> seen = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => NotificationLogCompanion(
                 id: id,
@@ -16216,6 +16416,7 @@ class $$NotificationLogTableTableManager
                 body: body,
                 at: at,
                 immediate: immediate,
+                seen: seen,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -16227,6 +16428,7 @@ class $$NotificationLogTableTableManager
                 required String body,
                 required DateTime at,
                 Value<bool> immediate = const Value.absent(),
+                Value<bool> seen = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => NotificationLogCompanion.insert(
                 id: id,
@@ -16236,6 +16438,7 @@ class $$NotificationLogTableTableManager
                 body: body,
                 at: at,
                 immediate: immediate,
+                seen: seen,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0
@@ -16284,6 +16487,7 @@ typedef $$ChallengesTableCreateCompanionBuilder = ChallengesCompanion Function({
   required int limitAmount,
   required DateTime startDate,
   required DateTime endDate,
+  Value<bool> repeats,
   Value<DateTime> createdAt,
 });
 typedef $$ChallengesTableUpdateCompanionBuilder = ChallengesCompanion Function({
@@ -16294,6 +16498,7 @@ typedef $$ChallengesTableUpdateCompanionBuilder = ChallengesCompanion Function({
   Value<int> limitAmount,
   Value<DateTime> startDate,
   Value<DateTime> endDate,
+  Value<bool> repeats,
   Value<DateTime> createdAt,
 });
 
@@ -16356,6 +16561,11 @@ class $$ChallengesTableFilterComposer
 
   ColumnFilters<DateTime> get endDate => $composableBuilder(
     column: $table.endDate,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<bool> get repeats => $composableBuilder(
+    column: $table.repeats,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -16427,6 +16637,11 @@ class $$ChallengesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<bool> get repeats => $composableBuilder(
+    column: $table.repeats,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<DateTime> get createdAt => $composableBuilder(
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
@@ -16484,6 +16699,9 @@ class $$ChallengesTableAnnotationComposer
 
   GeneratedColumn<DateTime> get endDate =>
       $composableBuilder(column: $table.endDate, builder: (column) => column);
+
+  GeneratedColumn<bool> get repeats =>
+      $composableBuilder(column: $table.repeats, builder: (column) => column);
 
   GeneratedColumn<DateTime> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
@@ -16547,6 +16765,7 @@ class $$ChallengesTableTableManager
                 Value<int> limitAmount = const Value.absent(),
                 Value<DateTime> startDate = const Value.absent(),
                 Value<DateTime> endDate = const Value.absent(),
+                Value<bool> repeats = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => ChallengesCompanion(
                 id: id,
@@ -16556,6 +16775,7 @@ class $$ChallengesTableTableManager
                 limitAmount: limitAmount,
                 startDate: startDate,
                 endDate: endDate,
+                repeats: repeats,
                 createdAt: createdAt,
               ),
           createCompanionCallback:
@@ -16567,6 +16787,7 @@ class $$ChallengesTableTableManager
                 required int limitAmount,
                 required DateTime startDate,
                 required DateTime endDate,
+                Value<bool> repeats = const Value.absent(),
                 Value<DateTime> createdAt = const Value.absent(),
               }) => ChallengesCompanion.insert(
                 id: id,
@@ -16576,6 +16797,7 @@ class $$ChallengesTableTableManager
                 limitAmount: limitAmount,
                 startDate: startDate,
                 endDate: endDate,
+                repeats: repeats,
                 createdAt: createdAt,
               ),
           withReferenceMapper: (p0) => p0

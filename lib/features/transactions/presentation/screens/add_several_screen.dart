@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
@@ -124,6 +125,10 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
   /// What the last save did, while some rows are still to be fixed.
   String? _banner;
 
+  /// What pasting lines did. It stays on the screen, since a message at the
+  /// bottom would cover the Save button.
+  String? _notice;
+
   AddTransactionOptions get _options => widget.options;
 
   @override
@@ -169,6 +174,46 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
         _scroll.position.maxScrollExtent,
         duration: const Duration(milliseconds: 200),
         curve: Curves.easeOut,
+      );
+    });
+  }
+
+  /// Asks for a block of lines and makes a row of each. Blank rows give way;
+  /// the rest stay.
+  Future<void> _pasteLines() async {
+    final text = await showDialog<String>(
+      context: context,
+      builder: (context) => const _PasteDialog(),
+    );
+    if (text == null || !mounted) return;
+    final drafts = draftsFromLines(
+      text,
+      _options,
+      defaultAccountId: _rows.last.accountId ?? _options.defaultAccountId,
+    );
+    if (drafts.isEmpty) {
+      setState(
+        () => _notice = tr('Nothing to add: write one entry on each line.'),
+      );
+      return;
+    }
+    setState(() {
+      for (final blank in _rows.where((r) => r.draft.isBlank).toList()) {
+        _rows.remove(blank);
+        _retired.add(blank);
+      }
+      for (final draft in drafts) {
+        final row = _Row(type: draft.type, accountId: draft.accountId)
+          ..categoryId = draft.categoryId;
+        row.amount.text = draft.amountText;
+        row.note.text = draft.note;
+        _rows.add(row);
+      }
+      _banner = null;
+      _notice = plural(
+        drafts.length,
+        'Added 1 row. Check it and save.',
+        'Added {n} rows. Check them and save.',
       );
     });
   }
@@ -300,6 +345,7 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
     var failed = 0;
     setState(() {
       _banner = null;
+      _notice = null;
       for (final row in _rows) {
         row.error = null;
         final draft = row.draft;
@@ -370,10 +416,31 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
     return Scaffold(
       appBar: AppBar(
         title: Text(tr('Add several')),
-        actions: const [HelpButton('transactions')],
+        actions: [
+          IconButton(
+            key: const ValueKey('paste-lines'),
+            tooltip: tr('Paste lines'),
+            icon: const Icon(Icons.content_paste_go_outlined),
+            onPressed: _saving ? null : _pasteLines,
+          ),
+          const HelpButton('transactions'),
+        ],
       ),
       body: Column(
         children: [
+          if (_notice != null)
+            Container(
+              width: double.infinity,
+              color: theme.colorScheme.secondaryContainer,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              child: Text(
+                _notice!,
+                key: const ValueKey('paste-notice'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSecondaryContainer,
+                ),
+              ),
+            ),
           if (_banner != null)
             Container(
               width: double.infinity,
@@ -666,6 +733,90 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Asks for lines of text, one entry on each, like `rickshaw 50` or `lunch 120
+/// bkash`, typed or pasted.
+class _PasteDialog extends StatefulWidget {
+  const _PasteDialog();
+
+  @override
+  State<_PasteDialog> createState() => _PasteDialogState();
+}
+
+class _PasteDialogState extends State<_PasteDialog> {
+  final _text = TextEditingController();
+
+  @override
+  void dispose() {
+    _text.dispose();
+    super.dispose();
+  }
+
+  Future<void> _paste() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final pasted = data?.text;
+    if (pasted == null || pasted.isEmpty || !mounted) return;
+    final current = _text.text;
+    _text.text = current.isEmpty ? pasted : '$current\n$pasted';
+    setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(tr('Paste lines')),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr(
+              'One entry on each line, like "rickshaw 50", "lunch 120 bkash" '
+              'or "+salary 30k". A row is made of each.',
+            ),
+            style: Theme.of(context).textTheme.bodySmall,
+          ),
+          const SizedBox(height: 12),
+          TextField(
+            key: const ValueKey('paste-field'),
+            controller: _text,
+            autofocus: true,
+            minLines: 5,
+            maxLines: 10,
+            keyboardType: TextInputType.multiline,
+            textCapitalization: TextCapitalization.sentences,
+            decoration: InputDecoration(
+              hintText: 'rickshaw 50\nlunch 120 bkash\n+salary 30k',
+            ),
+            onChanged: (_) => setState(() {}),
+          ),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: TextButton.icon(
+              key: const ValueKey('paste-clipboard'),
+              icon: const Icon(Icons.content_paste),
+              label: Text(tr('Paste from the clipboard')),
+              onPressed: _paste,
+            ),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(tr('Cancel')),
+        ),
+        FilledButton(
+          key: const ValueKey('paste-add'),
+          onPressed: _text.text.trim().isEmpty
+              ? null
+              : () => Navigator.pop(context, _text.text),
+          child: Text(tr('Add rows')),
+        ),
+      ],
     );
   }
 }

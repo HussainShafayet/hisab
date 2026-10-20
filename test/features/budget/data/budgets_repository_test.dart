@@ -440,6 +440,50 @@ void main() {
       expect(budget.carriedOver, rolloverMonths * 100000);
     });
 
+    test(
+      'a budget set to carry nothing takes nothing and passes nothing on',
+      () async {
+        await rolloverOn();
+        // September leaves 40,000, but October opts out.
+        await repo.setBudget(month: september, amount: 100000);
+        await repo.setBudget(month: october, amount: 100000, noCarry: true);
+        await repo.setBudget(month: november, amount: 100000);
+        await spend(food, 60000, DateTime(2026, 9, 10));
+
+        final inOctober = (await repo.overallBudget(october))!;
+        final inNovember = (await repo.overallBudget(november))!;
+
+        expect(inOctober.noCarry, isTrue);
+        expect(inOctober.carriedOver, 0);
+        expect(inOctober.limit, 100000);
+        // October passes nothing on, and it is all unspent.
+        expect(inNovember.carriedOver, 0);
+      },
+    );
+
+    test(
+      'the flag is kept when the amount is changed, and can be changed',
+      () async {
+        await repo.setBudget(month: october, amount: 100000, noCarry: true);
+        await repo.setBudget(month: october, amount: 120000);
+        expect((await repo.overallBudget(october))!.noCarry, isTrue);
+
+        await repo.setBudget(month: october, amount: 120000, noCarry: false);
+        expect((await repo.overallBudget(october))!.noCarry, isFalse);
+      },
+    );
+
+    test('copying last month keeps the flag', () async {
+      await repo.setBudget(month: september, amount: 100000, noCarry: true);
+      await repo.setBudget(month: september, amount: 50000, categoryId: food);
+
+      await repo.copyFromPreviousMonth(october);
+
+      final budget = await month(october);
+      expect(budget.overall!.noCarry, isTrue);
+      expect(budget.categories.single.noCarry, isFalse);
+    });
+
     test('the set amount is the whole limit when nothing is carried', () async {
       await rolloverOn();
       await repo.setBudget(month: october, amount: 100000);
@@ -447,6 +491,34 @@ void main() {
       final budget = (await repo.overallBudget(october))!;
 
       expect(budget.setAmount, budget.limit);
+    });
+  });
+
+  group('what was left last month', () {
+    test('is the overall budget less the spending', () async {
+      await repo.setBudget(month: september, amount: 100000);
+      await spend(food, 35000, DateTime(2026, 9, 10));
+
+      expect(await repo.leftoverLastMonth(october), 65000);
+    });
+
+    test('is zero when it was all spent, overspent or never set', () async {
+      expect(await repo.leftoverLastMonth(october), 0);
+
+      await repo.setBudget(month: september, amount: 100000);
+      await spend(food, 100000, DateTime(2026, 9, 10));
+      expect(await repo.leftoverLastMonth(october), 0);
+
+      await spend(food, 5000, DateTime(2026, 9, 11));
+      expect(await repo.leftoverLastMonth(october), 0);
+    });
+
+    test('is the same whether carrying over is on or off', () async {
+      await repo.setBudget(month: september, amount: 100000);
+      final off = await repo.leftoverLastMonth(october);
+      await db.settingsDao.put(PreferenceKeys.budgetRollover, 'true');
+
+      expect(await repo.leftoverLastMonth(october), off);
     });
   });
 }

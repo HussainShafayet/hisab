@@ -59,7 +59,7 @@ class ChallengesDao extends DatabaseAccessor<AppDatabase>
 
     return customSelect(
       '${categoryTreeCte}SELECT c.id, c.title, c.kind, c.category_id, '
-      'c.limit_amount, c.start_date, c.end_date, c.created_at, '
+      'c.limit_amount, c.start_date, c.end_date, c.repeats, c.created_at, '
       'cat.name AS category_name, '
       'CASE WHEN c.category_id IS NULL THEN ${spent('')} '
       'ELSE ${spent('AND t.category_id IN '
@@ -84,6 +84,7 @@ class ChallengesDao extends DatabaseAccessor<AppDatabase>
           limitAmount: row.read<int>('limit_amount'),
           startDate: row.read<DateTime>('start_date'),
           endDate: row.read<DateTime>('end_date'),
+          repeats: row.read<bool>('repeats'),
           createdAt: row.read<DateTime>('created_at'),
         ),
         categoryName: row.readNullable<String>('category_name'),

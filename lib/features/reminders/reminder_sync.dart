@@ -9,6 +9,7 @@ import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/domain/credit_card.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/challenges/presentation/providers/challenges_providers.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/notifications/presentation/providers/notification_providers.dart';
@@ -142,6 +143,7 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
   final repository = ref.read(recurringRepositoryProvider);
   final now = ref.read(clockProvider)();
   await repository.addAutomatic(now);
+  await ref.read(challengesRepositoryProvider).renewRepeating(now);
   final accounts = await ref.read(accountsRepositoryProvider).getAccounts();
   final db = ref.read(appDatabaseProvider);
   final today = dateOnly(now);
@@ -168,7 +170,7 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
   await ref
       .read(reminderSchedulerProvider)
       .replaceAll(reminders, funSounds: funSounds);
-  // The history behind More > Notifications.
+  // The history behind the notification bell.
   await ref
       .read(notificationLogRepositoryProvider)
       .syncScheduled(reminders, now);

@@ -29,6 +29,10 @@ class Challenges extends Table {
 
   DateTimeColumn get endDate => dateTime()();
 
+  /// When it is over, the same challenge starts again for the same number of
+  /// days.
+  BoolColumn get repeats => boolean().withDefault(const Constant(false))();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   @override

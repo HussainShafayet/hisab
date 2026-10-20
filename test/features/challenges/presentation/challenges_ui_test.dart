@@ -273,6 +273,120 @@ void main() {
     });
   });
 
+  group('presets and repeating', () {
+    testWithDatabase('a preset fills the form and can be saved as it is', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await insertTestCategory(db, name: 'Rickshaw');
+      await pumpAppWithDatabase(tester, db);
+      await openChallenges(tester);
+      await tapKey(tester, 'new-challenge');
+
+      await tapKey(tester, 'preset-rickshawWeek');
+      expect(titleField(tester), 'No Rickshaw spending for 7 days');
+
+      // The weekend: Friday 16 and Saturday 17 October, about all spending.
+      await tapKey(tester, 'preset-weekend');
+      expect(titleField(tester), 'No spending for 2 days');
+      await tapKey(tester, 'challenge-save');
+
+      final row = (await db.challengesDao.getAll()).single;
+      expect(row.kind, ChallengeKind.noSpend);
+      expect(row.categoryId, isNull);
+      expect(row.startDate, day(16));
+      expect(row.endDate, day(17));
+    });
+
+    testWithDatabase('the rickshaw preset needs a Rickshaw category', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openChallenges(tester);
+      await tapKey(tester, 'new-challenge');
+
+      expect(find.byKey(const ValueKey('preset-day')), findsOneWidget);
+      expect(find.byKey(const ValueKey('preset-week')), findsOneWidget);
+      expect(find.byKey(const ValueKey('preset-rickshawWeek')), findsNothing);
+    });
+
+    testWithDatabase('presets are not offered when changing a challenge', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      final id = await ChallengesRepository(db).create(
+        title: 'No snacks',
+        kind: ChallengeKind.noSpend,
+        startDate: day(9),
+        endDate: day(15),
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openChallenges(tester);
+
+      await tapKey(tester, 'challenge-menu-$id');
+      await tapKey(tester, 'challenge-edit');
+
+      expect(find.byKey(const ValueKey('preset-day')), findsNothing);
+    });
+
+    testWithDatabase('the switch makes it start again, and it is shown', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openChallenges(tester);
+      await tapKey(tester, 'new-challenge');
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const ValueKey('challenge-repeats')),
+            )
+            .value,
+        isFalse,
+      );
+
+      await tapKey(tester, 'challenge-repeats');
+      await tapKey(tester, 'challenge-save');
+
+      expect((await db.challengesDao.getAll()).single.repeats, isTrue);
+      expect(find.textContaining('Repeats'), findsOneWidget);
+    });
+
+    testWithDatabase('a challenge that ended starts again when the app opens', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await ChallengesRepository(db).create(
+        title: 'Every week',
+        kind: ChallengeKind.noSpend,
+        startDate: day(1),
+        endDate: day(7),
+        repeats: true,
+      );
+
+      await pumpAppWithDatabase(tester, db);
+
+      // Sunday 11 October is in the round 8 to 14 October.
+      final rows = await db.challengesDao.getAll();
+      expect(rows, hasLength(2));
+      final latest = rows.last;
+      expect(latest.startDate, day(8));
+      expect(latest.endDate, day(14));
+      expect(latest.repeats, isTrue);
+      expect(rows.first.repeats, isFalse);
+    });
+  });
+
   group('the card on Home', () {
     testWithDatabase('is not there while nothing is running', (
       tester,

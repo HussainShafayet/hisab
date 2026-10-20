@@ -30,6 +30,7 @@ Future<AppDatabase> challengedDatabase() async {
     startDate: DateTime(2026, 10, 11),
     endDate: DateTime(2026, 10, 17),
     categoryId: rickshaw,
+    repeats: true,
   );
   await repo.create(
     title: 'Under 5,000',
@@ -67,6 +68,8 @@ void main() {
       expect(data.challenges.first.kind, 'noSpend');
       expect(data.challenges.first.categoryId, isNotNull);
       expect(data.challenges.first.limit, 0);
+      expect(data.challenges.first.repeats, isTrue);
+      expect(data.challenges.last.repeats, isFalse);
       expect(data.challenges.last.kind, 'limit');
       expect(data.challenges.last.categoryId, isNull);
       expect(data.challenges.last.limit, 500000);

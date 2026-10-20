@@ -73,3 +73,6 @@ int? parseTakaToPoisha(String input) {
   final poisha = taka * poishaPerTaka + paisa;
   return match.group(1) == null ? poisha : -poisha;
 }
+
+/// What is shown in place of an amount that is hidden (Settings > Privacy).
+const hiddenAmountText = '৳ ••••';

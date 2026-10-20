@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/utils/date_labels.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/transactions/domain/add_transaction_options.dart';
 import 'package:hishab/features/transactions/domain/quick_entry.dart';
@@ -8,9 +9,17 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 /// One line at the top of the add form: type `rickshaw 50` or `bazar 450
 /// bkash`, see what it understood, and fill the form with it.
 class QuickTypeBar extends StatefulWidget {
-  const QuickTypeBar({required this.options, required this.onApply, super.key});
+  const QuickTypeBar({
+    required this.options,
+    required this.onApply,
+    required this.today,
+    super.key,
+  });
 
   final AddTransactionOptions options;
+
+  /// The day today is, so the line can say "yesterday".
+  final DateTime today;
   final ValueChanged<QuickEntry> onApply;
 
   @override
@@ -28,7 +37,7 @@ class _QuickTypeBarState extends State<QuickTypeBar> {
   }
 
   void _changed(String text) {
-    final entry = parseQuickEntry(text, widget.options);
+    final entry = parseQuickEntry(text, widget.options, today: widget.today);
     setState(() => _entry = entry.isEmpty ? null : entry);
   }
 
@@ -85,6 +94,8 @@ class _QuickTypeBarState extends State<QuickTypeBar> {
                   _Pill(tr(entry.category!.name), theme),
                 if (entry.account != null)
                   _Pill(tr(entry.account!.name), theme),
+                if (entry.day != null)
+                  _Pill(dayLabel(entry.day!, widget.today), theme),
               ],
             ),
           ),

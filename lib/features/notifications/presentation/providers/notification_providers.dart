@@ -18,3 +18,12 @@ final notificationsProvider = StreamProvider.autoDispose<NotificationLists>((
       .watchAll()
       .map((all) => splitNotifications(all, now));
 });
+
+/// How many notifications have shown and have not been opened from the bell.
+final unseenNotificationsProvider = StreamProvider.autoDispose<int>((ref) {
+  final now = ref.read(clockProvider)();
+  return ref
+      .watch(notificationLogRepositoryProvider)
+      .watchAll()
+      .map((all) => unseenCount(all, now));
+});

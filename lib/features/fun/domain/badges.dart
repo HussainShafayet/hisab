@@ -11,6 +11,7 @@ class ActivityFacts {
     this.goalReached = false,
     this.loanSettled = false,
     this.hasMetals = false,
+    this.challengeWon = false,
   });
 
   /// Every local day with an entry, and whether an expense was written that
@@ -23,6 +24,7 @@ class ActivityFacts {
   final bool goalReached;
   final bool loanSettled;
   final bool hasMetals;
+  final bool challengeWon;
 }
 
 DateTime _yesterday(DateTime today) =>
@@ -93,6 +95,7 @@ enum BadgeId {
   goalReached,
   loanSettled,
   goldKeeper,
+  challengeWinner,
 }
 
 /// How many marked expenses it takes to be "honest with myself".
@@ -111,6 +114,7 @@ String badgeTitle(BadgeId id) => switch (id) {
   BadgeId.goalReached => tr('Dream come true'),
   BadgeId.loanSettled => tr('Clean slate'),
   BadgeId.goldKeeper => tr('Gold keeper'),
+  BadgeId.challengeWinner => tr('Dare winner'),
 };
 
 /// What it takes to get a badge.
@@ -128,6 +132,7 @@ String badgeHowTo(BadgeId id) => switch (id) {
   BadgeId.goalReached => tr('Reach a savings goal.'),
   BadgeId.loanSettled => tr('Settle a loan completely.'),
   BadgeId.goldKeeper => tr('Add a piece of gold or silver.'),
+  BadgeId.challengeWinner => tr('Win a spending challenge.'),
 };
 
 class BadgeStatus {
@@ -179,6 +184,7 @@ BadgeReport badgeReportOf(ActivityFacts facts, DateTime today) {
     BadgeId.goalReached: facts.goalReached,
     BadgeId.loanSettled: facts.loanSettled,
     BadgeId.goldKeeper: facts.hasMetals,
+    BadgeId.challengeWinner: facts.challengeWon,
   };
   return BadgeReport(
     streak: streak,

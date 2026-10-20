@@ -30,6 +30,7 @@ class Challenge {
     required this.endDate,
     required this.createdAt,
     this.categoryId,
+    this.repeats = false,
   });
 
   final int id;
@@ -46,6 +47,9 @@ class Challenge {
   final DateTime startDate;
   final DateTime endDate;
   final DateTime createdAt;
+
+  /// When it is over, the same challenge starts again for as many days.
+  final bool repeats;
 
   /// How many days it lasts.
   int get days => daysBetween(startDate, endDate) + 1;
@@ -154,4 +158,70 @@ String challengeTitle({
   return one
       ? tr('{category} under {amount} in 1 day', args)
       : tr('{category} under {amount} in {n} days', args);
+}
+
+/// A challenge to start with one tap.
+enum ChallengePresetId { day, weekend, week, rickshawWeek }
+
+class ChallengePreset {
+  const ChallengePreset({
+    required this.id,
+    required this.start,
+    required this.days,
+    this.categoryName,
+  });
+
+  final ChallengePresetId id;
+
+  /// A preset is always a no-spend challenge.
+  final DateTime start;
+  final int days;
+
+  /// The category it is about, found by this name, or null for all spending.
+  final String? categoryName;
+
+  String get label => switch (id) {
+    ChallengePresetId.day => tr('No-spend day'),
+    ChallengePresetId.weekend => tr('No-spend weekend'),
+    ChallengePresetId.week => tr('No-spend week'),
+    ChallengePresetId.rickshawWeek => tr('Rickshaw-free week'),
+  };
+}
+
+/// The presets for [today]. The weekend is Friday and Saturday: the coming
+/// one, or what is left of it when today is in it.
+List<ChallengePreset> challengePresets(DateTime today) {
+  final day = dateOnly(today);
+  final weekend = switch (day.weekday) {
+    DateTime.friday => ChallengePreset(
+      id: ChallengePresetId.weekend,
+      start: day,
+      days: 2,
+    ),
+    DateTime.saturday => ChallengePreset(
+      id: ChallengePresetId.weekend,
+      start: day,
+      days: 1,
+    ),
+    _ => ChallengePreset(
+      id: ChallengePresetId.weekend,
+      start: DateTime(
+        day.year,
+        day.month,
+        day.day + (DateTime.friday - day.weekday) % 7,
+      ),
+      days: 2,
+    ),
+  };
+  return [
+    ChallengePreset(id: ChallengePresetId.day, start: day, days: 1),
+    weekend,
+    ChallengePreset(id: ChallengePresetId.week, start: day, days: 7),
+    ChallengePreset(
+      id: ChallengePresetId.rickshawWeek,
+      start: day,
+      days: 7,
+      categoryName: 'Rickshaw',
+    ),
+  ];
 }

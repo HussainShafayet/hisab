@@ -145,6 +145,14 @@ void main() {
       expect(earned(r, BadgeId.goldKeeper), isTrue);
     });
 
+    test('a won challenge makes a dare winner', () {
+      final without = badgeReportOf(const ActivityFacts(), today);
+      final won = badgeReportOf(const ActivityFacts(challengeWon: true), today);
+
+      expect(earned(without, BadgeId.challengeWinner), isFalse);
+      expect(earned(won, BadgeId.challengeWinner), isTrue);
+    });
+
     test('every badge has a name and a way to win it', () {
       for (final id in BadgeId.values) {
         expect(badgeTitle(id), isNotEmpty);

@@ -264,6 +264,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       final amount = entry.amount;
       if (amount != null) _setAmountText(poishaToInput(amount));
       if (entry.note.isNotEmpty) _note.text = entry.note;
+      final day = entry.day;
+      if (day != null) _day = day;
       _error = null;
       _notice = tr('Filled in. Check it and save.');
     });
@@ -718,7 +720,11 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       if (_isAdding && widget.payCardId == null)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-          child: QuickTypeBar(options: options, onApply: _applyQuick),
+          child: QuickTypeBar(
+            options: options,
+            onApply: _applyQuick,
+            today: dateOnly(ref.read(clockProvider)()),
+          ),
         ),
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),

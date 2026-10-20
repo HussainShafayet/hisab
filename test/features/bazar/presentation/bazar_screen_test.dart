@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/features/bazar/data/bazar_repository.dart';
 
+import '../../../helpers/fake_file_gateway.dart';
 import '../../../helpers/fixtures.dart';
 import '../../../helpers/form_actions.dart';
 import '../../../helpers/pump_app.dart';
@@ -237,6 +239,51 @@ void main() {
       await tester.pumpAndSettle();
 
       expect((await db.bazarDao.getAllItems()).single.name, 'Rice');
+    });
+
+    testWithDatabase('shares what is still to buy as a message', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await addItem(db, 'Rice', quantity: 2, price: 12000, done: true);
+      await addItem(db, 'Oil', price: 18000);
+      final gateway = FakeFileGateway();
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+      );
+      await openBazar(tester);
+
+      await tapKey(tester, 'bazar-menu');
+      await tapKey(tester, 'bazar-menu-share');
+
+      expect(
+        gateway.sharedTexts.single,
+        'Bazar list · 11 Oct\n• Oil · ৳180.00\nAbout ৳180.00',
+      );
+    });
+
+    testWithDatabase('has nothing to share when everything is bought', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await addItem(db, 'Rice', done: true);
+      await pumpAppWithDatabase(tester, db);
+      await openBazar(tester);
+
+      await tapKey(tester, 'bazar-menu');
+
+      expect(
+        tester
+            .widget<PopupMenuItem<String>>(
+              find.byKey(const ValueKey('bazar-menu-share')),
+            )
+            .enabled,
+        isFalse,
+      );
     });
 
     testWithDatabase('removes the bought items after asking', (

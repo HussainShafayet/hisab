@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
+import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
@@ -125,6 +127,18 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
     if (yes) await ref.read(bazarRepositoryProvider).removeBought();
   }
 
+  /// Opens the share sheet with what is still to buy, as a message.
+  Future<void> _share(List<ShoppingItem> list) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref
+          .read(fileGatewayProvider)
+          .shareText(shoppingListText(list, ref.read(clockProvider)()));
+    } on Object {
+      messenger.showError(tr('Could not open the share sheet.'));
+    }
+  }
+
   Future<void> _clear(List<ShoppingItem> list) async {
     final yes = await _confirm(
       title: tr('Clear the whole list?'),
@@ -192,6 +206,8 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
             onSelected: (choice) {
               final list = items.value ?? const <ShoppingItem>[];
               switch (choice) {
+                case 'share':
+                  _share(list);
                 case 'prices':
                   context.push(AppRoutes.bazarPrices);
                 case 'bought':
@@ -203,6 +219,12 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
             itemBuilder: (context) {
               final list = items.value ?? const <ShoppingItem>[];
               return [
+                PopupMenuItem(
+                  key: const ValueKey('bazar-menu-share'),
+                  value: 'share',
+                  enabled: list.any((i) => !i.isDone),
+                  child: Text(tr('Share the list')),
+                ),
                 PopupMenuItem(
                   key: const ValueKey('bazar-menu-prices'),
                   value: 'prices',

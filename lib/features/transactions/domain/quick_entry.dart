@@ -16,6 +16,7 @@ class QuickEntry {
     this.amount,
     this.account,
     this.category,
+    this.day,
   });
 
   /// Only an expense or an income; a transfer is never typed in one line.
@@ -29,9 +30,17 @@ class QuickEntry {
   final Account? account;
   final Category? category;
 
+  /// The day the line names ("yesterday", "gotokal", "2 din age"), at
+  /// midnight. Null when it names none.
+  final DateTime? day;
+
   /// Whether the line told us nothing at all.
   bool get isEmpty =>
-      amount == null && account == null && category == null && note.isEmpty;
+      amount == null &&
+      account == null &&
+      category == null &&
+      day == null &&
+      note.isEmpty;
 }
 
 const _bengaliDigits = '০১২৩৪৫৬৭৮৯';
@@ -51,6 +60,21 @@ const _incomeWords = {
   'পেলাম',
   'পাইলাম',
 };
+
+/// Words for today, and for the day before, as people type them in English,
+/// Banglish and Bangla.
+const _todayWords = {'today', 'aj', 'aaj', 'ajke', 'আজ', 'আজকে'};
+const _yesterdayWords = {
+  'yesterday',
+  'gotokal',
+  'gatokal',
+  'gotokalke',
+  'গতকাল',
+};
+
+/// "2 din age", "3 days ago": the word for days and the word for before.
+const _dayWords = {'din', 'day', 'days', 'দিন'};
+const _agoWords = {'age', 'ago', 'আগে'};
 
 /// Words next to a number that stand for taka, thousands or lakhs.
 const _unitMultipliers = {
@@ -96,7 +120,15 @@ String _capitalised(String text) =>
 /// account picks that account, and the words that are left are matched with
 /// the categories: first by name, then by the everyday words of life in
 /// Bangladesh ("ilish" is Fish).
-QuickEntry parseQuickEntry(String text, AddTransactionOptions options) {
+///
+/// When [today] is given, the line may also name a day: "yesterday",
+/// "gotokal", "today", "aj", or "2 din age" / "3 days ago". That day is in
+/// [QuickEntry.day] and the words are not part of the note.
+QuickEntry parseQuickEntry(
+  String text,
+  AddTransactionOptions options, {
+  DateTime? today,
+}) {
   final raw = _asciiDigits(text)
       .replaceAll('৳', ' ')
       .replaceAllMapped(RegExp(r'(\d),(?=\d)'), (m) => m[1]!);
@@ -111,9 +143,33 @@ QuickEntry parseQuickEntry(String text, AddTransactionOptions options) {
   final lower = [for (final t in shown) _key(t)];
   final taken = <int>{};
 
+  // The day: taken out first, so "2" in "2 din age" is not the amount.
+  DateTime? day;
+  if (today != null) {
+    final midnight = DateTime(today.year, today.month, today.day);
+    DateTime back(int days) =>
+        DateTime(midnight.year, midnight.month, midnight.day - days);
+    for (var i = 0; i < lower.length && day == null; i++) {
+      if (_todayWords.contains(lower[i])) {
+        day = midnight;
+        taken.add(i);
+      } else if (_yesterdayWords.contains(lower[i])) {
+        day = back(1);
+        taken.add(i);
+      } else if (i + 2 < lower.length &&
+          RegExp(r'^\d{1,3}$').hasMatch(lower[i]) &&
+          _dayWords.contains(lower[i + 1]) &&
+          _agoWords.contains(lower[i + 2])) {
+        day = back(int.parse(lower[i]));
+        taken.addAll([i, i + 1, i + 2]);
+      }
+    }
+  }
+
   // The amount: the last number, with a unit before or after it.
   int? amount;
   for (var i = lower.length - 1; i >= 0 && amount == null; i--) {
+    if (taken.contains(i)) continue;
     final match = _numberToken.firstMatch(lower[i]);
     if (match == null) continue;
     var multiplier = _unitMultipliers[match.group(2)] ?? 1;
@@ -178,6 +234,7 @@ QuickEntry parseQuickEntry(String text, AddTransactionOptions options) {
     note: note,
     account: account,
     category: category,
+    day: day,
   );
 }
 

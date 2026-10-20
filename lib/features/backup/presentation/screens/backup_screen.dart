@@ -70,6 +70,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     required String text,
     required String mimeType,
     required String doneMessage,
+    required bool isBackup,
   }) async {
     final choice = await showModalBottomSheet<_Delivery>(
       context: context,
@@ -107,10 +108,17 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         mimeType: mimeType,
       );
       if (saved && mounted) _message(doneMessage);
+      if (saved && isBackup) await _markBackedUp();
     } else {
       await gateway.share(fileName: fileName, bytes: bytes, mimeType: mimeType);
+      if (isBackup) await _markBackedUp();
     }
   }
+
+  /// Remembers that a backup was made, so Home stops asking for one.
+  Future<void> _markBackedUp() => ref
+      .read(backupRepositoryProvider)
+      .markBackedUp(ref.read(clockProvider)());
 
   String _today() =>
       DateFormat('yyyy-MM-dd', 'en').format(ref.read(clockProvider)());
@@ -123,6 +131,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     required String fileName,
     required String mimeType,
     required String doneMessage,
+    bool isBackup = false,
   }) async {
     final String text;
     setState(() => _busy = true);
@@ -143,6 +152,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         text: text,
         mimeType: mimeType,
         doneMessage: doneMessage,
+        isBackup: isBackup,
       );
     } on Object catch (error) {
       if (mounted) await _problem(failureTitle, describeError(error));
@@ -159,6 +169,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
     fileName: 'hishab-backup-${_today()}.json',
     mimeType: 'application/json',
     doneMessage: tr('Backup saved.'),
+    isBackup: true,
   );
 
   Future<void> _exportCsv() => _export(
@@ -267,6 +278,12 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final last = ref.watch(backupInfoProvider).value?.lastBackup;
+    final lastBackupText = last == null
+        ? tr('No backup made yet.')
+        : tr('Last backup: {date}', {
+            'date': DateFormat('d MMM yyyy').format(last),
+          });
 
     Widget heading(String text) => Padding(
       padding: const EdgeInsets.fromLTRB(16, 20, 16, 4),
@@ -288,11 +305,11 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 leading: const Icon(Icons.save_alt),
                 title: Text(tr('Export backup')),
                 subtitle: Text(
-                  tr(
-                    'Everything in one file: accounts, categories, '
-                    'transactions and budgets.',
-                  ),
+                  '${tr('Everything in one file: accounts, categories, transactions, budgets and settings.')}\n'
+                  '$lastBackupText',
+                  key: const ValueKey('last-backup'),
                 ),
+                isThreeLine: true,
                 enabled: !_busy,
                 onTap: _exportBackup,
               ),

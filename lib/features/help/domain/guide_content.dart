@@ -75,13 +75,14 @@ const guideTopics = <GuideTopic>[
         'Add a note or the day if you like, then Save. Save & new keeps the form open for the next one.',
       ]),
       GuideSection('Faster ways', [
-        'Quick type: write one line like rickshaw 50 or bazar 450 bkash or +salary 30k, and the form fills itself.',
-        'Add several: enter a handful of transactions on one screen and save them together.',
+        'Quick type: write one line like rickshaw 50 or bazar 450 bkash or +salary 30k, and the form fills itself. Add yesterday, gotokal or 2 days ago to set the day.',
+        'Add several: enter a handful of transactions on one screen and save them together. Paste lines turns lines like rickshaw 50 into rows.',
         'Needed, Wanted or Regret on an expense lets Home show how the month felt.',
         'A tag (Trips & events) groups the expenses of a trip or an occasion.',
       ]),
       GuideSection('Finding and fixing', [
         'The Transactions tab lists everything, newest first. Use Search to find a note, category or amount, and Filter to narrow the list by type, category, account, dates, an amount range, a trip or event, or how it felt.',
+        'Each filter you set shows as a chip under the month; its cross takes just that one off. Save this filter in the sheet keeps a favourite, like "Regret over ৳500", to use again.',
         'Tap a transaction to open it, change it or delete it. Account balances follow at once.',
         'A transfer moves money between your own accounts. It is not income and not an expense.',
       ]),
@@ -143,6 +144,7 @@ const guideTopics = <GuideTopic>[
       GuideSection('Carrying over what is left', [
         'Switch on Carry over what is left on the Budget tab. Money you did not spend in a month is then added to the same budget of the next month, with a note on the card.',
         'Only what is left is carried. Overspending does not make next month smaller. A month without that budget starts again from zero.',
+        'Edit a budget and tick Do not carry over this budget to keep it out. While the switch is off, the Budget tab tells you how much last month left.',
       ]),
       GuideSection('What it feeds', [
         'Home\'s Safe to spend today uses the overall budget.',
@@ -288,7 +290,7 @@ const guideTopics = <GuideTopic>[
       ]),
       GuideSection('Finishing', [
         'Done shopping opens the add form with the ticked total and a note listing the items. Save it and the ticked items leave the list.',
-        'The menu at the top has Remembered prices to see, add, edit or remove prices, Remove bought items and Clear the list.',
+        'The menu at the top has Share the list, which sends what is still to buy as a message, Remembered prices to see, add, edit or remove prices, Remove bought items and Clear the list.',
       ]),
     ],
   ),
@@ -353,7 +355,8 @@ const guideTopics = <GuideTopic>[
       GuideSection('Starting one', steps: true, [
         'Open More > Challenges and press New challenge.',
         'Choose Spend nothing or Stay under a limit, what it is about (all spending, or a category like Rickshaw), and how long.',
-        'The name is made for you. Change it if you like.',
+        'The Quick start buttons fill it for you: a no-spend day, weekend or week.',
+        'The name is made for you. Change it if you like. Start again when it ends repeats the same challenge.',
       ]),
       GuideSection('How it is decided', [
         'Only expenses count. Transfers and balance corrections do not. A category counts what is inside it too.',
@@ -377,8 +380,10 @@ const guideTopics = <GuideTopic>[
         'The daily reminder nudges you in the evening if you have not written anything. The wrapped alert tells you when your month is ready.',
       ]),
       GuideSection('Seeing what came', steps: true, [
-        'Open More > Notifications. Sent lists what already came, newest first. Coming up lists what is set to show later.',
+        'Tap the bell at the top of Home. The number on it counts what you have not opened. Sent lists what already came, newest first. Coming up lists what is set to show later.',
+        'Tap a notification to mark it read and go to the screen it is about. The double tick at the top marks them all as read.',
         'A reminder moves to Sent once its time has passed. If notifications were blocked on your phone, it did not show.',
+        'A tap on a notification on your phone opens the screen it is about.',
         'The clear button empties Sent and leaves Coming up alone. The last 200 are kept, for up to 90 days.',
       ]),
       GuideSection('Controlling them', steps: true, [
@@ -397,7 +402,8 @@ const guideTopics = <GuideTopic>[
     route: AppRoutes.backup,
     sections: [
       GuideSection('What you can do', [
-        'Export a backup saves everything to one file. Keep it somewhere safe, like your email or a cloud drive.',
+        'Export a backup saves everything to one file, your settings too. Keep it somewhere safe, like your email or a cloud drive.',
+        'The screen shows when you last made one, and Home reminds you after two weeks.',
         'Restore from a backup replaces what is on this phone with the file. Do it on a new phone or after a reset.',
         'Export CSV gives a spreadsheet of your transactions. Import CSV brings in a sheet from another app.',
       ]),
@@ -420,7 +426,14 @@ const guideTopics = <GuideTopic>[
         'Theme follows the phone, or stays light or dark.',
         'Amount entry chooses a plain number keyboard or the calculator keypad for new transactions.',
         'Default account is the wallet a new transaction starts with. Week starts on decides what "this week" means.',
+        'Text size makes the letters bigger or smaller, on top of your phone\'s own setting.',
+        'Hide balances on Home shows dots instead of your balances when someone is looking. The eye on Home does the same.',
         'Fun mode and the Alerts section are here too.',
+      ]),
+      GuideSection('Your data', [
+        'Remind me to back up shows a card on Home after two weeks without a backup.',
+        'Delete all data empties the app like a new install. Export a backup first if you may want anything back.',
+        'Open-source licenses lists the libraries the app is built with.',
       ]),
     ],
   ),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
+import 'package:hishab/features/notifications/presentation/widgets/notification_bell.dart';
 
 /// The "More" tab: entry points to everything that is not a main tab, in
 /// groups, each with a line saying what it is for.
@@ -11,7 +12,10 @@ class MoreScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(tr('More'))),
+      appBar: AppBar(
+        title: Text(tr('More')),
+        actions: const [NotificationBell()],
+      ),
       body: ListView(
         padding: const EdgeInsets.only(bottom: 24),
         children: [
@@ -118,12 +122,6 @@ class MoreScreen extends StatelessWidget {
             title: tr('Backup & export'),
             subtitle: tr('Keep your data safe'),
             route: AppRoutes.backup,
-          ),
-          _MoreTile(
-            icon: Icons.notifications_outlined,
-            title: tr('Notifications'),
-            subtitle: tr('What was sent and what is coming'),
-            route: AppRoutes.notifications,
           ),
           _MoreTile(
             icon: Icons.settings_outlined,

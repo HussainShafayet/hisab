@@ -30,7 +30,7 @@ void main() {
       find.text('Write an entry today to start a streak!'),
       findsOneWidget,
     );
-    expect(find.text('0 of 11 badges'), findsOneWidget);
+    expect(find.text('0 of 12 badges'), findsOneWidget);
   });
 
   testWithDatabase('Home shows the streak and the spend-free days', (
@@ -62,7 +62,7 @@ void main() {
     expect(find.text('Badges'), findsWidgets);
     expect(find.text('First step'), findsOneWidget);
     expect(find.byKey(const ValueKey('badges-count')), findsOneWidget);
-    expect(find.text('1 of 11 badges'), findsOneWidget);
+    expect(find.text('1 of 12 badges'), findsOneWidget);
   });
 
   testWithDatabase('there is no streak card when Fun mode is off', (

@@ -24,6 +24,19 @@ enum WeekStart {
   final int weekday;
 }
 
+/// How big the letters of the app are, on top of the phone's own setting.
+enum TextSize {
+  small(0.9),
+  normal(1.0),
+  large(1.15),
+  extraLarge(1.3);
+
+  const TextSize(this.scale);
+
+  /// What the size of every text is multiplied by.
+  final double scale;
+}
+
 /// The names under which preferences are saved. Never rename one without a
 /// migration.
 abstract final class PreferenceKeys {
@@ -40,6 +53,9 @@ abstract final class PreferenceKeys {
   static const dailyReminder = 'daily_reminder';
   static const dailyReminderMinutes = 'daily_reminder_minutes';
   static const budgetRollover = 'budget_rollover';
+  static const textSize = 'text_size';
+  static const hideBalances = 'hide_balances';
+  static const backupReminder = 'backup_reminder';
 }
 
 /// What the user chose in Settings.
@@ -58,6 +74,9 @@ class AppPreferences {
     this.dailyReminder = false,
     this.dailyReminderMinutes = 21 * 60,
     this.budgetRollover = false,
+    this.textSize = TextSize.normal,
+    this.hideBalances = false,
+    this.backupReminder = true,
   });
 
   static const defaults = AppPreferences();
@@ -96,6 +115,15 @@ class AppPreferences {
   /// budget of the next month.
   final bool budgetRollover;
 
+  /// The size of the letters, on top of the phone's own setting.
+  final TextSize textSize;
+
+  /// Home shows dots instead of the balances.
+  final bool hideBalances;
+
+  /// A card on Home asks for a backup when it has been two weeks.
+  final bool backupReminder;
+
   AppPreferences copyWith({
     ThemePreference? theme,
     AppLanguage? language,
@@ -110,6 +138,9 @@ class AppPreferences {
     bool? dailyReminder,
     int? dailyReminderMinutes,
     bool? budgetRollover,
+    TextSize? textSize,
+    bool? hideBalances,
+    bool? backupReminder,
   }) => AppPreferences(
     theme: theme ?? this.theme,
     language: language ?? this.language,
@@ -126,6 +157,9 @@ class AppPreferences {
     dailyReminder: dailyReminder ?? this.dailyReminder,
     dailyReminderMinutes: dailyReminderMinutes ?? this.dailyReminderMinutes,
     budgetRollover: budgetRollover ?? this.budgetRollover,
+    textSize: textSize ?? this.textSize,
+    hideBalances: hideBalances ?? this.hideBalances,
+    backupReminder: backupReminder ?? this.backupReminder,
   );
 
   /// Reads saved preferences. Anything missing or not understood (a value
@@ -173,6 +207,15 @@ class AppPreferences {
       ),
       // Off until the person turns it on.
       budgetRollover: saved[PreferenceKeys.budgetRollover] == 'true',
+      textSize: pick(
+        TextSize.values,
+        PreferenceKeys.textSize,
+        defaults.textSize,
+      ),
+      // Off until the person turns it on.
+      hideBalances: saved[PreferenceKeys.hideBalances] == 'true',
+      // Only an explicit "false" turns it off.
+      backupReminder: saved[PreferenceKeys.backupReminder] != 'false',
     );
   }
 
@@ -192,6 +235,9 @@ class AppPreferences {
     PreferenceKeys.dailyReminder: dailyReminder.toString(),
     PreferenceKeys.dailyReminderMinutes: dailyReminderMinutes.toString(),
     PreferenceKeys.budgetRollover: budgetRollover.toString(),
+    PreferenceKeys.textSize: textSize.name,
+    PreferenceKeys.hideBalances: hideBalances.toString(),
+    PreferenceKeys.backupReminder: backupReminder.toString(),
   };
 
   /// A saved time of day, or [fallback] when it is missing or not a time.
@@ -217,7 +263,10 @@ class AppPreferences {
       other.wrappedAlert == wrappedAlert &&
       other.dailyReminder == dailyReminder &&
       other.dailyReminderMinutes == dailyReminderMinutes &&
-      other.budgetRollover == budgetRollover;
+      other.budgetRollover == budgetRollover &&
+      other.textSize == textSize &&
+      other.hideBalances == hideBalances &&
+      other.backupReminder == backupReminder;
 
   @override
   int get hashCode => Object.hash(
@@ -234,5 +283,8 @@ class AppPreferences {
     dailyReminder,
     dailyReminderMinutes,
     budgetRollover,
+    textSize,
+    hideBalances,
+    backupReminder,
   );
 }
