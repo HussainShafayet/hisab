@@ -11,6 +11,7 @@ typedef BudgetWithSpent = ({
   int id,
   int amount,
   int spent,
+  bool noCarry,
   int? categoryId,
   String? categoryName,
   String? categoryIcon,
@@ -85,7 +86,7 @@ class BudgetsDao extends DatabaseAccessor<AppDatabase> with _$BudgetsDaoMixin {
         'AND t.date >= ? AND t.date < ? $extraCondition)';
 
     return customSelect(
-      '${categoryTreeCte}SELECT b.id, b.amount, b.category_id, '
+      '${categoryTreeCte}SELECT b.id, b.amount, b.no_carry, b.category_id, '
       'c.name AS category_name, c.icon AS category_icon, '
       'c.color AS category_color, '
       'CASE WHEN b.category_id IS NULL THEN ${spent('')} '
@@ -111,6 +112,7 @@ class BudgetsDao extends DatabaseAccessor<AppDatabase> with _$BudgetsDaoMixin {
         id: row.read<int>('id'),
         amount: row.read<int>('amount'),
         spent: row.read<int>('spent'),
+        noCarry: row.read<bool>('no_carry'),
         categoryId: row.readNullable<int>('category_id'),
         categoryName: row.readNullable<String>('category_name'),
         categoryIcon: row.readNullable<String>('category_icon'),

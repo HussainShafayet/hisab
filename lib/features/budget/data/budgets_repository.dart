@@ -47,6 +47,27 @@ class BudgetsRepository {
     return null;
   }
 
+  /// How much of the overall budget of the month before [month] was left,
+  /// whether carrying over is on or not: that month's limit less its spending
+  /// (without what it got itself), or zero when nothing was left or it had no
+  /// overall budget. For the hint on the Budget tab when carrying over is off.
+  Future<int> leftoverLastMonth(DateTime month) async {
+    final previous = addMonths(monthStart(month), -1);
+    final range = monthRange(previous);
+    final rows = await _db.budgetsDao.getForMonthWithSpent(
+      monthKey(previous),
+      range.start,
+      range.end,
+    );
+    for (final row in rows) {
+      if (row.categoryId == null) {
+        final left = row.amount - row.spent;
+        return left > 0 ? left : 0;
+      }
+    }
+    return 0;
+  }
+
   /// What each budget of [month] gets from the months before, by category id
   /// (null: the overall budget). Empty when carrying over is off.
   ///
@@ -69,6 +90,8 @@ class BudgetsRepository {
       );
       final next = <int?, int>{};
       for (final row in rows) {
+        // A budget set to carry nothing breaks the chain.
+        if (row.noCarry) continue;
         final left = row.amount + (carried[row.categoryId] ?? 0) - row.spent;
         if (left > 0) next[row.categoryId] = left;
       }
@@ -83,6 +106,7 @@ class BudgetsRepository {
     required DateTime month,
     required int amount,
     int? categoryId,
+    bool? noCarry,
   }) {
     return _db.transaction(() async {
       if (amount <= 0) {
@@ -94,7 +118,12 @@ class BudgetsRepository {
         categoryId,
       );
       if (existing != null) {
-        await _db.budgetsDao.updateBudget(existing.copyWith(amount: amount));
+        await _db.budgetsDao.updateBudget(
+          existing.copyWith(
+            amount: amount,
+            noCarry: noCarry ?? existing.noCarry,
+          ),
+        );
         return;
       }
       if (categoryId != null) await _requireBudgetCategory(categoryId);
@@ -103,6 +132,7 @@ class BudgetsRepository {
           month: key,
           amount: amount,
           categoryId: Value(categoryId),
+          noCarry: Value(noCarry ?? false),
         ),
       );
     });
@@ -143,6 +173,7 @@ class BudgetsRepository {
             month: key,
             amount: row.amount,
             categoryId: Value(row.categoryId),
+            noCarry: Value(row.noCarry),
           ),
         );
         copied++;
@@ -169,7 +200,7 @@ class BudgetsRepository {
   }
 
   BudgetItem _toBudgetItem(BudgetWithSpent row, Map<int?, int> carried) {
-    final carriedOver = carried[row.categoryId] ?? 0;
+    final carriedOver = row.noCarry ? 0 : (carried[row.categoryId] ?? 0);
     return BudgetItem(
       id: row.id,
       categoryId: row.categoryId,
@@ -178,6 +209,7 @@ class BudgetsRepository {
       categoryColor: row.categoryColor,
       limit: row.amount + carriedOver,
       carriedOver: carriedOver,
+      noCarry: row.noCarry,
       spent: row.spent,
     );
   }

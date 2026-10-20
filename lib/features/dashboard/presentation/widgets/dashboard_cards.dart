@@ -16,18 +16,20 @@ import 'package:hishab/features/budget/presentation/widgets/budget_cards.dart';
 import 'package:hishab/features/budget/presentation/widgets/budget_progress_bar.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
 import 'package:hishab/features/reports/domain/category_total.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 
 /// The balance of all accounts, big, at the top of Home.
-class TotalBalanceCard extends StatelessWidget {
+class TotalBalanceCard extends ConsumerWidget {
   const TotalBalanceCard({required this.balance, super.key});
 
   final int balance;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final hidden = ref.watch(preferencesProvider.select((p) => p.hideBalances));
 
     final primary = theme.colorScheme.primary;
 
@@ -66,18 +68,42 @@ class TotalBalanceCard extends StatelessWidget {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: AnimatedAmount(
-                          poisha: balance,
-                          style: theme.textTheme.displaySmall?.tabular.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: balance < 0
-                                ? const Color(0xFFFFE082)
-                                : Colors.white,
-                          ),
-                        ),
+                        child: hidden
+                            ? Text(
+                                hiddenAmountText,
+                                key: const ValueKey('balance-hidden'),
+                                style: theme.textTheme.displaySmall?.tabular
+                                    .copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
+                              )
+                            : AnimatedAmount(
+                                poisha: balance,
+                                style: theme.textTheme.displaySmall?.tabular
+                                    .copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      color: balance < 0
+                                          ? const Color(0xFFFFE082)
+                                          : Colors.white,
+                                    ),
+                              ),
                       ),
                     ],
                   ),
+                ),
+                IconButton(
+                  key: const ValueKey('toggle-balances'),
+                  tooltip: hidden ? tr('Show balances') : tr('Hide balances'),
+                  icon: Icon(
+                    hidden
+                        ? Icons.visibility_outlined
+                        : Icons.visibility_off_outlined,
+                    color: const Color(0xCCFFFFFF),
+                  ),
+                  onPressed: () => ref
+                      .read(settingsRepositoryProvider)
+                      .update((p) => p.copyWith(hideBalances: !hidden)),
                 ),
                 const Icon(Icons.chevron_right, color: Color(0xCCFFFFFF)),
               ],
@@ -514,6 +540,9 @@ class WalletStrip extends ConsumerWidget {
         ref.watch(accountsProvider(false)).value ??
         const <AccountWithBalance>[];
     if (accounts.isEmpty) return const SizedBox.shrink();
+    final hideBalances = ref.watch(
+      preferencesProvider.select((p) => p.hideBalances),
+    );
 
     // Taller when the text is larger, so a card never overflows. A credit card
     // has a limit bar under its name, so it needs more room.
@@ -533,6 +562,7 @@ class WalletStrip extends ConsumerWidget {
           child: AccountCard(
             account: accounts[index].account,
             balance: accounts[index].balance,
+            hideBalance: hideBalances,
             onTap: () =>
                 context.push(AppRoutes.editAccount(accounts[index].account.id)),
           ),

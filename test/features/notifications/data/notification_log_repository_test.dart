@@ -163,4 +163,50 @@ void main() {
       expect((await all()).map((n) => n.title), ['Recent']);
     });
   });
+
+  group('seen', () {
+    test('a new notification is not seen', () async {
+      await repo.recordShown(reminder(1, now), now);
+      await repo.syncScheduled([reminder(2, DateTime(2026, 10, 12, 9))], now);
+
+      expect((await all()).every((n) => !n.seen), isTrue);
+    });
+
+    test('markSeen marks just that one', () async {
+      await repo.recordShown(reminder(1, now, title: 'One'), now);
+      await repo.recordShown(reminder(2, now, title: 'Two'), now);
+      final first = (await all()).firstWhere((n) => n.title == 'One');
+
+      await repo.markSeen(first.id);
+
+      final byTitle = {for (final n in await all()) n.title: n.seen};
+      expect(byTitle, {'One': true, 'Two': false});
+    });
+
+    test(
+      'markAllSeen marks what has shown, not what is still to come',
+      () async {
+        await repo.recordShown(reminder(1, now, title: 'Shown'), now);
+        await repo.syncScheduled([
+          reminder(2, DateTime(2026, 10, 12, 9), title: 'Later'),
+        ], now);
+
+        await repo.markAllSeen(now);
+
+        final byTitle = {for (final n in await all()) n.title: n.seen};
+        expect(byTitle, {'Shown': true, 'Later': false});
+      },
+    );
+
+    test('a reminder that is synced again keeps its place, unseen', () async {
+      await repo.syncScheduled([
+        reminder(1, DateTime(2026, 10, 12, 9), title: 'Later'),
+      ], now);
+      await repo.syncScheduled([
+        reminder(1, DateTime(2026, 10, 12, 9), title: 'Later'),
+      ], now);
+
+      expect(await all(), hasLength(1));
+    });
+  });
 }

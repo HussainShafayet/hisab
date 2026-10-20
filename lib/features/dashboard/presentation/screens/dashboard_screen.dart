@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/utils/clock.dart';
+import 'package:hishab/features/backup/presentation/widgets/backup_reminder_card.dart';
 import 'package:hishab/features/challenges/presentation/widgets/challenge_home_card.dart';
 import 'package:hishab/features/fun/presentation/widgets/takka_card.dart';
 import 'package:hishab/features/fun/domain/quips.dart';
@@ -28,6 +29,7 @@ import 'package:hishab/features/goals/presentation/widgets/festival_home_card.da
 import 'package:hishab/features/debts/presentation/widgets/loans_home_card.dart';
 import 'package:hishab/features/insights/presentation/widgets/insights_card.dart';
 import 'package:hishab/features/investments/presentation/widgets/investments_home_card.dart';
+import 'package:hishab/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
 import 'package:hishab/features/recurring/presentation/widgets/due_recurring_card.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
@@ -45,7 +47,7 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(tr('Home')),
-        actions: const [HelpButton('home')],
+        actions: const [NotificationBell(), HelpButton('home')],
       ),
       body: dashboard.when(
         loading: () => const LoadingView(),
@@ -92,6 +94,7 @@ class _DashboardContent extends ConsumerWidget {
       padding: const EdgeInsets.only(bottom: 96),
       children: _arriving([
         const WelcomeCard(),
+        const BackupReminderCard(),
         TakkaCard(inputs: quipInputs),
         const WrappedHomeCard(),
         const StreakCard(),

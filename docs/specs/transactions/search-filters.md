@@ -17,6 +17,22 @@ The sheet now also has:
 The filter button shows how many options are set; the amount range counts as
 one, whichever ends are filled. **Clear all** drops them with the others.
 
+### Chips under the app bar
+Each option that is set (type, category, account, amount range, trip or event,
+feeling) shows as a chip under the month switcher, named by what it is (*Rickshaw*,
+*From ৳500.00*, *৳100.00 – ৳900.00*, *Regret*). The cross on a chip takes off
+just that option (`FilterChips`, `TransactionFilter.without`). The date range
+keeps its own banner. The list and its totals at the top follow the filter.
+
+### Saved filters
+The sheet has **Save this filter**: it asks for a name (at most 30 letters)
+and keeps the options of the sheet (not the dates or the search text) so they
+can be used again, like *Regret over ৳500*. The saved ones show as chips under
+*Saved filters* at the top of the sheet: a tap puts its options on the sheet
+(then *Apply*), the cross deletes it. At least one option is needed to save
+(*Pick at least one option to save.*). Saving under a name that exists (any
+case) replaces it; at most 10 are kept and the oldest go first.
+
 ## Rules
 - `TransactionFilter` has `minAmount` and `maxAmount` (poisha), `tagId` and
   `feeling`; `applyTransactionFilter` keeps what matches all of them together
@@ -27,9 +43,13 @@ one, whichever ends are filled. **Clear all** drops them with the others.
   sheet stays open with the message, which goes away when typing again.
 - The search text is kept when the options change, and the new options are
   kept when the search text changes or the date range is cleared.
+- Saved filters live in the app settings under `saved_filters` (JSON), so a
+  backup holds them. A damaged entry is skipped when reading.
 - The sheet does not wait for the tags to load; the drop-down appears when
   they are there.
 
 ## Tests
 - `test/features/transactions/domain/transaction_filter_test.dart`
+- `test/features/transactions/domain/saved_filter_test.dart`
 - `test/features/transactions/presentation/filter_sheet_test.dart`
+- `test/features/transactions/presentation/filter_chips_test.dart`

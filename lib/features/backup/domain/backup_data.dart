@@ -1,5 +1,6 @@
 import 'dart:convert';
 
+import 'package:hishab/features/backup/domain/backup_settings.dart';
 import 'package:hishab/features/challenges/domain/challenge.dart';
 import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/core/l10n/translator.dart';
@@ -30,7 +31,8 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 /// none of what came after it, and is read as having none.
 /// 11: business investments (`investments`, `investmentEntries`).
 /// 12: spending challenges (`challenges`).
-const backupFormatVersion = 12;
+/// 13: the settings the person chose (`settings`).
+const backupFormatVersion = 13;
 
 const _appId = 'hishab';
 
@@ -78,6 +80,22 @@ bool _bool(
   if (value is bool) return value;
   if (value == null && orElse != null) return orElse;
   _damaged('$where has no true/false "$key".');
+}
+
+/// The settings object of a backup: names to text. Missing is empty.
+Map<String, String> _settings(Object? value) {
+  if (value == null) return const {};
+  if (value is! Map<String, Object?>) _damaged('"settings" is not an object.');
+  if (value.length > maxBackupSettings) {
+    _damaged('there are too many settings.');
+  }
+  final settings = <String, String>{};
+  for (final entry in value.entries) {
+    final text = entry.value;
+    if (text is! String) _damaged('the setting "${entry.key}" is not text.');
+    settings[entry.key] = text;
+  }
+  return settings;
 }
 
 /// A list that may be missing, which is read as empty.
@@ -302,6 +320,7 @@ class BackupBudget {
     required this.month,
     required this.categoryId,
     required this.amount,
+    this.noCarry = false,
   });
 
   factory BackupBudget.fromJson(Map<String, Object?> json) {
@@ -311,6 +330,7 @@ class BackupBudget {
       month: _string(json, 'month', where),
       categoryId: _intOrNull(json, 'categoryId', where),
       amount: _int(json, 'amount', where),
+      noCarry: json['noCarry'] == true,
     );
   }
 
@@ -323,11 +343,15 @@ class BackupBudget {
   /// In poisha.
   final int amount;
 
+  /// Takes nothing from the months before and passes nothing on.
+  final bool noCarry;
+
   Map<String, Object?> toJson() => {
     'id': id,
     'month': month,
     'categoryId': categoryId,
     'amount': amount,
+    'noCarry': noCarry,
   };
 }
 
@@ -679,6 +703,7 @@ class BackupChallenge {
     required this.startDate,
     required this.endDate,
     required this.createdAt,
+    this.repeats = false,
   });
 
   factory BackupChallenge.fromJson(Map<String, Object?> json) {
@@ -692,6 +717,7 @@ class BackupChallenge {
       startDate: _date(json, 'startDate', where),
       endDate: _date(json, 'endDate', where),
       createdAt: _date(json, 'createdAt', where),
+      repeats: json['repeats'] == true,
     );
   }
 
@@ -708,10 +734,14 @@ class BackupChallenge {
   final DateTime endDate;
   final DateTime createdAt;
 
+  /// Starts again when it is over.
+  final bool repeats;
+
   Map<String, Object?> toJson() => {
     'id': id,
     'title': title,
     'kind': kind,
+    'repeats': repeats,
     'categoryId': categoryId,
     'limit': limit,
     'startDate': _iso(startDate),
@@ -915,6 +945,7 @@ class BackupData {
     this.investments = const [],
     this.investmentEntries = const [],
     this.challenges = const [],
+    this.settings = const {},
   });
 
   /// Reads and checks backup text. Throws a [ValidationException] that says
@@ -1014,6 +1045,7 @@ class BackupData {
         for (final item in _optionalList(json, 'challenges'))
           BackupChallenge.fromJson(_object(item, 'A challenge')),
       ],
+      settings: _settings(json['settings']),
     );
     data._checkLinks();
     return data;
@@ -1037,6 +1069,9 @@ class BackupData {
   final List<BackupInvestmentEntry> investmentEntries;
   final List<BackupChallenge> challenges;
 
+  /// The settings by name, as saved text. An older file has none.
+  final Map<String, String> settings;
+
   Map<String, Object?> toJson() => {
     'app': _appId,
     'formatVersion': backupFormatVersion,
@@ -1057,6 +1092,7 @@ class BackupData {
     'investments': [for (final i in investments) i.toJson()],
     'investmentEntries': [for (final e in investmentEntries) e.toJson()],
     'challenges': [for (final c in challenges) c.toJson()],
+    'settings': settings,
   };
 
   /// The categories with every category after the one it is inside, so they

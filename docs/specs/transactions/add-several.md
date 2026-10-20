@@ -16,6 +16,17 @@ and save them with one tap, instead of walking through the form once for each.
   transfer), the second account (transfer only) and a note. Rows may use the
   same accounts and categories or different ones. One date (Today / Yesterday /
   a picked day) is shared by all rows.
+- **Paste lines** (the clipboard button in the app bar) opens a box for
+  lines, one entry on each: `rickshaw 50`, `lunch 120 bkash`, `+salary 30k`.
+  *Paste from the clipboard* adds what the phone has copied. *Add rows* makes
+  a row of each line, read like the quick-type line of the add form
+  (`draftsFromLines`, `parseQuickEntry`): the amount, the account word (else
+  the account of the last row), the category and the note. Blank rows give
+  way, the rows already filled in stay, a line with no amount still makes a
+  row to finish, and a line with nothing in it is skipped. A notice at the
+  top says *Added 3 rows. Check them and save.* (not a snack bar, which
+  would cover the Save button) or *Nothing to add: write one entry on each
+  line.* A day word in a line is not read: the rows share the date.
 - Fee, tag, feeling and dollars are not on this screen; use the single form.
 - Texts follow the rows: the row title names its type and number
   (*Row 2 · Transfer*), the button says *Save* for one row and *Save all 3*

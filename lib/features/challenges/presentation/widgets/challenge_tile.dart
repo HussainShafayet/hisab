@@ -80,7 +80,8 @@ class ChallengeTile extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      '$scope · ${_period()}',
+                      '$scope · ${_period()}'
+                      '${item.challenge.repeats ? ' · ${tr('Repeats')}' : ''}',
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),

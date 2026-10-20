@@ -19,6 +19,7 @@ IconData _iconOf(BadgeId id) => switch (id) {
   BadgeId.goalReached => Icons.star_outline,
   BadgeId.loanSettled => Icons.handshake_outlined,
   BadgeId.goldKeeper => Icons.diamond_outlined,
+  BadgeId.challengeWinner => Icons.military_tech_outlined,
 };
 
 /// Takka's badges: the streaks, and every badge with how to win it. The ones

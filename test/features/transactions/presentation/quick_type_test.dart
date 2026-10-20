@@ -83,4 +83,38 @@ void main() {
       expect(find.byKey(const ValueKey('quick-type-preview')), findsNothing);
     });
   });
+
+  group('a day in the quick-type line', () {
+    testWithDatabase('shows the day and sets it in the form', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+
+      await tester.enterText(quickField, 'transport 50 gotokal');
+      await tester.pump();
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('quick-type-preview')),
+          matching: find.text('Yesterday'),
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(quickApply);
+      await tester.pumpAndSettle();
+
+      final yesterday = find.widgetWithText(ChoiceChip, 'Yesterday');
+      expect(tester.widget<ChoiceChip>(yesterday).selected, isTrue);
+      expect(
+        tester
+            .widget<ChoiceChip>(find.widgetWithText(ChoiceChip, 'Today'))
+            .selected,
+        isFalse,
+      );
+    });
+  });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -248,6 +249,174 @@ void main() {
       await tapKey(tester, 'row-remove-1');
       expect(find.text('Row 2 · Expense'), findsNothing);
       expect(find.byKey(const ValueKey('row-remove-0')), findsNothing);
+    });
+  });
+
+  group('Paste lines', () {
+    Future<void> pasteLines(WidgetTester tester, String text) async {
+      await tapKey(tester, 'paste-lines');
+      await tester.enterText(find.byKey(const ValueKey('paste-field')), text);
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('paste-add')));
+      await tester.pumpAndSettle();
+    }
+
+    testWithDatabase('makes a row of each line, and they can be saved', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddSeveral(tester);
+
+      await pasteLines(tester, 'transport 50\nfood 120 bkash\n+salary 30k');
+
+      // The empty first row gave way, so there are three rows.
+      expect(find.text('Added 3 rows. Check them and save.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('row-amount-2')), findsOneWidget);
+      expect(find.byKey(const ValueKey('row-amount-3')), findsNothing);
+      expect(saveButtonText('Save all 3'), findsOneWidget);
+
+      await tapKey(tester, 'save-all');
+
+      final rows = await savedRows(db);
+      expect(rows, hasLength(3));
+      expect(rows.map((r) => r.amount).toList()..sort(), [
+        5000,
+        12000,
+        3000000,
+      ]);
+      final byAmount = {for (final r in rows) r.amount: r};
+      expect(byAmount[5000]!.categoryId, b.transport);
+      expect(byAmount[5000]!.accountId, b.cash);
+      expect(byAmount[12000]!.categoryId, b.food);
+      expect(byAmount[12000]!.accountId, b.bkash);
+      expect(byAmount[3000000]!.type, TransactionType.income);
+      expect(byAmount[3000000]!.categoryId, b.salary);
+    });
+
+    testWithDatabase('keeps the rows that were already filled in', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddSeveral(tester);
+      await fillAmount(tester, 0, '777');
+
+      await pasteLines(tester, 'food 120');
+
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('row-amount-0')))
+            .controller!
+            .text,
+        '777',
+      );
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('row-amount-1')))
+            .controller!
+            .text,
+        '120',
+      );
+      expect(find.text('Added 1 row. Check it and save.'), findsOneWidget);
+    });
+
+    testWithDatabase('a line with no amount makes a row to finish', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddSeveral(tester);
+
+      await pasteLines(tester, 'transport');
+      await tapKey(tester, 'save-all');
+
+      // The row stays, with its reason; nothing was saved.
+      expect(await savedRows(db), isEmpty);
+      expect(find.text('Enter an amount.'), findsOneWidget);
+    });
+
+    testWithDatabase('says so when no line has anything in it', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddSeveral(tester);
+
+      await pasteLines(tester, '৳ \n ৳');
+
+      expect(
+        find.text('Nothing to add: write one entry on each line.'),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('row-amount-1')), findsNothing);
+    });
+
+    testWithDatabase('Add rows is off until something is written', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddSeveral(tester);
+
+      await tapKey(tester, 'paste-lines');
+
+      expect(
+        tester
+            .widget<FilledButton>(find.byKey(const ValueKey('paste-add')))
+            .onPressed,
+        isNull,
+      );
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('paste-field')), findsNothing);
+    });
+
+    testWithDatabase('the clipboard can be pasted into the box', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        (call) async => call.method == 'Clipboard.getData'
+            ? <String, Object?>{'text': 'food 80\nfood 90'}
+            : null,
+      );
+      addTearDown(
+        () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+          SystemChannels.platform,
+          null,
+        ),
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openAddSeveral(tester);
+
+      await tapKey(tester, 'paste-lines');
+      await tester.tap(find.byKey(const ValueKey('paste-clipboard')));
+      await tester.pumpAndSettle();
+
+      expect(
+        tester
+            .widget<TextField>(find.byKey(const ValueKey('paste-field')))
+            .controller!
+            .text,
+        'food 80\nfood 90',
+      );
+      await tester.tap(find.byKey(const ValueKey('paste-add')));
+      await tester.pumpAndSettle();
+      expect(saveButtonText('Save all 2'), findsOneWidget);
     });
   });
 }

@@ -7,6 +7,8 @@ import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/backup/domain/backup_data.dart';
+import 'package:hishab/features/backup/domain/backup_reminder.dart';
+import 'package:hishab/features/backup/domain/backup_settings.dart';
 import 'package:hishab/features/categories/data/category_mapper.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/metals/domain/metals.dart';
@@ -37,6 +39,7 @@ class BackupRepository {
     final investments = await _db.investmentsDao.getAllInvestments();
     final investmentEntries = await _db.investmentsDao.getAllEntries();
     final challenges = await _db.challengesDao.getAll();
+    final settings = await _db.settingsDao.getAll();
     return BackupData(
       exportedAt: now.toUtc(),
       accounts: [
@@ -93,6 +96,7 @@ class BackupRepository {
             month: b.month,
             categoryId: b.categoryId,
             amount: b.amount,
+            noCarry: b.noCarry,
           ),
       ],
       debts: [
@@ -201,6 +205,10 @@ class BackupRepository {
             createdAt: e.createdAt.toUtc(),
           ),
       ],
+      settings: {
+        for (final entry in settings.entries)
+          if (!isDeviceSetting(entry.key)) entry.key: entry.value,
+      },
       challenges: [
         for (final c in challenges)
           BackupChallenge(
@@ -211,6 +219,7 @@ class BackupRepository {
             limit: c.limitAmount,
             startDate: c.startDate.toUtc(),
             endDate: c.endDate.toUtc(),
+            repeats: c.repeats,
             createdAt: c.createdAt.toUtc(),
           ),
       ],
@@ -419,6 +428,7 @@ class BackupRepository {
                 limitAmount: c.limit,
                 startDate: c.startDate,
                 endDate: c.endDate,
+                repeats: Value(c.repeats),
                 createdAt: Value(c.createdAt),
               ),
           ]);
@@ -455,9 +465,11 @@ class BackupRepository {
                 month: b.month,
                 amount: b.amount,
                 categoryId: Value(b.categoryId),
+                noCarry: Value(b.noCarry),
               ),
           ]);
         });
+        await _replaceSettings(data.settings);
       });
     } on ValidationException {
       rethrow;
@@ -470,6 +482,54 @@ class BackupRepository {
         ),
       );
     }
+  }
+
+  /// When this phone last made a backup, and until when the reminder is put
+  /// off. Updates when either changes.
+  Stream<BackupInfo> watchInfo() => _db.settingsDao.watchAll().map(
+    (saved) => BackupInfo(
+      lastBackup: DateTime.tryParse(saved[lastBackupKey] ?? ''),
+      snoozedUntil: DateTime.tryParse(saved[backupSnoozedUntilKey] ?? ''),
+    ),
+  );
+
+  /// A backup was made at [now].
+  Future<void> markBackedUp(DateTime now) async {
+    await _db.settingsDao.put(lastBackupKey, now.toIso8601String());
+    await _db.settingsDao.put(backupSnoozedUntilKey, null);
+  }
+
+  /// Puts the reminder off for [backupSnoozeDays] days.
+  Future<void> snoozeReminder(DateTime now) => _db.settingsDao.put(
+    backupSnoozedUntilKey,
+    now.add(const Duration(days: backupSnoozeDays)).toIso8601String(),
+  );
+
+  /// Makes [saved] the settings: what the person chose before goes, and what
+  /// belongs to this phone (see [isDeviceSetting]) stays.
+  Future<void> _replaceSettings(Map<String, String> saved) async {
+    final current = await _db.settingsDao.getAll();
+    for (final key in current.keys) {
+      if (!isDeviceSetting(key)) await _db.settingsDao.put(key, null);
+    }
+    for (final entry in saved.entries) {
+      if (!isDeviceSetting(entry.key)) {
+        await _db.settingsDao.put(entry.key, entry.value);
+      }
+    }
+  }
+
+  /// Deletes everything on the phone, settings included, and puts back what a
+  /// new install has: the default accounts and categories. All or nothing.
+  Future<void> eraseEverything() {
+    return _db.transaction(() async {
+      await _deleteEverything();
+      for (final key in (await _db.settingsDao.getAll()).keys) {
+        await _db.settingsDao.put(key, null);
+      }
+      await _db.accountsDao.insertDefaults();
+      await _db.categoriesDao.insertDefaults();
+    });
   }
 
   /// Rows that others point at go last: transactions and budgets first, then

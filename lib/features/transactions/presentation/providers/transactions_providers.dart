@@ -5,8 +5,10 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+import 'package:hishab/features/transactions/data/saved_filters_repository.dart';
 import 'package:hishab/features/transactions/data/transactions_repository.dart';
 import 'package:hishab/features/transactions/domain/add_transaction_options.dart';
+import 'package:hishab/features/transactions/domain/saved_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 
 final transactionsRepositoryProvider = Provider<TransactionsRepository>(
@@ -51,3 +53,12 @@ final transactionFormDataProvider = FutureProvider.autoDispose
       );
       return TransactionFormData(options: options, source: source);
     });
+
+final savedFiltersRepositoryProvider = Provider<SavedFiltersRepository>(
+  (ref) => SavedFiltersRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// The filters the person saved, oldest first.
+final savedFiltersProvider = StreamProvider.autoDispose<List<SavedFilter>>(
+  (ref) => ref.watch(savedFiltersRepositoryProvider).watch(),
+);

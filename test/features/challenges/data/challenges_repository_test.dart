@@ -416,4 +416,116 @@ void main() {
       expect(await repo.takeNewWins([first, second], today), isTrue);
     });
   });
+
+  group('repeating', () {
+    Future<int> repeating({
+      DateTime? from,
+      DateTime? to,
+      bool repeats = true,
+      int? category,
+      int limit = 0,
+      ChallengeKind kind = ChallengeKind.noSpend,
+    }) => repo.create(
+      title: 'Every week',
+      kind: kind,
+      startDate: from ?? DateTime(2026, 10, 11),
+      endDate: to ?? DateTime(2026, 10, 17),
+      limit: limit,
+      categoryId: category,
+      repeats: repeats,
+    );
+
+    test('a challenge that repeats keeps the choice', () async {
+      final id = await repeating();
+
+      expect((await read(id)).challenge.repeats, isTrue);
+      expect((await read(await week())).challenge.repeats, isFalse);
+    });
+
+    test('starts the next round the day after it ended', () async {
+      final old = await repeating(category: food);
+
+      final made = await repo.renewRepeating(DateTime(2026, 10, 18, 9));
+
+      expect(made, 1);
+      final items = await repo.watchChallenges().first;
+      expect(items, hasLength(2));
+      final next = items.firstWhere((i) => i.challenge.id != old).challenge;
+      expect(next.title, 'Every week');
+      expect(next.startDate, DateTime(2026, 10, 18));
+      expect(next.endDate, DateTime(2026, 10, 24));
+      expect(next.categoryId, food);
+      expect(next.repeats, isTrue);
+      // The old one stops repeating; the new one carries it on.
+      expect((await read(old)).challenge.repeats, isFalse);
+    });
+
+    test('does not start another while one is running or coming', () async {
+      await repeating();
+
+      expect(await repo.renewRepeating(DateTime(2026, 10, 14)), 0);
+      expect(await repo.renewRepeating(DateTime(2026, 10, 17, 23)), 0);
+      expect(await repo.watchChallenges().first, hasLength(1));
+    });
+
+    test('does it once, however often it is asked', () async {
+      await repeating();
+
+      expect(await repo.renewRepeating(DateTime(2026, 10, 18)), 1);
+      expect(await repo.renewRepeating(DateTime(2026, 10, 18)), 0);
+      expect(await repo.renewRepeating(DateTime(2026, 10, 20)), 0);
+      expect(await repo.watchChallenges().first, hasLength(2));
+    });
+
+    test('skips the rounds that passed while the app was closed', () async {
+      await repeating();
+
+      // 25 October is the first day of the round after 18 to 24 October.
+      await repo.renewRepeating(DateTime(2026, 10, 25));
+
+      final next = (await repo.watchChallenges().first).first.challenge;
+      expect(next.startDate, DateTime(2026, 10, 25));
+      expect(next.endDate, DateTime(2026, 10, 31));
+    });
+
+    test('lands in the round that today is in', () async {
+      await repeating();
+
+      await repo.renewRepeating(DateTime(2026, 11, 20));
+
+      final next = (await repo.watchChallenges().first).first.challenge;
+      expect(next.startDate, DateTime(2026, 11, 15));
+      expect(next.endDate, DateTime(2026, 11, 21));
+    });
+
+    test('a challenge that does not repeat is left alone', () async {
+      await repeating(repeats: false);
+
+      expect(await repo.renewRepeating(DateTime(2026, 11, 30)), 0);
+    });
+
+    test('keeps the limit of a limit challenge', () async {
+      await repeating(kind: ChallengeKind.limit, limit: 250000);
+
+      await repo.renewRepeating(DateTime(2026, 10, 18));
+
+      final next = (await repo.watchChallenges().first).first.challenge;
+      expect(next.kind, ChallengeKind.limit);
+      expect(next.limit, 250000);
+    });
+
+    test('update can switch repeating on and off', () async {
+      final id = await repeating(repeats: false);
+
+      await repo.update(
+        id,
+        title: 'Every week',
+        kind: ChallengeKind.noSpend,
+        startDate: DateTime(2026, 10, 11),
+        endDate: DateTime(2026, 10, 17),
+        repeats: true,
+      );
+      expect((await read(id)).challenge.repeats, isTrue);
+    });
+  });
 }

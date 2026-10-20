@@ -11,12 +11,22 @@ written, and Home shows how it is going.
   is about and its dates, a bar, and one line on its state. The menu has
   *Edit* and *Delete* (after asking). With none, an empty state invites the
   first one. The **?** button opens the *Challenges* topic of the guide.
-- **New challenge** (or *Edit*) is a form:
+- **New challenge** (or *Edit*) is a form. A new one starts with **Quick
+  start** buttons that fill it: *No-spend day*, *No-spend weekend* (the coming
+  Friday and Saturday, or what is left of them), *No-spend week*, and *Rickshaw-free
+  week* (only when there is a category called Rickshaw). `challengePresets`.
+  The form:
   - *Spend nothing* or *Stay under a limit* (a limit adds *Spend at most*).
   - *What it is about*: *All spending* or an expense category; a category
     counts what is inside it too.
   - *How long*: 3, 7, 14 or 30 days, or *Starts on* and *Ends on* dates. The
     default is 7 days from today. Moving the start keeps the length.
+  - *Start again when it ends*: when the challenge is over, the same one
+    starts for as many days (`repeats`). It starts the day after it ended, or,
+    if the app was not opened for longer, in the round that today is in. The
+    old one stops repeating; the new one carries it on
+    (`ChallengesRepository.renewRepeating`, run with the reminders each time
+    the app opens or comes back). The card says *Repeats*.
   - *Name*: made from the choices (*No Rickshaw spending for 7 days*, *Spend
     under ৳5,000.00 in 30 days*), and kept as typed once the person writes
     their own.
@@ -27,6 +37,7 @@ written, and Home shows how it is going.
 - **Home** shows a *Challenge* card for the running challenge that ends
   soonest (with *+N more* when there are others). It is not there when none is
   running.
+- Winning a challenge earns the badge **Dare winner**.
 - A challenge that was **won** since the last visit gets confetti when the
   screen is opened (once; not when Fun mode is off, or for a win that ended
   more than a week ago).
@@ -34,7 +45,8 @@ written, and Home shows how it is going.
 ## Rules
 - A challenge is saved with: name (1 to 60 letters), kind, category (or none),
   limit (poisha; zero for no-spend), first and last day (both included, at
-  midnight), created time. Table `challenges`, schema 15.
+  midnight), whether it repeats, created time. Table `challenges`, schema 15
+  (`repeats` added in 16).
 - At most 366 days; the end cannot be before the start; a limit challenge
   needs a limit above zero; a category must exist, be an expense category and
   not be archived (a challenge keeps one that was archived later).
@@ -48,7 +60,8 @@ written, and Home shows how it is going.
   between.
 - The "cheered" mark of a win is kept in the app settings
   (`challenge_cheered_<id>`), so a win is cheered once (`takeNewWins`).
-- It is in the backup (format 12, `challenges`); an older file has none.
+- It is in the backup (format 12, `challenges`; `repeats` from 13); an older
+  file has none.
 - Fun mode does not hide the cards; it only stops the confetti and the motion.
 
 ## Tests

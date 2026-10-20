@@ -8,6 +8,7 @@ import 'package:hishab/core/l10n/bn_categories_pack.dart';
 import 'package:hishab/core/l10n/bn_challenges.dart';
 import 'package:hishab/core/l10n/bn_core.dart';
 import 'package:hishab/core/l10n/bn_daily.dart';
+import 'package:hishab/core/l10n/bn_data_privacy.dart';
 import 'package:hishab/core/l10n/bn_debts.dart';
 import 'package:hishab/core/l10n/bn_dollars.dart';
 import 'package:hishab/core/l10n/bn_entry_form.dart';
@@ -43,6 +44,7 @@ const bnStrings = <String, String>{
   ...bnChallenges,
   ...bnCore,
   ...bnDaily,
+  ...bnDataPrivacy,
   ...bnDebts,
   ...bnDollars,
   ...bnEntryForm,

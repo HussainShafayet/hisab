@@ -33,4 +33,6 @@ const bnBadges = <String, String>{
   'Reach a savings goal.': 'একটা জমানোর লক্ষ্যে পৌঁছান।',
   'Settle a loan completely.': 'একটা ধার পুরোপুরি মিটিয়ে দিন।',
   'Add a piece of gold or silver.': 'একটা সোনা বা রুপার জিনিস যোগ করুন।',
+  'Dare winner': 'চ্যালেঞ্জ জয়ী',
+  'Win a spending challenge.': 'একটি খরচের চ্যালেঞ্জ জিতুন।',
 };

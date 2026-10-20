@@ -3,6 +3,7 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/notifications/alert_kind.dart';
+import 'package:hishab/core/notifications/alert_route.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 /// A notification to show at [when] (local time).
@@ -98,13 +99,27 @@ class PluginReminderScheduler implements ReminderScheduler {
       settings: const InitializationSettings(
         android: AndroidInitializationSettings('@mipmap/ic_launcher'),
       ),
+      // A tap on a notification opens the screen it is about.
+      onDidReceiveNotificationResponse: (response) =>
+          _openPayload(response.payload),
     );
+    // The app was started by a tap on a notification.
+    final launch = await _plugin.getNotificationAppLaunchDetails();
+    if (launch?.didNotificationLaunchApp ?? false) {
+      _openPayload(launch!.notificationResponse?.payload);
+    }
     // The one channel older versions made; each kind has its own now.
     await _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
         >()
         ?.deleteNotificationChannel(channelId: 'recurring');
+  }
+
+  static void _openPayload(String? payload) {
+    if (payload != null && payload.isNotEmpty) {
+      pendingNotificationRoute.value = payload;
+    }
   }
 
   @override
@@ -131,6 +146,7 @@ class PluginReminderScheduler implements ReminderScheduler {
             android: detailsFor(reminder.kind, funSounds: funSounds),
           ),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+          payload: routeForAlert(reminder.kind),
         );
       }
     } on Object catch (error) {
@@ -150,6 +166,7 @@ class PluginReminderScheduler implements ReminderScheduler {
         notificationDetails: NotificationDetails(
           android: detailsFor(reminder.kind, funSounds: funSounds),
         ),
+        payload: routeForAlert(reminder.kind),
       );
     } on Object catch (error) {
       debugPrint('Could not show an alert: $error');

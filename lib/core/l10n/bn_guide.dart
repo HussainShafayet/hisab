@@ -46,13 +46,13 @@ const bnGuide = <String, String>{
   'Pick the category and the account. The preview under the account shows what will be left.': 'ক্যাটাগরি ও অ্যাকাউন্ট বেছে নিন। অ্যাকাউন্টের নিচের প্রিভিউতে দেখা যায় কত থাকবে।',
   'Add a note or the day if you like, then Save. Save & new keeps the form open for the next one.': 'চাইলে নোট বা তারিখ দিন, তারপর সংরক্ষণ করুন। "সংরক্ষণ করে নতুন" পরেরটার জন্য ফর্ম খোলা রাখে।',
   'Faster ways': 'দ্রুত উপায়',
-  'Quick type: write one line like rickshaw 50 or bazar 450 bkash or +salary 30k, and the form fills itself.': 'দ্রুত লেখা: rickshaw 50, bazar 450 bkash বা +salary 30k-র মতো এক লাইন লিখলেই ফর্ম নিজে ভরে যায়।',
-  'Add several: enter a handful of transactions on one screen and save them together.':
-      'একসাথে কয়েকটি: এক স্ক্রিনে কয়েকটি লেনদেন লিখে একবারে সংরক্ষণ করুন।',
+  'Quick type: write one line like rickshaw 50 or bazar 450 bkash or +salary 30k, and the form fills itself. Add yesterday, gotokal or 2 days ago to set the day.': 'দ্রুত লেখা: rickshaw 50, bazar 450 bkash বা +salary 30k-র মতো এক লাইন লিখলেই ফর্ম নিজে ভরে যায়। দিন ঠিক করতে yesterday, gotokal বা 2 days ago জুড়ে দিন।',
+  'Add several: enter a handful of transactions on one screen and save them together. Paste lines turns lines like rickshaw 50 into rows.': 'একসাথে কয়েকটি: এক স্ক্রিনে কয়েকটি লেনদেন লিখে একবারে সংরক্ষণ করুন। "লাইন পেস্ট করুন" দিয়ে rickshaw 50-এর মতো লাইন থেকে সারি হয়ে যায়।',
   'Needed, Wanted or Regret on an expense lets Home show how the month felt.': 'খরচে "দরকারি", "শখের" বা "পস্তাচ্ছি" দিলে হোম দেখাতে পারে মাসটা কেমন গেল।',
   'A tag (Trips & events) groups the expenses of a trip or an occasion.': 'ট্যাগ (ভ্রমণ ও অনুষ্ঠান) দিয়ে কোনো ভ্রমণ বা অনুষ্ঠানের খরচ একসাথে রাখা যায়।',
   'Finding and fixing': 'খোঁজা ও ঠিক করা',
   'The Transactions tab lists everything, newest first. Use Search to find a note, category or amount, and Filter to narrow the list by type, category, account, dates, an amount range, a trip or event, or how it felt.': 'লেনদেন ট্যাবে সবকিছু নতুন আগে সাজানো। নোট, ক্যাটাগরি বা টাকার অঙ্ক খুঁজতে সার্চ, আর তালিকা ছোট করতে ফিল্টার ব্যবহার করুন: ধরন, ক্যাটাগরি, অ্যাকাউন্ট, তারিখ, টাকার সীমা, ভ্রমণ বা অনুষ্ঠান, কিংবা কেমন লেগেছিল।',
+  'Each filter you set shows as a chip under the month; its cross takes just that one off. Save this filter in the sheet keeps a favourite, like "Regret over ৳500", to use again.': 'প্রতিটি ফিল্টার মাসের নিচে একটি চিপ হিসেবে দেখায়, তার ক্রস শুধু সেটি সরায়। শিটে "এই ফিল্টার সেভ করুন" দিলে পছন্দের ফিল্টার, যেমন "৫০০ টাকার বেশি আফসোস", আবার ব্যবহারের জন্য থাকে।',
   'Tap a transaction to open it, change it or delete it. Account balances follow at once.': 'লেনদেন ছুঁয়ে খুলুন, বদলান বা মুছুন। অ্যাকাউন্টের ব্যালেন্স সাথে সাথে মিলে যায়।',
   'A transfer moves money between your own accounts. It is not income and not an expense.': 'ট্রান্সফার মানে নিজের এক অ্যাকাউন্ট থেকে আরেকটিতে টাকা সরানো। এটা আয়ও না, খরচও না।',
   'Your wallets: cash, bKash, bank, cards.':
@@ -84,6 +84,7 @@ const bnGuide = <String, String>{
       'বাজেট ট্যাবে গিয়ে মাসের মোট সীমা ঠিক করুন।',
   'Carrying over what is left': 'যা বাঁচে তা পরের মাসে নেওয়া',
   'Switch on Carry over what is left on the Budget tab. Money you did not spend in a month is then added to the same budget of the next month, with a note on the card.': 'বাজেট ট্যাবে "যা বাঁচবে তা পরের মাসে নিন" চালু করুন। কোনো মাসে যে টাকা খরচ হয়নি তা পরের মাসের একই বাজেটে যোগ হবে, কার্ডে তার একটি লেখা থাকবে।',
+  'Edit a budget and tick Do not carry over this budget to keep it out. While the switch is off, the Budget tab tells you how much last month left.': 'বাজেট বদলাতে গিয়ে "এই বাজেট পরের মাসে নেবেন না" টিক দিলে সেটি বাদ থাকে। সুইচ বন্ধ থাকলে গত মাসে কত বেঁচেছিল তা বাজেট ট্যাবে বলে দেয়।',
   'Only what is left is carried. Overspending does not make next month smaller. A month without that budget starts again from zero.': 'শুধু যা বাঁচে তা-ই যায়। বেশি খরচ করলে পরের মাস ছোট হয় না। যে মাসে সেই বাজেট নেই, সেখান থেকে আবার শূন্য থেকে শুরু।',
   'Optionally set limits for single categories, like Food. Copy last month\'s budget to save time.': 'চাইলে খাবারের মতো আলাদা ক্যাটাগরির সীমাও দিন। সময় বাঁচাতে গত মাসের বাজেট কপি করুন।',
   'Bars turn amber near the limit and red once it is crossed.':
@@ -163,7 +164,7 @@ const bnGuide = <String, String>{
   'Tick what you buy. Tap a row to edit it. Each row has a menu to edit or delete, and a delete can be undone.': 'যা কিনলেন তাতে টিক দিন। সারি ছুঁয়ে বদলান। প্রতিটি সারির মেনুতে বদলানো ও মোছা আছে, মোছা ফেরানোও যায়।',
   'Finishing': 'শেষ করা',
   'Done shopping opens the add form with the ticked total and a note listing the items. Save it and the ticked items leave the list.': '"বাজার শেষ" ফর্ম খোলে টিক দেওয়া জিনিসের মোট ও নোটসহ। সংরক্ষণ করলে টিক দেওয়া জিনিস তালিকা থেকে সরে যায়।',
-  'The menu at the top has Remembered prices to see, add, edit or remove prices, Remove bought items and Clear the list.': 'উপরের মেনুতে "মনে রাখা দাম" আছে (দেখা, যোগ, বদলানো, মোছা), আর "কেনা জিনিস সরান" ও "তালিকা খালি করুন"।',
+  'The menu at the top has Share the list, which sends what is still to buy as a message, Remembered prices to see, add, edit or remove prices, Remove bought items and Clear the list.': 'ওপরের মেনুতে "তালিকা শেয়ার করুন" আছে, যা কী কেনা বাকি তা মেসেজ হিসেবে পাঠায়; আরও আছে "মনে রাখা দাম" (দাম দেখা, যোগ, বদল বা মোছা), "কেনা জিনিস সরান" আর "তালিকা খালি করুন"।',
   'A rough answer to how much zakat is due.':
       'কত যাকাত দিতে হবে তার একটি মোটামুটি উত্তর।',
   'Working it out': 'হিসাব করা',
@@ -206,16 +207,19 @@ const bnGuide = <String, String>{
   'Open More > Challenges and press New challenge.':
       'আরও > চ্যালেঞ্জসমূহ খুলে "নতুন চ্যালেঞ্জ" চাপুন।',
   'Choose Spend nothing or Stay under a limit, what it is about (all spending, or a category like Rickshaw), and how long.': '"কিছু খরচ নয়" বা "সীমার নিচে থাকুন" বেছে নিন, কিসের উপর (সব খরচ, বা রিকশার মতো একটি ক্যাটাগরি), আর কতদিন।',
-  'The name is made for you. Change it if you like.':
-      'নাম নিজে থেকেই বসে যায়। চাইলে বদলে নিন।',
+  'The Quick start buttons fill it for you: a no-spend day, weekend or week.': '"এক ছোঁয়ায় শুরু" বোতাম নিজেই ভরে দেয়: খরচহীন এক দিন, সাপ্তাহিক ছুটি বা এক সপ্তাহ।',
+  'The name is made for you. Change it if you like. Start again when it ends repeats the same challenge.': 'নাম নিজে থেকেই বসে যায়। চাইলে বদলে নিন। "শেষ হলে আবার শুরু করুন" একই চ্যালেঞ্জ আবার চালায়।',
   'How it is decided': 'কীভাবে ঠিক হয়',
   'Only expenses count. Transfers and balance corrections do not. A category counts what is inside it too.': 'শুধু খরচ ধরা হয়। ট্রান্সফার আর ব্যালেন্স ঠিক করা ধরা হয় না। ক্যাটাগরির ভেতরের গুলোও ধরা হয়।',
   'Going over the limit breaks the challenge at once, even before the last day. Staying within it to the last day wins, with confetti if Fun mode is on.': 'সীমা ছাড়ালে শেষ দিনের আগেই চ্যালেঞ্জ ভেঙে যায়। শেষ দিন পর্যন্ত সীমার মধ্যে থাকলে জয়, মজার মোড চালু থাকলে কনফেটিসহ।',
   'The running challenge that ends soonest shows on Home.':
       'যে চলমান চ্যালেঞ্জ সবচেয়ে আগে শেষ হবে সেটি হোমে দেখা যায়।',
   'Seeing what came': 'কী কী এসেছে দেখা',
-  'Open More > Notifications. Sent lists what already came, newest first. Coming up lists what is set to show later.': 'আরও > নোটিফিকেশন খুলুন। "এসেছে"-তে যা এসে গেছে তা নতুনটা আগে দেখানো হয়। "সামনে আসছে"-তে যা পরে আসবে তা থাকে।',
+  'Tap the bell at the top of Home. The number on it counts what you have not opened. Sent lists what already came, newest first. Coming up lists what is set to show later.': 'হোমের ওপরের ঘণ্টায় চাপ দিন। ওর গায়ের সংখ্যা না-খোলা নোটিফিকেশনের হিসাব। "এসেছে"-তে যা এসে গেছে তা নতুনটা আগে দেখানো হয়। "সামনে আসছে"-তে যা পরে আসবে তা থাকে।',
+  'Tap a notification to mark it read and go to the screen it is about. The double tick at the top marks them all as read.': 'নোটিফিকেশনে চাপ দিলে সেটি পড়া হয়ে যায় আর সংশ্লিষ্ট স্ক্রিনে যায়। ওপরের দুই টিক সব পড়া হিসেবে চিহ্নিত করে।',
   'A reminder moves to Sent once its time has passed. If notifications were blocked on your phone, it did not show.': 'রিমাইন্ডারের সময় পার হলে সেটি "এসেছে"-তে চলে যায়। ফোনে নোটিফিকেশন বন্ধ থাকলে সেটি আসেনি।',
+  'A tap on a notification on your phone opens the screen it is about.':
+      'ফোনের নোটিফিকেশনে চাপ দিলে সংশ্লিষ্ট স্ক্রিন খুলে যায়।',
   'The clear button empties Sent and leaves Coming up alone. The last 200 are kept, for up to 90 days.': 'মোছার বোতাম "এসেছে" খালি করে, "সামনে আসছে" ছোঁয় না। সর্বশেষ ২০০টি থাকে, সর্বোচ্চ ৯০ দিন।',
   'Open Settings > Alerts. Each alert has its own switch.':
       'সেটিংস > সতর্কতায় যান। প্রতিটি সতর্কতার আলাদা সুইচ আছে।',
@@ -225,7 +229,8 @@ const bnGuide = <String, String>{
   'Keep your data safe, move it, or open it in a spreadsheet.':
       'আপনার তথ্য নিরাপদ রাখুন, সরান, অথবা স্প্রেডশিটে খুলুন।',
   'What you can do': 'কী করা যায়',
-  'Export a backup saves everything to one file. Keep it somewhere safe, like your email or a cloud drive.': 'ব্যাকআপ এক্সপোর্ট করলে সবকিছু একটি ফাইলে সেভ হয়। ফাইলটি ইমেইল বা ক্লাউডের মতো নিরাপদ জায়গায় রাখুন।',
+  'Export a backup saves everything to one file, your settings too. Keep it somewhere safe, like your email or a cloud drive.': 'ব্যাকআপ এক্সপোর্ট করলে সেটিংসসহ সবকিছু একটি ফাইলে সেভ হয়। ফাইলটি ইমেইল বা ক্লাউড ড্রাইভের মতো নিরাপদ কোথাও রাখুন।',
+  'The screen shows when you last made one, and Home reminds you after two weeks.': 'স্ক্রিনে দেখা যায় শেষ কবে ব্যাকআপ নিয়েছেন, আর দুই সপ্তাহ পর হোম মনে করিয়ে দেয়।',
   'Restore from a backup replaces what is on this phone with the file. Do it on a new phone or after a reset.': 'ব্যাকআপ থেকে ফেরালে এই ফোনের তথ্য ফাইলের তথ্য দিয়ে বদলে যায়। নতুন ফোনে বা রিসেটের পরে এটা করুন।',
   'Export CSV gives a spreadsheet of your transactions. Import CSV brings in a sheet from another app.': 'CSV এক্সপোর্টে আপনার লেনদেনের স্প্রেডশিট পাওয়া যায়। CSV ইমপোর্টে অন্য অ্যাপের শিট আনা যায়।',
   'Be careful': 'সাবধান',
@@ -241,6 +246,12 @@ const bnGuide = <String, String>{
       'থিম ফোনের সাথে চলে, অথবা সবসময় হালকা বা গাঢ় থাকে।',
   'Amount entry chooses a plain number keyboard or the calculator keypad for new transactions.': 'টাকার ইনপুটে নতুন লেনদেনের জন্য সাধারণ নম্বর কিবোর্ড বা ক্যালকুলেটর কিপ্যাড বেছে নেওয়া যায়।',
   'Default account is the wallet a new transaction starts with. Week starts on decides what "this week" means.': '"ডিফল্ট অ্যাকাউন্ট" হলো নতুন লেনদেন যে ওয়ালেট দিয়ে শুরু হয়। "সপ্তাহ শুরু" ঠিক করে "এই সপ্তাহ" মানে কী।',
+  'Text size makes the letters bigger or smaller, on top of your phone\'s own setting.':
+      'অক্ষরের মাপ ফোনের নিজের মাপের ওপরে অক্ষর বড় বা ছোট করে।',
+  'Hide balances on Home shows dots instead of your balances when someone is looking. The eye on Home does the same.': 'কেউ দেখলে "হোমে ব্যালেন্স লুকান" ব্যালেন্সের জায়গায় বিন্দু দেখায়। হোমের চোখের চিহ্নও একই কাজ করে।',
+  'Remind me to back up shows a card on Home after two weeks without a backup.': '"ব্যাকআপের কথা মনে করান" চালু থাকলে দুই সপ্তাহ ব্যাকআপ না নিলে হোমে একটি কার্ড আসে।',
+  'Delete all data empties the app like a new install. Export a backup first if you may want anything back.': '"সব তথ্য মুছুন" অ্যাপকে নতুন ইনস্টলের মতো খালি করে দেয়। কিছু ফিরে পেতে চাইলে আগে ব্যাকআপ নিন।',
+  'Open-source licenses lists the libraries the app is built with.': '"ওপেন-সোর্স লাইসেন্স"-এ অ্যাপ যেসব লাইব্রেরি দিয়ে তৈরি তাদের তালিকা আছে।',
   'Fun mode and the Alerts section are here too.':
       'মজার মোড আর সতর্কতার অংশও এখানেই।',
   'Questions and words': 'প্রশ্ন ও শব্দ',

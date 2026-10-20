@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
+import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/tags/domain/tag.dart';
 import 'package:hishab/features/tags/presentation/providers/tags_providers.dart';
+import 'package:hishab/features/transactions/data/saved_filters_repository.dart';
 import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_filter.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_filter_sheet.dart';
+
+import '../../../helpers/pump_app.dart';
 
 Widget sheet(List<Override> overrides) => ProviderScope(
   // No automatic retry, so a failing provider does not leave timers behind.
@@ -234,6 +239,157 @@ void main() {
       expect(result!.query, 'tea');
       expect(result!.maxAmount, isNull);
       expect(result!.feeling, isNull);
+    });
+  });
+
+  group('saved filters', () {
+    TransactionFilter? result;
+    Widget opener(
+      AppDatabase db, {
+      TransactionFilter initial = const TransactionFilter(),
+    }) {
+      result = null;
+      return ProviderScope(
+        retry: (_, _) => null,
+        overrides: [
+          accountsProvider(true).overrideWith((ref) => Stream.value(const [])),
+          categoriesProvider(true)
+              .overrideWith((ref) => Stream.value(const [])),
+          tagsProvider.overrideWith((ref) => Stream.value(const [])),
+          appDatabaseProvider.overrideWithValue(db),
+        ],
+        child: MaterialApp(
+          home: Builder(
+            builder: (context) => Scaffold(
+              body: TextButton(
+                onPressed: () async {
+                  result = await showModalBottomSheet<TransactionFilter>(
+                    context: context,
+                    isScrollControlled: true,
+                    builder: (_) => TransactionFilterSheet(initial: initial),
+                  );
+                },
+                child: const Text('open'),
+              ),
+            ),
+          ),
+        ),
+      );
+    }
+
+    Future<void> open(WidgetTester tester, Widget app) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await tester.pumpWidget(app);
+      await tester.tap(find.text('open'));
+      await tester.pumpAndSettle();
+    }
+
+    testWithDatabase('are not offered while there are none', (
+      tester,
+      db,
+    ) async {
+      await open(tester, opener(db));
+
+      expect(find.text('Saved filters'), findsNothing);
+      expect(find.byKey(const ValueKey('save-filter')), findsOneWidget);
+    });
+
+    testWithDatabase('need at least one option to be saved', (
+      tester,
+      db,
+    ) async {
+      final saved = SavedFiltersRepository(db);
+      await open(tester, opener(db));
+
+      await tester.ensureVisible(find.byKey(const ValueKey('save-filter')));
+      await tester.tap(find.byKey(const ValueKey('save-filter')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pick at least one option to save.'), findsOneWidget);
+      expect(find.byKey(const ValueKey('saved-filter-name')), findsNothing);
+      expect(await saved.getAll(), isEmpty);
+    });
+
+    testWithDatabase('the options are saved under the name that was typed', (
+      tester,
+      db,
+    ) async {
+      final saved = SavedFiltersRepository(db);
+      await open(tester, opener(db));
+      await tester.enterText(
+        find.byKey(const ValueKey('filter-min-amount')),
+        '500',
+      );
+      await tester.tap(find.byKey(const ValueKey('filter-feeling-regret')));
+      await tester.pump();
+
+      await tester.ensureVisible(find.byKey(const ValueKey('save-filter')));
+      await tester.tap(find.byKey(const ValueKey('save-filter')));
+      await tester.pumpAndSettle();
+      // Nothing to save without a name.
+      expect(
+        tester
+            .widget<FilledButton>(
+              find.byKey(const ValueKey('saved-filter-save')),
+            )
+            .onPressed,
+        isNull,
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey('saved-filter-name')),
+        'Regret over 500',
+      );
+      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey('saved-filter-save')));
+      await tester.pumpAndSettle();
+
+      final all = await saved.getAll();
+      expect(all.single.name, 'Regret over 500');
+      expect(all.single.filter.minAmount, 50000);
+      expect(all.single.filter.feeling, Feeling.regret);
+      // And it shows as a chip.
+      expect(
+        find.byKey(const ValueKey('saved-filter-Regret over 500')),
+        findsOneWidget,
+      );
+    });
+
+    testWithDatabase('a chip puts its options on the sheet', (
+      tester,
+      db,
+    ) async {
+      final saved = SavedFiltersRepository(db);
+      await saved.save(
+        'Big regrets',
+        const TransactionFilter(minAmount: 70000, feeling: Feeling.regret),
+      );
+      await open(tester, opener(db));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('saved-filter-Big regrets')));
+      await tester.pump();
+      await tester.ensureVisible(find.byKey(const ValueKey('filter-apply')));
+      await tester.tap(find.byKey(const ValueKey('filter-apply')));
+      await tester.pumpAndSettle();
+
+      expect(result!.minAmount, 70000);
+      expect(result!.feeling, Feeling.regret);
+    });
+
+    testWithDatabase('the cross of a chip deletes it', (tester, db) async {
+      final saved = SavedFiltersRepository(db);
+      await saved.save('Old', const TransactionFilter(feeling: Feeling.want));
+      await open(tester, opener(db));
+      await tester.pumpAndSettle();
+      expect(find.byKey(const ValueKey('saved-filter-Old')), findsOneWidget);
+
+      await tester.tap(find.byTooltip('Delete this saved filter'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('saved-filter-Old')), findsNothing);
+      expect(await saved.getAll(), isEmpty);
     });
   });
 }

@@ -175,4 +175,83 @@ void main() {
       );
     });
   });
+
+  group('challengePresets', () {
+    ChallengePreset preset(DateTime today, ChallengePresetId id) =>
+        challengePresets(today).firstWhere((p) => p.id == id);
+
+    test('a day and a week start today', () {
+      final today = DateTime(2026, 10, 14, 16);
+
+      expect(
+        preset(today, ChallengePresetId.day).start,
+        DateTime(2026, 10, 14),
+      );
+      expect(preset(today, ChallengePresetId.day).days, 1);
+      expect(
+        preset(today, ChallengePresetId.week).start,
+        DateTime(2026, 10, 14),
+      );
+      expect(preset(today, ChallengePresetId.week).days, 7);
+    });
+
+    test('the weekend is the coming Friday and Saturday', () {
+      // Wednesday 14 October 2026: Friday is the 16th.
+      final monday = preset(DateTime(2026, 10, 12), ChallengePresetId.weekend);
+      final wednesday = preset(
+        DateTime(2026, 10, 14),
+        ChallengePresetId.weekend,
+      );
+      final sunday = preset(DateTime(2026, 10, 18), ChallengePresetId.weekend);
+
+      expect(monday.start, DateTime(2026, 10, 16));
+      expect(wednesday.start, DateTime(2026, 10, 16));
+      expect(sunday.start, DateTime(2026, 10, 23));
+      expect([monday.days, wednesday.days, sunday.days], [2, 2, 2]);
+    });
+
+    test(
+      'on a Friday the weekend starts today, on a Saturday it has a day left',
+      () {
+        final friday = preset(
+          DateTime(2026, 10, 16),
+          ChallengePresetId.weekend,
+        );
+        final saturday = preset(
+          DateTime(2026, 10, 17),
+          ChallengePresetId.weekend,
+        );
+
+        expect(friday.start, DateTime(2026, 10, 16));
+        expect(friday.days, 2);
+        expect(saturday.start, DateTime(2026, 10, 17));
+        expect(saturday.days, 1);
+      },
+    );
+
+    test('the rickshaw week names its category', () {
+      final rickshaw = preset(
+        DateTime(2026, 10, 14),
+        ChallengePresetId.rickshawWeek,
+      );
+
+      expect(rickshaw.categoryName, 'Rickshaw');
+      expect(rickshaw.days, 7);
+      expect(
+        challengePresets(DateTime(2026, 10, 14))
+            .where((p) => p.id != ChallengePresetId.rickshawWeek)
+            .every((p) => p.categoryName == null),
+        isTrue,
+      );
+    });
+
+    test('every preset has a label', () {
+      expect(challengePresets(DateTime(2026, 10, 14)).map((p) => p.label), [
+        'No-spend day',
+        'No-spend weekend',
+        'No-spend week',
+        'Rickshaw-free week',
+      ]);
+    });
+  });
 }

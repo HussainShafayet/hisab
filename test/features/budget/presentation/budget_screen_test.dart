@@ -706,6 +706,78 @@ void main() {
       await tapText(tester, 'Cancel');
     });
 
+    testWithDatabase('says how much last month left while the switch is off', (
+      tester,
+      db,
+    ) async {
+      final b = await seedBasics(db);
+      await setBudget(db, '2026-09', 3000000);
+      await setBudget(db, '2026-10', 3000000);
+      await spend(db, b, b.food, 1000000, DateTime(2026, 9, 12));
+      await pumpAppWithDatabase(tester, db);
+      await openBudget(tester);
+
+      expect(
+        find.text(
+          'Last month ৳20,000.00 was left. Switch on to add it to this month.',
+        ),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('rollover-switch')));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text("Money you do not spend is added to next month's budget."),
+        findsOneWidget,
+      );
+    });
+
+    testWithDatabase('a budget can be set to carry nothing', (
+      tester,
+      db,
+    ) async {
+      final b = await seedBasics(db);
+      await db.settingsDao.put('budget_rollover', 'true');
+      await setBudget(db, '2026-09', 3000000);
+      await setBudget(db, '2026-10', 3000000);
+      await spend(db, b, b.food, 1000000, DateTime(2026, 9, 12));
+      await pumpAppWithDatabase(tester, db);
+      await openBudget(tester);
+      expect(
+        find.text('Includes ৳20,000.00 left over from last month'),
+        findsOneWidget,
+      );
+
+      await tester.tap(find.byKey(const ValueKey('overall-budget')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('no-carry')));
+      await tester.pump();
+      await tapText(tester, 'Save');
+
+      expect(find.byKey(const ValueKey('overall-carried')), findsNothing);
+      expect(find.text('Spent ৳0.00 of ৳30,000.00'), findsOneWidget);
+      final row = (await budgetsOf(db, '2026-10')).single;
+      expect(row.noCarry, isTrue);
+      expect(row.amount, 3000000);
+    });
+
+    testWithDatabase('the choice is not asked while carrying over is off', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await setBudget(db, '2026-10', 3000000);
+      await pumpAppWithDatabase(tester, db);
+      await openBudget(tester);
+
+      await tester.tap(find.byKey(const ValueKey('overall-budget')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('no-carry')), findsNothing);
+      await tapText(tester, 'Cancel');
+    });
+
     testWithDatabase('adds nothing while the switch is off', (
       tester,
       db,

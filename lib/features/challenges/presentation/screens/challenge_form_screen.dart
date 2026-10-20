@@ -80,6 +80,7 @@ class _ChallengeFormState extends ConsumerState<_ChallengeForm> {
 
   /// Once the person types a name, it is no longer made from the choices.
   late bool _titleEdited = widget.initial != null;
+  late bool _repeats = widget.initial?.repeats ?? false;
   bool _saving = false;
   String? _error;
   List<({int id, String label, String name})> _choices = const [];
@@ -118,6 +119,22 @@ class _ChallengeFormState extends ConsumerState<_ChallengeForm> {
       change();
       _error = null;
       if (!_titleEdited) _title.text = _suggestedTitle();
+    });
+  }
+
+  /// Fills the form from a preset: a no-spend challenge, with its dates and
+  /// category, and a name made for it.
+  void _usePreset(ChallengePreset preset, int? categoryId) {
+    _titleEdited = false;
+    _changed(() {
+      _kind = ChallengeKind.noSpend;
+      _categoryId = categoryId;
+      _start = preset.start;
+      _end = DateTime(
+        preset.start.year,
+        preset.start.month,
+        preset.start.day + preset.days - 1,
+      );
     });
   }
 
@@ -172,6 +189,7 @@ class _ChallengeFormState extends ConsumerState<_ChallengeForm> {
           endDate: _end,
           limit: limit,
           categoryId: _categoryId,
+          repeats: _repeats,
         );
       } else {
         await repository.create(
@@ -181,6 +199,7 @@ class _ChallengeFormState extends ConsumerState<_ChallengeForm> {
           endDate: _end,
           limit: limit,
           categoryId: _categoryId,
+          repeats: _repeats,
         );
       }
       if (mounted) context.pop();
@@ -193,6 +212,11 @@ class _ChallengeFormState extends ConsumerState<_ChallengeForm> {
       }
     }
   }
+
+  /// The category called [name] (ignoring case), if there is one.
+  ({int id, String label, String name})? _choiceNamed(String name) => _choices
+      .where((c) => c.name.toLowerCase() == name.toLowerCase())
+      .firstOrNull;
 
   /// The expense categories, each followed by what is inside it, labelled with
   /// the whole path (`Food › Fish`).
@@ -233,6 +257,32 @@ class _ChallengeFormState extends ConsumerState<_ChallengeForm> {
               child: ListView(
                 padding: const EdgeInsets.all(16),
                 children: [
+                  if (!_isEditing) ...[
+                    Text(tr('Quick start'), style: theme.textTheme.labelLarge),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        for (final preset in challengePresets(
+                          dateOnly(ref.read(clockProvider)()),
+                        ))
+                          // A preset about a category needs that category.
+                          if (preset.categoryName == null ||
+                              _choiceNamed(preset.categoryName!) != null)
+                            ActionChip(
+                              key: ValueKey('preset-${preset.id.name}'),
+                              label: Text(preset.label),
+                              onPressed: () => _usePreset(
+                                preset,
+                                preset.categoryName == null
+                                    ? null
+                                    : _choiceNamed(preset.categoryName!)?.id,
+                              ),
+                            ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                  ],
                   SegmentedButton<ChallengeKind>(
                     key: const ValueKey('challenge-kind'),
                     showSelectedIcon: false,
@@ -327,6 +377,17 @@ class _ChallengeFormState extends ConsumerState<_ChallengeForm> {
                     onPick: _pickEnd,
                   ),
                   const SizedBox(height: 16),
+                  SwitchListTile(
+                    key: const ValueKey('challenge-repeats'),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(tr('Start again when it ends')),
+                    subtitle: Text(
+                      tr('The same challenge, for the same number of days.'),
+                    ),
+                    value: _repeats,
+                    onChanged: (value) => setState(() => _repeats = value),
+                  ),
+                  const SizedBox(height: 8),
                   TextFormField(
                     key: const ValueKey('challenge-title'),
                     controller: _title,

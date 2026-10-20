@@ -34,6 +34,16 @@ class NotificationLogDao extends DatabaseAccessor<AppDatabase>
         .go();
   }
 
+  Future<void> markSeen(int id) =>
+      (update(notificationLog)..where((r) => r.id.equals(id))).write(
+        const NotificationLogCompanion(seen: Value(true)),
+      );
+
+  /// Marks everything that has shown by [now] as seen.
+  Future<void> markAllSeenBy(DateTime now) =>
+      (update(notificationLog)..where((r) => r.at.isSmallerOrEqualValue(now)))
+          .write(const NotificationLogCompanion(seen: Value(true)));
+
   /// Deletes what has been shown by [now].
   Future<void> deleteShownBy(DateTime now) => (delete(
     notificationLog,

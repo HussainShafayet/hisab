@@ -6,11 +6,20 @@ import 'package:hishab/core/widgets/money_form_field.dart';
 /// What the budget dialog returns: a limit to save (with the category chosen
 /// when the dialog offered a choice), or [remove].
 class BudgetDialogResult {
-  const BudgetDialogResult({this.categoryId, this.amount, this.remove = false});
+  const BudgetDialogResult({
+    this.categoryId,
+    this.amount,
+    this.remove = false,
+    this.noCarry,
+  });
 
   final int? categoryId;
   final int? amount;
   final bool remove;
+
+  /// Whether the budget takes nothing from before and passes nothing on, or
+  /// null when the dialog did not ask.
+  final bool? noCarry;
 }
 
 /// A category the budget dialog offers.
@@ -24,6 +33,8 @@ class BudgetLimitDialog extends StatefulWidget {
     this.initialAmount,
     this.categoryChoices,
     this.canRemove = false,
+    this.showNoCarry = false,
+    this.initialNoCarry = false,
     super.key,
   });
 
@@ -31,6 +42,10 @@ class BudgetLimitDialog extends StatefulWidget {
   final int? initialAmount;
   final List<BudgetCategoryChoice>? categoryChoices;
   final bool canRemove;
+
+  /// Offers "Do not carry over this budget" (while carrying over is on).
+  final bool showNoCarry;
+  final bool initialNoCarry;
 
   @override
   State<BudgetLimitDialog> createState() => _BudgetLimitDialogState();
@@ -44,6 +59,7 @@ class _BudgetLimitDialogState extends State<BudgetLimitDialog> {
         : poishaToInput(widget.initialAmount!),
   );
   int? _categoryId;
+  late bool _noCarry = widget.initialNoCarry;
   String? _error;
 
   @override
@@ -59,8 +75,13 @@ class _BudgetLimitDialogState extends State<BudgetLimitDialog> {
       setState(() => _error = tr('The budget must be above zero.'));
       return;
     }
-    Navigator.of(context)
-        .pop(BudgetDialogResult(categoryId: _categoryId, amount: amount));
+    Navigator.of(context).pop(
+      BudgetDialogResult(
+        categoryId: _categoryId,
+        amount: amount,
+        noCarry: widget.showNoCarry ? _noCarry : null,
+      ),
+    );
   }
 
   @override
@@ -102,6 +123,18 @@ class _BudgetLimitDialogState extends State<BudgetLimitDialog> {
                 if (_error != null) setState(() => _error = null);
               },
             ),
+            if (widget.showNoCarry)
+              CheckboxListTile(
+                key: const ValueKey('no-carry'),
+                contentPadding: EdgeInsets.zero,
+                controlAffinity: ListTileControlAffinity.leading,
+                title: Text(tr('Do not carry over this budget')),
+                subtitle: Text(
+                  tr('It takes nothing from last month and passes nothing on.'),
+                ),
+                value: _noCarry,
+                onChanged: (value) => setState(() => _noCarry = value ?? false),
+              ),
             if (_error != null) ...[
               const SizedBox(height: 8),
               Text(

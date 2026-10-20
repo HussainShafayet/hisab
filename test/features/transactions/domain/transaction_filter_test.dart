@@ -323,6 +323,63 @@ void main() {
     });
   });
 
+  group('taking an option off', () {
+    final full = TransactionFilter(
+      query: 'tea',
+      type: TransactionType.expense,
+      categoryId: 4,
+      categoryScope: const {4, 5},
+      accountId: 2,
+      minAmount: 100,
+      maxAmount: 900,
+      tagId: 7,
+      feeling: Feeling.regret,
+      range: (start: DateTime(2026), end: DateTime(2027)),
+    );
+
+    test('lists the options that are set, in the order of the sheet', () {
+      expect(full.activeOptions, FilterOption.values);
+      expect(const TransactionFilter().activeOptions, isEmpty);
+      expect(const TransactionFilter(maxAmount: 5).activeOptions, [
+        FilterOption.amount,
+      ]);
+    });
+
+    test('takes off just that one and keeps the rest', () {
+      final without = full.without(FilterOption.category);
+
+      expect(without.categoryId, isNull);
+      expect(without.categoryScope, isEmpty);
+      expect(without.type, TransactionType.expense);
+      expect(without.accountId, 2);
+      expect(without.minAmount, 100);
+      expect(without.tagId, 7);
+      expect(without.feeling, Feeling.regret);
+      expect(without.query, 'tea');
+      expect(without.range, isNotNull);
+    });
+
+    test('the amount goes as a whole, both ends', () {
+      final without = full.without(FilterOption.amount);
+
+      expect(without.minAmount, isNull);
+      expect(without.maxAmount, isNull);
+      expect(without.hasAmountRange, isFalse);
+    });
+
+    test('each option can be taken off, one after the other', () {
+      var filter = full;
+      for (final option in FilterOption.values) {
+        filter = filter.without(option);
+      }
+
+      expect(filter.activeOptions, isEmpty);
+      // What is not one of the options stays.
+      expect(filter.query, 'tea');
+      expect(filter.range, isNotNull);
+    });
+  });
+
   group('isActive and counting options', () {
     test('the new options make the filter active and are counted', () {
       expect(const TransactionFilter(minAmount: 1).isActive, isTrue);

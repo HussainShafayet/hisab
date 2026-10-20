@@ -102,6 +102,9 @@ void main() {
         PreferenceKeys.dailyReminder: 'false',
         PreferenceKeys.dailyReminderMinutes: '1260',
         PreferenceKeys.budgetRollover: 'false',
+        PreferenceKeys.textSize: 'normal',
+        PreferenceKeys.hideBalances: 'false',
+        PreferenceKeys.backupReminder: 'true',
       });
     });
 
@@ -299,6 +302,74 @@ void main() {
       expect(on.budgetRollover, isTrue);
       expect(on, isNot(AppPreferences.defaults));
       expect(on.copyWith(budgetRollover: false), AppPreferences.defaults);
+    });
+  });
+
+  group('text size, hiding balances and the backup reminder', () {
+    test('start as normal, shown and on', () {
+      expect(AppPreferences.defaults.textSize, TextSize.normal);
+      expect(AppPreferences.defaults.hideBalances, isFalse);
+      expect(AppPreferences.defaults.backupReminder, isTrue);
+    });
+
+    test('the sizes scale the letters', () {
+      expect(
+        [for (final size in TextSize.values) size.scale],
+        [0.9, 1.0, 1.15, 1.3],
+      );
+    });
+
+    test('are read from what was saved', () {
+      final prefs = AppPreferences.fromMap({
+        PreferenceKeys.textSize: 'extraLarge',
+        PreferenceKeys.hideBalances: 'true',
+        PreferenceKeys.backupReminder: 'false',
+      });
+
+      expect(prefs.textSize, TextSize.extraLarge);
+      expect(prefs.hideBalances, isTrue);
+      expect(prefs.backupReminder, isFalse);
+    });
+
+    test('fall back to the defaults for anything else', () {
+      final prefs = AppPreferences.fromMap({
+        PreferenceKeys.textSize: 'gigantic',
+        PreferenceKeys.hideBalances: 'banana',
+        PreferenceKeys.backupReminder: 'banana',
+      });
+
+      expect(prefs.textSize, TextSize.normal);
+      expect(prefs.hideBalances, isFalse);
+      expect(prefs.backupReminder, isTrue);
+    });
+
+    test('are written by their keys and survive a round trip', () {
+      const prefs = AppPreferences(
+        textSize: TextSize.small,
+        hideBalances: true,
+        backupReminder: false,
+      );
+
+      final back = AppPreferences.fromMap({
+        for (final e in prefs.toMap().entries)
+          if (e.value != null) e.key: e.value!,
+      });
+
+      expect(back, prefs);
+      expect(prefs.toMap()[PreferenceKeys.textSize], 'small');
+    });
+
+    test('copyWith changes each one', () {
+      final changed = AppPreferences.defaults.copyWith(
+        textSize: TextSize.large,
+        hideBalances: true,
+        backupReminder: false,
+      );
+
+      expect(changed.textSize, TextSize.large);
+      expect(changed.hideBalances, isTrue);
+      expect(changed.backupReminder, isFalse);
+      expect(changed, isNot(AppPreferences.defaults));
     });
   });
 }

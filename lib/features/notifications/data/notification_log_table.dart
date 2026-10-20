@@ -2,7 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:hishab/core/notifications/alert_kind.dart';
 
 /// What the app has shown or has set to show: the history behind
-/// More > Notifications. A row is a notification of the kind [kind] that
+/// the notification bell. A row is a notification of the kind [kind] that
 /// showed (or will show) at [at]. Those with [immediate] were shown by the app
 /// at that moment (budget and habit alerts); the others were put on the
 /// phone's schedule and show around their time.
@@ -23,6 +23,9 @@ class NotificationLog extends Table {
   DateTimeColumn get at => dateTime()();
 
   BoolColumn get immediate => boolean().withDefault(const Constant(false))();
+
+  /// The person has opened it from the bell. A new one is not seen.
+  BoolColumn get seen => boolean().withDefault(const Constant(false))();
 
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 }

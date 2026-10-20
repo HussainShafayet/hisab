@@ -7,6 +7,7 @@ class BudgetItem {
     required this.limit,
     required this.spent,
     this.carriedOver = 0,
+    this.noCarry = false,
     this.categoryId,
     this.categoryName,
     this.categoryIcon,
@@ -28,6 +29,9 @@ class BudgetItem {
   /// In poisha: what was left of this budget in the months before and is
   /// added to it (Budget > Carry over what is left). Zero when that is off.
   final int carriedOver;
+
+  /// This budget was set to take nothing from before and pass nothing on.
+  final bool noCarry;
 
   /// In poisha: the amount that was set for this month, without what was
   /// carried over. This is what the edit box starts with.

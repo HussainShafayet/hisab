@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hishab/core/app_info.dart';
 import 'package:hishab/core/l10n/app_language.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/notifications/reminder_scheduler.dart';
+import 'package:hishab/core/router/app_routes.dart';
+import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/backup/presentation/providers/backup_providers.dart';
 import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
@@ -28,6 +33,48 @@ class SettingsScreen extends ConsumerWidget {
   ) async {
     if (on) await ref.read(reminderSchedulerProvider).requestPermission();
     await _change(ref, (p) => change(p, on));
+  }
+
+  /// Asks twice-over clearly, then empties the app like a new install.
+  Future<void> _eraseAll(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr('Delete all data?')),
+        content: Text(
+          tr(
+            'Every account, entry, budget, loan, goal and setting on this '
+            'phone is deleted, and the app starts empty, like a new install. '
+            'This cannot be undone. Export a backup first if you may want '
+            'anything back.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(tr('Cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('confirm-erase'),
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(tr('Delete everything')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+    try {
+      await ref.read(backupRepositoryProvider).eraseEverything();
+      if (context.mounted) context.go(AppRoutes.home);
+      messenger.showMessage(tr('All data deleted.'));
+    } on Object catch (error) {
+      messenger.showError(describeError(error));
+    }
   }
 
   Future<void> _chooseReminderTime(
@@ -165,6 +212,29 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           _Section(
+            title: tr('Text size'),
+            children: [
+              _Choice<TextSize>(
+                label: tr('How big the letters are'),
+                hint: tr('On top of the size set in your phone.'),
+                keyPrefix: 'text-size',
+                value: preferences.textSize,
+                onChanged: (value) =>
+                    _change(ref, (p) => p.copyWith(textSize: value)),
+                options: [
+                  (value: TextSize.small, label: tr('Small'), icon: null),
+                  (value: TextSize.normal, label: tr('Normal'), icon: null),
+                  (value: TextSize.large, label: tr('Large'), icon: null),
+                  (
+                    value: TextSize.extraLarge,
+                    label: tr('Extra large'),
+                    icon: null,
+                  ),
+                ],
+              ),
+            ],
+          ),
+          _Section(
             title: tr('New transactions'),
             children: [
               ListTile(
@@ -219,6 +289,43 @@ class SettingsScreen extends ConsumerWidget {
                 ],
                 onChanged: (value) =>
                     _change(ref, (p) => p.copyWith(weekStart: value)),
+              ),
+            ],
+          ),
+          _Section(
+            title: tr('Budget'),
+            children: [
+              SwitchListTile(
+                key: const ValueKey('settings-rollover'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.redo),
+                title: Text(tr('Carry over what is left')),
+                subtitle: Text(
+                  tr("Money you do not spend is added to next month's budget."),
+                ),
+                value: preferences.budgetRollover,
+                onChanged: (value) =>
+                    _change(ref, (p) => p.copyWith(budgetRollover: value)),
+              ),
+            ],
+          ),
+          _Section(
+            title: tr('Privacy'),
+            children: [
+              SwitchListTile(
+                key: const ValueKey('hide-balances'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.visibility_off_outlined),
+                title: Text(tr('Hide balances on Home')),
+                subtitle: Text(
+                  tr(
+                    'Shows dots instead of your balances, for when someone '
+                    'is looking. The eye on Home switches it too.',
+                  ),
+                ),
+                value: preferences.hideBalances,
+                onChanged: (value) =>
+                    _change(ref, (p) => p.copyWith(hideBalances: value)),
               ),
             ],
           ),
@@ -346,6 +453,46 @@ class SettingsScreen extends ConsumerWidget {
             ],
           ),
           _Section(
+            title: tr('Data'),
+            children: [
+              SwitchListTile(
+                key: const ValueKey('backup-reminder'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.backup_outlined),
+                title: Text(tr('Remind me to back up')),
+                subtitle: Text(
+                  tr('A card on Home when it has been two weeks.'),
+                ),
+                value: preferences.backupReminder,
+                onChanged: (value) =>
+                    _change(ref, (p) => p.copyWith(backupReminder: value)),
+              ),
+              ListTile(
+                key: const ValueKey('open-backup'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.save_alt),
+                title: Text(tr('Backup & export')),
+                subtitle: Text(tr('Keep your data safe')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push(AppRoutes.backup),
+              ),
+              ListTile(
+                key: const ValueKey('erase-all'),
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.delete_forever_outlined,
+                  color: theme.colorScheme.error,
+                ),
+                title: Text(
+                  tr('Delete all data'),
+                  style: TextStyle(color: theme.colorScheme.error),
+                ),
+                subtitle: Text(tr('Start again, empty, like a new install.')),
+                onTap: () => _eraseAll(context, ref),
+              ),
+            ],
+          ),
+          _Section(
             title: tr('About'),
             children: [
               ListTile(
@@ -355,6 +502,18 @@ class SettingsScreen extends ConsumerWidget {
                 subtitle: Text(
                   tr('Version {version}', {'version': appVersion}),
                   key: const ValueKey('app-version'),
+                ),
+              ),
+              ListTile(
+                key: const ValueKey('licenses'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.description_outlined),
+                title: Text(tr('Open-source licenses')),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => showLicensePage(
+                  context: context,
+                  applicationName: tr('Hishab'),
+                  applicationVersion: appVersion,
                 ),
               ),
               Padding(

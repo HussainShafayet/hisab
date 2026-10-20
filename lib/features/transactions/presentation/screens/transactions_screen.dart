@@ -10,12 +10,14 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/transaction_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
 import 'package:hishab/core/widgets/month_switcher.dart';
 import 'package:hishab/core/widgets/range_banner.dart';
+import 'package:hishab/features/transactions/presentation/widgets/filter_chips.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_filter_sheet.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
@@ -161,6 +163,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               )
             : Text(tr('Transactions')),
         actions: [
+          const NotificationBell(),
           const HelpButton('transactions'),
           IconButton(
             tooltip: _searching ? tr('Close search') : tr('Search'),
@@ -192,6 +195,11 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
               onPrevious: () => setState(() => _month = addMonths(_month, -1)),
               onNext: () => setState(() => _month = addMonths(_month, 1)),
             ),
+          FilterChips(
+            filter: _filter,
+            onRemove: (option) =>
+                setState(() => _filter = _filter.without(option)),
+          ),
           Expanded(
             child: transactions.when(
               loading: () => const LoadingView(),

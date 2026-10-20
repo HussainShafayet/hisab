@@ -15,8 +15,10 @@ import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/tags/presentation/providers/tags_providers.dart';
 import 'package:hishab/features/transactions/domain/feeling.dart';
+import 'package:hishab/features/transactions/domain/saved_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
+import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
 
 /// Bottom sheet to choose type, category, account, date range, amount range,
 /// trip or event and feeling. Pops with the new [TransactionFilter] when
@@ -46,6 +48,7 @@ class _TransactionFilterSheetState
     text: _amountText(widget.initial.maxAmount),
   );
   String? _amountError;
+  String? _saveError;
 
   static String _amountText(int? poisha) =>
       poisha == null ? '' : poishaToInput(poisha);
@@ -67,36 +70,74 @@ class _TransactionFilterSheetState
     return (poisha: poisha, invalid: false);
   }
 
-  /// Pops with the chosen filter, unless an amount is not valid.
-  void _apply(List<Category> categories) {
+  /// The filter the sheet shows, or null when an amount is not valid (the
+  /// reason is then on the sheet).
+  TransactionFilter? _build(List<Category> categories) {
     final min = _read(_minAmount);
     final max = _read(_maxAmount);
     if (min.invalid || max.invalid) {
       setState(() => _amountError = tr('Enter the amount as a number.'));
-      return;
+      return null;
     }
     if (min.poisha != null && max.poisha != null && min.poisha! > max.poisha!) {
       setState(
         () => _amountError = tr('The smallest amount is above the largest.'),
       );
+      return null;
+    }
+    return TransactionFilter(
+      query: widget.initial.query,
+      type: _type,
+      categoryId: _categoryId,
+      categoryScope: _categoryId == null
+          ? const {}
+          : categoryAndDescendantIds(_categoryId!, categories),
+      accountId: _accountId,
+      range: _range,
+      minAmount: min.poisha,
+      maxAmount: max.poisha,
+      tagId: _tagId,
+      feeling: _feeling,
+    );
+  }
+
+  /// Pops with the chosen filter, unless an amount is not valid.
+  void _apply(List<Category> categories) {
+    final filter = _build(categories);
+    if (filter != null) Navigator.of(context).pop(filter);
+  }
+
+  /// Puts a saved filter's options on the sheet. The dates stay as they are.
+  void _useSaved(SavedFilter saved) {
+    final f = saved.filter;
+    setState(() {
+      _type = f.type;
+      _categoryId = f.categoryId;
+      _accountId = f.accountId;
+      _tagId = f.tagId;
+      _feeling = f.feeling;
+      _minAmount.text = _amountText(f.minAmount);
+      _maxAmount.text = _amountText(f.maxAmount);
+      _amountError = null;
+      _saveError = null;
+    });
+  }
+
+  /// Asks for a name and saves what is on the sheet, to use again.
+  Future<void> _saveCurrent(List<Category> categories) async {
+    final filter = _build(categories);
+    if (filter == null) return;
+    if (filter.activeOptions.isEmpty) {
+      setState(() => _saveError = tr('Pick at least one option to save.'));
       return;
     }
-    Navigator.of(context).pop(
-      TransactionFilter(
-        query: widget.initial.query,
-        type: _type,
-        categoryId: _categoryId,
-        categoryScope: _categoryId == null
-            ? const {}
-            : categoryAndDescendantIds(_categoryId!, categories),
-        accountId: _accountId,
-        range: _range,
-        minAmount: min.poisha,
-        maxAmount: max.poisha,
-        tagId: _tagId,
-        feeling: _feeling,
-      ),
+    setState(() => _saveError = null);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (context) => const _NameDialog(),
     );
+    if (name == null || !mounted) return;
+    await ref.read(savedFiltersRepositoryProvider).save(name, filter);
   }
 
   Future<void> _pickRange() async {
@@ -128,6 +169,7 @@ class _TransactionFilterSheetState
     final categories = ref.watch(categoriesProvider(true));
     // The trips and events are a nice extra: the sheet does not wait for them.
     final tags = ref.watch(tagsProvider).value ?? const [];
+    final saved = ref.watch(savedFiltersProvider).value ?? const [];
 
     return SafeArea(
       child: Padding(
@@ -152,6 +194,33 @@ class _TransactionFilterSheetState
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(tr('Filter'), style: theme.textTheme.titleLarge),
+                          if (saved.isNotEmpty) ...[
+                            const SizedBox(height: 12),
+                            Text(
+                              tr('Saved filters'),
+                              style: theme.textTheme.labelLarge,
+                            ),
+                            const SizedBox(height: 4),
+                            Wrap(
+                              spacing: 8,
+                              children: [
+                                for (final filter in saved)
+                                  InputChip(
+                                    key: ValueKey(
+                                      'saved-filter-${filter.name}',
+                                    ),
+                                    label: Text(filter.name),
+                                    onPressed: () => _useSaved(filter),
+                                    onDeleted: () => ref
+                                        .read(savedFiltersRepositoryProvider)
+                                        .remove(filter.name),
+                                    deleteButtonTooltipMessage: tr(
+                                      'Delete this saved filter',
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ],
                           const SizedBox(height: 16),
                           Text(tr('Type'), style: theme.textTheme.labelLarge),
                           const SizedBox(height: 8),
@@ -357,6 +426,25 @@ class _TransactionFilterSheetState
                                 ),
                             ],
                           ),
+                          const SizedBox(height: 8),
+                          Align(
+                            alignment: AlignmentDirectional.centerStart,
+                            child: TextButton.icon(
+                              key: const ValueKey('save-filter'),
+                              icon: const Icon(Icons.bookmark_add_outlined),
+                              label: Text(tr('Save this filter')),
+                              onPressed: () =>
+                                  _saveCurrent(categories.requireValue),
+                            ),
+                          ),
+                          if (_saveError != null)
+                            Text(
+                              _saveError!,
+                              key: const ValueKey('save-filter-error'),
+                              style: theme.textTheme.bodySmall?.copyWith(
+                                color: theme.colorScheme.error,
+                              ),
+                            ),
                         ],
                       ),
                     ),
@@ -397,5 +485,59 @@ class _TransactionFilterSheetState
               ),
       ),
     );
+  }
+}
+
+/// Asks for the name of a filter to save.
+class _NameDialog extends StatefulWidget {
+  const _NameDialog();
+
+  @override
+  State<_NameDialog> createState() => _NameDialogState();
+}
+
+class _NameDialogState extends State<_NameDialog> {
+  final _name = TextEditingController();
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(tr('Name this filter')),
+      content: TextField(
+        key: const ValueKey('saved-filter-name'),
+        controller: _name,
+        autofocus: true,
+        maxLength: maxSavedFilterNameLength,
+        textCapitalization: TextCapitalization.sentences,
+        decoration: InputDecoration(
+          labelText: tr('Name'),
+          helperText: tr('Like "Regret over ৳500".'),
+        ),
+        onChanged: (_) => setState(() {}),
+        onSubmitted: (_) => _save(),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text(tr('Cancel')),
+        ),
+        FilledButton(
+          key: const ValueKey('saved-filter-save'),
+          onPressed: _name.text.trim().isEmpty ? null : _save,
+          child: Text(tr('Save')),
+        ),
+      ],
+    );
+  }
+
+  void _save() {
+    final name = _name.text.trim();
+    if (name.isNotEmpty) Navigator.pop(context, name);
   }
 }

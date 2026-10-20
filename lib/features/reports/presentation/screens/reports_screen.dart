@@ -10,6 +10,7 @@ import 'package:hishab/core/widgets/month_switcher.dart';
 import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/range_banner.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:hishab/features/reports/domain/report_data.dart';
 import 'package:hishab/features/reports/presentation/providers/reports_providers.dart';
 import 'package:hishab/features/reports/presentation/widgets/category_tree_card.dart';
@@ -51,6 +52,7 @@ class _ReportsScreenState extends ConsumerState<ReportsScreen> {
       appBar: AppBar(
         title: Text(tr('Reports')),
         actions: [
+          const NotificationBell(),
           const HelpButton('reports'),
           IconButton(
             tooltip: tr('Custom date range'),

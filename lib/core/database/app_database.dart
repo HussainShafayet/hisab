@@ -107,8 +107,10 @@ class AppDatabase extends _$AppDatabase {
   /// 4: the `debts` and `debt_payments` tables (dhar / baki).
   /// 5: the `recurring_rules` table.
   /// 6: `accounts.credit_limit` and `accounts.bill_due_day` (credit cards).
+  /// 16: `notification_log.seen` (the bell's unseen count),
+  /// `budgets.no_carry` and `challenges.repeats`.
   /// 15: the `challenges` table (spending challenges).
-  /// 14: the `notification_log` table (More > Notifications).
+  /// 14: the `notification_log` table (the notification bell).
   /// 13: the `investments` and `investment_entries` tables (business
   /// investments).
   /// 12: `transactions.feeling` (needed, wanted, regret).
@@ -119,7 +121,7 @@ class AppDatabase extends _$AppDatabase {
   /// 7: `transactions.usd_amount` and `accounts.usd_limit` (dollar spending
   /// on credit cards).
   @override
-  int get schemaVersion => 15;
+  int get schemaVersion => 16;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -190,6 +192,19 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 15) {
         await migrator.createTable(challenges);
+      }
+      if (from < 16) {
+        await migrator.addColumn(budgets, budgets.noCarry);
+      }
+      // Tables made above (from before version 14 and 15) already have their
+      // columns.
+      if (from >= 15 && from < 16) {
+        await migrator.addColumn(challenges, challenges.repeats);
+      }
+      if (from >= 14 && from < 16) {
+        await migrator.addColumn(notificationLog, notificationLog.seen);
+        // What was already in the history before the bell is old news.
+        await customStatement('UPDATE notification_log SET seen = 1');
       }
     },
     beforeOpen: (details) async {

@@ -40,6 +40,13 @@ class NotificationLogRepository {
   Future<void> forgetScheduled(Iterable<int> notifIds, DateTime now) =>
       _db.notificationLogDao.deleteScheduledAfter(now, notifIds: notifIds);
 
+  /// The person has opened this notification.
+  Future<void> markSeen(int id) => _db.notificationLogDao.markSeen(id);
+
+  /// The person has opened all that has shown by [now].
+  Future<void> markAllSeen(DateTime now) =>
+      _db.notificationLogDao.markAllSeenBy(now);
+
   /// Empties the history of what has shown. What is still to come stays.
   Future<void> clearShown(DateTime now) =>
       _db.notificationLogDao.deleteShownBy(now);
@@ -71,5 +78,6 @@ class NotificationLogRepository {
         body: row.body,
         at: row.at,
         immediate: row.immediate,
+        seen: row.seen,
       );
 }

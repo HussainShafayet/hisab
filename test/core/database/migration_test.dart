@@ -4,7 +4,9 @@ import 'package:drift/drift.dart' show Value;
 import 'package:drift/native.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
+import 'package:hishab/core/notifications/alert_kind.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
+import 'package:hishab/features/challenges/domain/challenge.dart';
 import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/metals/domain/metals.dart';
@@ -16,6 +18,12 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 /// were added after [version] back out, so the file looks as that version left
 /// it and the upgrade can add them again.
 Future<void> dropColumnsAfter(AppDatabase db, int version) async {
+  // Before the table itself is dropped, for the older versions.
+  if (version < 16) {
+    await db.customStatement('ALTER TABLE notification_log DROP COLUMN seen');
+    await db.customStatement('ALTER TABLE budgets DROP COLUMN no_carry');
+    await db.customStatement('ALTER TABLE challenges DROP COLUMN repeats');
+  }
   if (version < 6) {
     await db.customStatement('ALTER TABLE accounts DROP COLUMN credit_limit');
     await db.customStatement('ALTER TABLE accounts DROP COLUMN bill_due_day');
@@ -110,7 +118,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').getSingle();
       // Every upgrade step ran, up to the current version.
-      expect(version.read<int>('user_version'), 15);
+      expect(version.read<int>('user_version'), 16);
     },
   );
 
@@ -140,7 +148,7 @@ void main() {
     expect(await db.settingsDao.getAll(), {'language': 'bangla'});
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 15);
+    expect(version.read<int>('user_version'), 16);
   });
 
   test('upgrading from version 3 adds the loan tables', () async {
@@ -183,7 +191,7 @@ void main() {
     expect((await db.debtsDao.getWithPaid(debt))!.paid, 400);
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 15);
+    expect(version.read<int>('user_version'), 16);
   });
 
   test('upgrading from version 5 adds the credit card columns', () async {
@@ -223,7 +231,7 @@ void main() {
     expect(saved.creditLimit, 5000000);
     expect(saved.billDueDay, 15);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 15);
+    expect(version.read<int>('user_version'), 16);
   });
 
   test('upgrading from version 6 adds the dollar columns', () async {
@@ -278,7 +286,7 @@ void main() {
     expect((await db.accountsDao.getById(card))!.usdLimit, 25000);
     expect((await db.transactionsDao.getById(after))!.usdAmount, 2500);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 15);
+    expect(version.read<int>('user_version'), 16);
   });
 
   test('upgrading from version 7 adds the savings goal tables', () async {
@@ -311,7 +319,7 @@ void main() {
     );
     expect((await db.goalsDao.getWithSaved(goal))!.saved, 1500);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 15);
+    expect(version.read<int>('user_version'), 16);
   });
 
   test('upgrading from version 8 adds tags', () async {
@@ -363,7 +371,7 @@ void main() {
     );
     expect((await db.transactionsDao.getById(after))!.tagId, trip);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 15);
+    expect(version.read<int>('user_version'), 16);
   });
 
   test('upgrading from version 9 adds the bazar list tables', () async {
@@ -394,7 +402,7 @@ void main() {
     expect((await db.bazarDao.getItem(id))!.quantity, 1);
     expect((await db.bazarDao.priceFor('rice'))!.price, 12000);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 15);
+    expect(version.read<int>('user_version'), 16);
   });
 
   test(
@@ -421,7 +429,7 @@ void main() {
         contains('app_settings'),
       );
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 15);
+      expect(version.read<int>('user_version'), 16);
       expect(
         tables.map((t) => t.read<String>('name')),
         containsAll(['debts', 'debt_payments', 'recurring_rules']),
@@ -455,7 +463,7 @@ void main() {
     );
     expect((await db.metalsDao.getById(id))!.name, 'Necklace');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 15);
+    expect(version.read<int>('user_version'), 16);
   });
 
   test('upgrading from version 12 adds the investment tables', () async {
@@ -499,6 +507,106 @@ void main() {
         .get();
     expect(indexes, hasLength(1));
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 15);
+    expect(version.read<int>('user_version'), 16);
   });
+
+  test('upgrading from version 13 adds the notification history', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    await dropColumnsAfter(db, 13);
+    await db.customStatement('PRAGMA user_version = 13');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    await db.notificationLogDao.add(
+      NotificationLogCompanion.insert(
+        notifId: 1,
+        kind: AlertKind.bill,
+        title: 'Bill',
+        body: 'Due',
+        at: DateTime(2026, 10, 12, 9),
+      ),
+    );
+    final rows = await db.notificationLogDao.getAll();
+    expect(rows.single.title, 'Bill');
+    expect(rows.single.seen, isFalse);
+    final version = await db.customSelect('PRAGMA user_version').getSingle();
+    expect(version.read<int>('user_version'), 16);
+  });
+
+  test('upgrading from version 14 adds the challenges table', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    await dropColumnsAfter(db, 14);
+    await db.customStatement('PRAGMA user_version = 14');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    final id = await db.challengesDao.insertChallenge(
+      ChallengesCompanion.insert(
+        title: 'No snacks',
+        kind: ChallengeKind.noSpend,
+        limitAmount: 0,
+        startDate: DateTime(2026, 10, 11),
+        endDate: DateTime(2026, 10, 17),
+      ),
+    );
+    expect((await db.challengesDao.getById(id))!.title, 'No snacks');
+  });
+
+  test(
+    'upgrading from version 15 marks what was in the history as seen',
+    () async {
+      final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final file = File('${dir.path}/test.sqlite');
+
+      var db = AppDatabase.withExecutor(
+        NativeDatabase(file),
+        seedDefaults: false,
+      );
+      await dropColumnsAfter(db, 15);
+      await db.customStatement(
+        'INSERT INTO notification_log '
+        '(notif_id, kind, title, body, at, immediate) '
+        "VALUES (1, 'bill', 'Old', 'Body', 1760000000, 0)",
+      );
+      await db.customStatement('PRAGMA user_version = 15');
+      await db.close();
+
+      db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+      addTearDown(db.close);
+
+      // The old one is old news; a new one is not seen.
+      await db.notificationLogDao.add(
+        NotificationLogCompanion.insert(
+          notifId: 2,
+          kind: AlertKind.bill,
+          title: 'New',
+          body: 'Body',
+          at: DateTime(2026, 10, 20),
+        ),
+      );
+      final byTitle = {
+        for (final r in await db.notificationLogDao.getAll()) r.title: r.seen,
+      };
+      expect(byTitle, {'Old': true, 'New': false});
+    },
+  );
 }

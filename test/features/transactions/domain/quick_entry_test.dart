@@ -143,4 +143,83 @@ void main() {
     expect(parseQuickEntry('', options).isEmpty, isTrue);
     expect(parseQuickEntry('   ', options).isEmpty, isTrue);
   });
+
+  group('the day', () {
+    // Sunday 11 October 2026.
+    final today = DateTime(2026, 10, 11, 14, 30);
+    QuickEntry parse(String text) =>
+        parseQuickEntry(text, options, today: today);
+
+    test('yesterday, in English, Banglish and Bangla', () {
+      for (final word in ['yesterday', 'gotokal', 'gatokal', 'গতকাল']) {
+        expect(
+          parse('rickshaw 50 $word').day,
+          DateTime(2026, 10, 10),
+          reason: word,
+        );
+      }
+    });
+
+    test('today, in English, Banglish and Bangla', () {
+      for (final word in ['today', 'aj', 'aaj', 'ajke', 'আজ']) {
+        expect(
+          parse('rickshaw 50 $word').day,
+          DateTime(2026, 10, 11),
+          reason: word,
+        );
+      }
+    });
+
+    test('N days ago, in English and Banglish', () {
+      expect(parse('bazar 450 2 din age').day, DateTime(2026, 10, 9));
+      expect(parse('bazar 450 3 days ago').day, DateTime(2026, 10, 8));
+      expect(parse('bazar 450 12 din age').day, DateTime(2026, 9, 29));
+    });
+
+    test('the number of days is not taken for the amount', () {
+      final entry = parse('bazar 2 din age 450');
+
+      expect(entry.amount, 45000);
+      expect(entry.day, DateTime(2026, 10, 9));
+    });
+
+    test('the words of the day are not part of the note', () {
+      final entry = parse('rickshaw ride 50 gotokal');
+
+      expect(entry.note, 'Rickshaw ride');
+      expect(entry.amount, 5000);
+    });
+
+    test('works with an account and an income', () {
+      final entry = parse('+salary 30k bkash yesterday');
+
+      expect(entry.type, TransactionType.income);
+      expect(entry.amount, 3000000);
+      expect(entry.account!.name, 'bKash');
+      expect(entry.day, DateTime(2026, 10, 10));
+    });
+
+    test('a line with no day has none', () {
+      expect(parse('rickshaw 50').day, isNull);
+    });
+
+    test('days are only read when today is given', () {
+      final entry = parseQuickEntry('rickshaw 50 gotokal', options);
+
+      expect(entry.day, isNull);
+      expect(entry.note, 'Rickshaw gotokal');
+    });
+
+    test('a line of only a day is not empty', () {
+      expect(parse('yesterday').isEmpty, isFalse);
+      expect(parse('yesterday').day, DateTime(2026, 10, 10));
+    });
+
+    test('a number of days without the word for before is the amount', () {
+      final entry = parse('tuition 2 days');
+
+      expect(entry.amount, 200);
+      expect(entry.day, isNull);
+    });
+  });
 }

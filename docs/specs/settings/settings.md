@@ -19,8 +19,22 @@ More → Settings, in four cards. A change applies at once and is saved.
 - **Calendar**
   - *The week starts on*: Saturday, Sunday (default) or Monday. It decides
     what "Spent this week" on Home covers.
-- **About**: the app name, the version, and a line saying the app works
-  without the internet and keeps its data on the phone.
+- **Text size**: Small (90%), Normal (default), Large (115%) or Extra large
+  (130%), on top of the size set in the phone. It is applied to the whole app
+  (`TextSize.scale`, in the app root builder).
+- **Budget**: the *Carry over what is left* switch, the same one as on the
+  Budget tab (docs/specs/budget/carry-over.md).
+- **Privacy**: *Hide balances on Home* shows `৳ ••••` in place of the total
+  balance and of the balance on each wallet card of Home. The eye on the total
+  balance card switches it too.
+- **Data**: *Remind me to back up* (on by default), *Backup & export* (opens
+  the backup screen) and *Delete all data*, which asks (*Delete all data?*,
+  with *Cancel* and *Delete everything*) and then deletes every account,
+  entry, budget, loan, goal and setting and puts back what a new install has:
+  the default accounts and categories (`BackupRepository.eraseEverything`).
+- **About**: the app name, the version, *Open-source licenses* (Flutter's own
+  licence page), and a line saying the app works without the internet and
+  keeps its data on the phone.
 
 ## Rules
 - Preferences live in the `app_settings` table, one row per name; a missing
@@ -30,7 +44,9 @@ More → Settings, in four cards. A change applies at once and is saved.
   language and theme with no flash.
 - A chosen account that was archived or deleted is skipped: the account used
   last, and then the first one, take over.
-- Settings are not part of a backup and are left alone by a restore.
+- Settings are part of a backup (format 13) and a restore puts them back; the
+  marks of this phone (alerts already shown, wins already cheered, when the
+  last backup was made) are not (docs/specs/backup/settings-and-reminder.md).
 - The calculator start means no system keyboard opens by itself.
 
 ## Tests

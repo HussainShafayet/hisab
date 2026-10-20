@@ -3,6 +3,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/l10n/app_language.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/notifications/alert_route.dart';
 import 'package:hishab/core/router/app_router.dart';
 import 'package:hishab/core/theme/app_theme.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
@@ -28,7 +29,25 @@ class _HishabAppState extends ConsumerState<HishabApp> {
   );
 
   @override
+  void initState() {
+    super.initState();
+    // A tap on a notification on the phone opens the screen it is about.
+    pendingNotificationRoute.addListener(_openTappedNotification);
+    WidgetsBinding.instance.addPostFrameCallback(
+      (_) => _openTappedNotification(),
+    );
+  }
+
+  void _openTappedNotification() {
+    final route = pendingNotificationRoute.value;
+    if (route == null || !mounted) return;
+    pendingNotificationRoute.value = null;
+    openRouteWith(ref.read(routerProvider), route);
+  }
+
+  @override
   void dispose() {
+    pendingNotificationRoute.removeListener(_openTappedNotification);
     _lifecycle.dispose();
     super.dispose();
   }
@@ -65,6 +84,18 @@ class _HishabAppState extends ConsumerState<HishabApp> {
       // "Cancel", the text selection menu) in both languages.
       localizationsDelegates: GlobalMaterialLocalizations.delegates,
       routerConfig: ref.watch(routerProvider),
+      // The letters get bigger or smaller on top of the phone's own setting.
+      builder: (context, child) {
+        final scale = preferences.textSize.scale;
+        if (scale == 1.0 || child == null) return child ?? const SizedBox();
+        final media = MediaQuery.of(context);
+        return MediaQuery(
+          data: media.copyWith(
+            textScaler: TextScaler.linear(media.textScaler.scale(1) * scale),
+          ),
+          child: child,
+        );
+      },
     );
   }
 }

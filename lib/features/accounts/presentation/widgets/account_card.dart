@@ -20,6 +20,7 @@ class AccountCard extends StatelessWidget {
     this.trailing,
     this.compact = false,
     this.stacked = false,
+    this.hideBalance = false,
     super.key,
   });
 
@@ -47,6 +48,9 @@ class AccountCard extends StatelessWidget {
   /// The balance under the name instead of beside it, for a card that sits
   /// in half the width of the screen.
   final bool stacked;
+
+  /// Shows dots instead of the balance (Settings > Privacy).
+  final bool hideBalance;
 
   static const _white = Colors.white;
   static const _whiteSoft = Color(0xCCFFFFFF);
@@ -111,7 +115,9 @@ class AccountCard extends StatelessWidget {
           fit: BoxFit.scaleDown,
           alignment: fit,
           child: Text(
-            formatPoisha(card ? balance!.abs() : balance!),
+            hideBalance
+                ? hiddenAmountText
+                : formatPoisha(card ? balance!.abs() : balance!),
             key: ValueKey('balance-${account.id}'),
             style: theme.textTheme.titleMedium?.tabular.copyWith(
               color: low ? const Color(0xFFFFE082) : _white,

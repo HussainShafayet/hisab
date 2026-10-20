@@ -163,8 +163,8 @@ const bnCore = <String, String>{
   'Enter an amount.': 'টাকার অঙ্ক দিন।',
   'Every expense category already has a budget.':
       'প্রতিটি খরচের ক্যাটাগরির বাজেট আগেই আছে।',
-  'Everything in one file: accounts, categories, transactions and budgets.':
-      'সবকিছু এক ফাইলে: অ্যাকাউন্ট, ক্যাটাগরি, লেনদেন ও বাজেট।',
+  'Everything in one file: accounts, categories, transactions, budgets and settings.':
+      'সবকিছু এক ফাইলে: অ্যাকাউন্ট, ক্যাটাগরি, লেনদেন, বাজেট ও সেটিংস।',
   'Expense': 'খরচ',
   'Expense category': 'খরচের ক্যাটাগরি',
   'Expense · top level': 'খরচ · সবার ওপরের স্তর',

@@ -4,6 +4,10 @@ import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
+/// The options of the filter sheet that can be taken off one by one, from the
+/// chips under the app bar. The date range has its own banner.
+enum FilterOption { type, category, account, amount, tag, feeling }
+
 /// Narrows the transaction list. A null or empty field means "any".
 class TransactionFilter {
   const TransactionFilter({
@@ -85,6 +89,31 @@ class TransactionFilter {
     maxAmount: maxAmount,
     tagId: tagId,
     feeling: feeling,
+  );
+
+  /// The options of the filter sheet that are set, in the order of the sheet.
+  List<FilterOption> get activeOptions => [
+    if (type != null) FilterOption.type,
+    if (categoryId != null) FilterOption.category,
+    if (accountId != null) FilterOption.account,
+    if (hasAmountRange) FilterOption.amount,
+    if (tagId != null) FilterOption.tag,
+    if (feeling != null) FilterOption.feeling,
+  ];
+
+  /// The same filter without [option]. The search text and the date range are
+  /// kept.
+  TransactionFilter without(FilterOption option) => TransactionFilter(
+    query: query,
+    range: range,
+    type: option == FilterOption.type ? null : type,
+    categoryId: option == FilterOption.category ? null : categoryId,
+    categoryScope: option == FilterOption.category ? const {} : categoryScope,
+    accountId: option == FilterOption.account ? null : accountId,
+    minAmount: option == FilterOption.amount ? null : minAmount,
+    maxAmount: option == FilterOption.amount ? null : maxAmount,
+    tagId: option == FilterOption.tag ? null : tagId,
+    feeling: option == FilterOption.feeling ? null : feeling,
   );
 
   /// The same filter without the custom date range.

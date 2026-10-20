@@ -28,6 +28,13 @@ Add an everyday entry in one line (`rickshaw 50`, `bazar 450 bkash`,
   a category name (shortest name wins: "rickshaw" -> "Bus & rickshaw"); the
   everyday words table of `suggestParent` ("ilish" -> Fish, the nearest
   existing parent when the exact one is gone).
+- **Day** (needs today, which the add form gives): `today`, `aj`, `aaj`,
+  `ajke`, `আজ`; `yesterday`, `gotokal`, `gatokal`, `গতকাল`; or a number, `din`
+  or `days`, and `age` or `ago` (`2 din age`, `3 days ago`). The day is taken
+  out before the amount, so the `2` of `2 din age` is not the amount, and it
+  is not part of the note. The preview shows a pill with the day, and filling
+  the form sets the *Today / Yesterday / date* choice. A number of days
+  without the word for before (`tuition 2 days`) is just an amount.
 - **Note** is what is left, first letter capitalised.
 - Works offline, nothing is downloaded or sent.
 

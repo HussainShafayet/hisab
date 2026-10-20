@@ -9,6 +9,7 @@ class LoggedNotification {
     required this.body,
     required this.at,
     required this.immediate,
+    this.seen = false,
   });
 
   final int id;
@@ -19,7 +20,14 @@ class LoggedNotification {
 
   /// Shown by the app at [at], not put on the phone's schedule.
   final bool immediate;
+
+  /// The person has opened it from the bell.
+  final bool seen;
 }
+
+/// How many notifications have shown by [now] and have not been seen.
+int unseenCount(Iterable<LoggedNotification> all, DateTime now) =>
+    all.where((n) => !n.seen && !n.at.isAfter(now)).length;
 
 /// The history split at [now].
 typedef NotificationLists = ({
