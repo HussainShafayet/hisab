@@ -25,6 +25,24 @@ helps place a new category so no one has to guess which goes inside which.
   still the defaults). The "Inside" field explains itself ("The bigger group it
   belongs to, like Food for Fuchka").
 
+- **Family members.** *Family & gifts* has a place for what is spent on each
+  member of the family, so that a wife's, a husband's or a child's expenses
+  are not lost in *Other*:
+  - *Support to parents*: Monthly money, Parents' medicine, Clothes for
+    parents, Visits home;
+  - *Wife / Husband*: Clothes & jewellery, Cosmetics & beauty, Medicine &
+    doctor, Gifts, Pocket money, Outings together;
+  - *Children*: Baby food & diapers, Clothes & shoes, Toys & games, Medicine &
+    doctor, Treats & birthdays (school fees stay in *Education*);
+  - *Brothers & sisters*: Monthly help, Gifts, Education help;
+  - *In-laws*: Monthly help, Gifts, Feast & visits.
+
+  An install that already has the defaults gets them from the *Add them* row
+  of the Categories screen (they go inside the *Family & gifts* and *Support to
+  parents* it has; nothing it has is changed). A name like *Gifts* or
+  *Medicine & doctor* is under more than one member, on purpose: the member is
+  the parent.
+
 ## Rules
 - `DefaultCategory` is recursive; `flattenDefaults` lists every default with its
   path, icon and color, parents first. The depth stays within `maxCategoryDepth`.

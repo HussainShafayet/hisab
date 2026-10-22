@@ -16,6 +16,11 @@ import 'package:hishab/features/backup/domain/import_mapping.dart';
 import 'package:hishab/features/backup/domain/import_plan.dart';
 import 'package:hishab/features/backup/presentation/providers/backup_providers.dart';
 import 'package:hishab/features/backup/presentation/widgets/csv_import_steps.dart';
+import 'package:hishab/features/backup/presentation/widgets/undo_import.dart';
+import 'package:hishab/features/categories/domain/category.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
+import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
+import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 
 enum _Step { choose, map, preview, done }
 
@@ -42,6 +47,13 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
   List<Account> _accounts = const [];
   ImportPlan? _plan;
   ImportResult? _result;
+
+  /// The columns were taken from the last file with the same column names.
+  bool _remembered = false;
+
+  /// The categories of the file that the person matched with one of the app's,
+  /// by the key the plan uses.
+  final Map<String, ({int id, MatchedCategory match})> _matched = {};
 
   String get _title => switch (_step) {
     _Step.choose => tr('Import from CSV'),
@@ -97,14 +109,30 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
 
     final context = await ref.read(csvImportRepositoryProvider).loadContext();
     final accounts = await ref.read(accountsRepositoryProvider).getAccounts();
-    _table = table;
-    _context = context;
-    _accounts = accounts;
-    _mapping = suggestMapping(
+    final suggested = suggestMapping(
       table,
       hasHeader: _hasHeader,
       defaultAccountId: accounts.firstOrNull?.id,
     );
+    // A file with the same column names as an earlier one is set up the same.
+    final saved = _hasHeader
+        ? await ref
+              .read(csvImportRepositoryProvider)
+              .savedMapping(table.headers, columnCount: table.columnCount)
+        : null;
+    _table = table;
+    _context = context;
+    _accounts = accounts;
+    _remembered = saved != null;
+    _mapping = saved == null
+        ? suggested
+        : saved.copyWith(
+            defaultAccountId: () =>
+                accounts.any((a) => a.id == saved.defaultAccountId)
+                ? saved.defaultAccountId
+                : suggested.defaultAccountId,
+          );
+    _matched.clear();
     _error = null;
     _step = _Step.map;
   }
@@ -142,21 +170,143 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
     );
   }
 
+  ImportPlan _buildPlan() => buildImportPlan(
+    table: _table!,
+    mapping: _mapping!,
+    context: _context!,
+    categoryMap: {for (final e in _matched.entries) e.key: e.value.id},
+  );
+
+  /// Where the type of a row comes from. With a column for income and one
+  /// for expense, the two columns are looked for by their names.
+  void _setTypeSource(TypeSource source) {
+    final mapping = _mapping!;
+    var columns = mapping.columns;
+    if (source == TypeSource.twoColumns && _hasHeader) {
+      final guess = guessColumns(_table!.headers);
+      columns = {
+        ...columns,
+        for (final field in [
+          ImportField.incomeAmount,
+          ImportField.expenseAmount,
+        ])
+          if (columns[field] == null && guess[field] != null)
+            field: guess[field]!,
+      };
+    }
+    setState(
+      () => _mapping = mapping.copyWith(typeSource: source, columns: columns),
+    );
+  }
+
   void _showPreview() {
     setState(() {
-      _plan = buildImportPlan(
-        table: _table!,
-        mapping: _mapping!,
-        context: _context!,
-      );
+      _matched.clear();
+      _plan = _buildPlan();
       _step = _Step.preview;
     });
+  }
+
+  /// Makes an account for the rows to go in, and chooses it.
+  Future<void> _createAccount() async {
+    final input = await showNewAccountDialog(context);
+    if (input == null || !mounted) return;
+    setState(() => _busy = true);
+    try {
+      final accounts = ref.read(accountsRepositoryProvider);
+      final id = await accounts.createAccount(
+        name: input.name,
+        type: guessAccountType(input.name),
+        includeInTotal: input.includeInTotal,
+      );
+      final all = await accounts.getAccounts();
+      final context = await ref.read(csvImportRepositoryProvider).loadContext();
+      if (!mounted) return;
+      setState(() {
+        _accounts = all;
+        _context = context;
+        _mapping = _mapping!.copyWith(defaultAccountId: () => id);
+      });
+    } on Object catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showError(describeError(error));
+      }
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  /// Matches the new category [category] with the app's category [id].
+  void _match(CategoryToCreate category, int id, Map<int, Category> byId) {
+    final target = byId[id];
+    if (target == null) return;
+    setState(() {
+      _matched[category.key] = (
+        id: id,
+        match: MatchedCategory(
+          key: category.key,
+          fileLabel: category.label,
+          appLabel: categoryPathLabel(target, byId),
+        ),
+      );
+      _plan = _buildPlan();
+    });
+  }
+
+  Future<Map<int, Category>> _categoriesById() async => {
+    for (final c
+        in await ref.read(categoriesRepositoryProvider).getCategories())
+      c.id: c,
+  };
+
+  Future<void> _useSuggestion(CategoryToCreate category) async {
+    final suggestion = category.suggestion;
+    if (suggestion == null) return;
+    _match(category, suggestion.id, await _categoriesById());
+  }
+
+  Future<void> _chooseCategory(CategoryToCreate category) async {
+    final byId = await _categoriesById();
+    if (!mounted) return;
+    final ofType = byId.values.where((c) => c.type == category.type);
+    final pick = await showCategoryPicker(
+      context,
+      title: tr('Which of your categories is "{name}"?', {
+        'name': category.label,
+      }),
+      categories: flattenCategoryTree(buildCategoryTree(ofType)),
+      allowAdd: false,
+    );
+    if (pick is CategoryPicked) _match(category, pick.id, byId);
+  }
+
+  void _clearMatch(String key) {
+    setState(() {
+      _matched.remove(key);
+      _plan = _buildPlan();
+    });
+  }
+
+  Future<void> _undo() async {
+    final batchId = _result?.batchId;
+    if (batchId == null) return;
+    final undone = await undoImportAfterAsking(context, ref, batchId);
+    if (undone && mounted) context.pop();
   }
 
   Future<void> _import() async {
     setState(() => _busy = true);
     try {
-      final result = await ref.read(csvImportRepositoryProvider).apply(_plan!);
+      final repository = ref.read(csvImportRepositoryProvider);
+      final result = await repository.apply(_plan!, fileName: _fileName);
+      if (_hasHeader) {
+        // The next file with these columns starts from this mapping.
+        try {
+          await repository.saveMapping(_table!.headers, _mapping!);
+        } on Object {
+          // Not being able to remember the columns must not undo an import.
+        }
+      }
       if (!mounted) return;
       setState(() {
         _result = result;
@@ -197,14 +347,21 @@ class _CsvImportScreenState extends ConsumerState<CsvImportScreen> {
       onFieldChanged: _setField,
       onDateFormatChanged: (format) =>
           setState(() => _mapping = _mapping!.copyWith(dateFormat: format)),
-      onTypeSourceChanged: (source) =>
-          setState(() => _mapping = _mapping!.copyWith(typeSource: source)),
+      onTypeSourceChanged: _setTypeSource,
+      onCreateAccount: _createAccount,
+      remembered: _remembered,
       onDefaultAccountChanged: (id) => setState(
         () => _mapping = _mapping!.copyWith(defaultAccountId: () => id),
       ),
     ),
-    _Step.preview => ImportPreviewStep(plan: _plan!),
-    _Step.done => ImportDoneStep(result: _result!),
+    _Step.preview => ImportPreviewStep(
+      plan: _plan!,
+      matches: [for (final m in _matched.values) m.match],
+      onChooseCategory: _chooseCategory,
+      onUseSuggestion: _useSuggestion,
+      onClearMatch: _clearMatch,
+    ),
+    _Step.done => ImportDoneStep(result: _result!, onUndo: _undo),
   };
 
   Widget? _bottomBar(BuildContext context) {

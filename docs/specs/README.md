@@ -49,6 +49,13 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [budget](budget/) | [Carry over what is left](budget/carry-over.md) | 32 |
 | [challenges](challenges/) | [Spending challenges](challenges/spending-challenges.md) | 33 |
 | [backup](backup/) | [Settings in the backup, and the backup reminder](backup/settings-and-reminder.md) | 34 |
+| [backup](backup/) | [CSV import tools](backup/csv-import-tools.md) | 35 |
+| [dashboard](dashboard/) | [A tidier Home](dashboard/home-layout.md) | 36 |
+| [transactions](transactions/) | [Choosing several transactions](transactions/bulk-edit.md) | 37 |
+| [categories](categories/) | [Merging two categories](categories/merge-categories.md) | 38 |
+| [reports](reports/) | [The year view of the reports](reports/year-view.md) | 39 |
+| [data_check](data_check/) | [Data check](data_check/data-check.md) | 40 |
+| [goals](goals/) | [Festival cards: change, hide, and goals you can edit](goals/festival-cards.md) | 41 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

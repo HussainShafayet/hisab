@@ -14,12 +14,18 @@ class GoalTile extends StatelessWidget {
     required this.item,
     required this.today,
     required this.onTap,
+    this.onEdit,
+    this.onDelete,
     super.key,
   });
 
   final GoalWithSaved item;
   final DateTime today;
   final VoidCallback onTap;
+
+  /// When both are given, the tile has a menu to edit or delete the goal.
+  final VoidCallback? onEdit;
+  final VoidCallback? onDelete;
 
   @override
   Widget build(BuildContext context) {
@@ -69,6 +75,15 @@ class GoalTile extends StatelessWidget {
                     key: ValueKey('goal-percent-${item.goal.id}'),
                     style: theme.textTheme.titleSmall?.tabular,
                   ),
+                  if (onEdit != null && onDelete != null)
+                    PopupMenuButton<bool>(
+                      key: ValueKey('goal-menu-${item.goal.id}'),
+                      onSelected: (edit) => edit ? onEdit!() : onDelete!(),
+                      itemBuilder: (context) => [
+                        PopupMenuItem(value: true, child: Text(tr('Edit'))),
+                        PopupMenuItem(value: false, child: Text(tr('Delete'))),
+                      ],
+                    ),
                 ],
               ),
               const SizedBox(height: 10),

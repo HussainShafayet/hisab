@@ -6,6 +6,7 @@ import 'package:hishab/features/accounts/data/accounts_table.dart';
 import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/bazar/data/bazar_dao.dart';
 import 'package:hishab/features/bazar/data/bazar_table.dart';
+import 'package:hishab/features/backup/data/import_batches_table.dart';
 import 'package:hishab/features/budget/data/budgets_dao.dart';
 import 'package:hishab/features/budget/data/budgets_table.dart';
 import 'package:hishab/features/categories/data/categories_dao.dart';
@@ -72,6 +73,7 @@ final _budgetsMonthCategoryUnique = Index(
     InvestmentEntries,
     NotificationLog,
     Challenges,
+    ImportBatches,
   ],
   daos: [
     AccountsDao,
@@ -107,6 +109,8 @@ class AppDatabase extends _$AppDatabase {
   /// 4: the `debts` and `debt_payments` tables (dhar / baki).
   /// 5: the `recurring_rules` table.
   /// 6: `accounts.credit_limit` and `accounts.bill_due_day` (credit cards).
+  /// 17: the `import_batches` table and `transactions.import_batch_id` (undo a
+  /// CSV import).
   /// 16: `notification_log.seen` (the bell's unseen count),
   /// `budgets.no_carry` and `challenges.repeats`.
   /// 15: the `challenges` table (spending challenges).
@@ -121,7 +125,7 @@ class AppDatabase extends _$AppDatabase {
   /// 7: `transactions.usd_amount` and `accounts.usd_limit` (dollar spending
   /// on credit cards).
   @override
-  int get schemaVersion => 16;
+  int get schemaVersion => 17;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -205,6 +209,10 @@ class AppDatabase extends _$AppDatabase {
         await migrator.addColumn(notificationLog, notificationLog.seen);
         // What was already in the history before the bell is old news.
         await customStatement('UPDATE notification_log SET seen = 1');
+      }
+      if (from < 17) {
+        await migrator.createTable(importBatches);
+        await migrator.addColumn(transactions, transactions.importBatchId);
       }
     },
     beforeOpen: (details) async {

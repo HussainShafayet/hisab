@@ -5,6 +5,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 const messageDuration = Duration(seconds: 4);
 const errorDuration = Duration(seconds: 7);
 
+/// How long "Undo" stays after something was deleted: long enough to notice
+/// it and to reach for the button.
+const undoDuration = Duration(seconds: 8);
+
 /// The snack bars of the app. A plain `SnackBar` with an action (like "Undo")
 /// stays on screen until it is dismissed, which is not what anyone wants for a
 /// passing message. These hide by themselves, also with an action, and always
@@ -12,8 +16,11 @@ const errorDuration = Duration(seconds: 7);
 /// not queue up.
 extension AppSnackBars on ScaffoldMessengerState {
   /// A short message, with an optional [action] such as "Undo".
-  void showMessage(String text, {SnackBarAction? action}) =>
-      _show(Text(text), action: action, duration: messageDuration);
+  void showMessage(
+    String text, {
+    SnackBarAction? action,
+    Duration duration = messageDuration,
+  }) => _show(Text(text), action: action, duration: duration);
 
   /// What went wrong, in words the person can read, with a warning icon.
   void showError(String text) => _show(

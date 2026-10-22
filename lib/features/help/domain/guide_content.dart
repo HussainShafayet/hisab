@@ -47,7 +47,9 @@ const guideTopics = <GuideTopic>[
     summary: 'Where you stand today, on one screen.',
     sections: [
       GuideSection('What the cards show', [
-        'Takka, the coin, says something short and sometimes funny. Tap it for another line.',
+        'The order is: total balance and wallets, what needs you (a bill, an account below zero, a backup), shortcuts, what you can spend today, this month, plans and loans, top spending and recent entries.',
+        'Habits, tips and fun is closed until you open it: Takka, your streak, how the month felt and tips. Tap its bar to open or close it. Home remembers.',
+        'Takka, the coin, lives under Habits, tips and fun at the bottom. It says something short and sometimes funny. Tap it for another line.',
         'Total balance is the sum of your accounts. Accounts marked Not in total are left out.',
         'Safe to spend today divides what is left of the month\'s budget by the days left, after the bills still to come. It needs a budget.',
         'Can I afford it? on that card checks a price you type before you buy.',
@@ -71,7 +73,7 @@ const guideTopics = <GuideTopic>[
       GuideSection('Adding one', steps: true, [
         'Tap +. Choose Expense, Income or Transfer.',
         'Type the amount. The calculator button is there when you need to add things up.',
-        'Pick the category and the account. The preview under the account shows what will be left.',
+        'Pick the category and the account. The preview under the account shows what will be left. For a transfer, From is above To, with a swap button between them.',
         'Add a note or the day if you like, then Save. Save & new keeps the form open for the next one.',
       ]),
       GuideSection('Faster ways', [
@@ -84,6 +86,8 @@ const guideTopics = <GuideTopic>[
         'The Transactions tab lists everything, newest first. Use Search to find a note, category or amount, and Filter to narrow the list by type, category, account, dates, an amount range, a trip or event, or how it felt.',
         'Each filter you set shows as a chip under the month; its cross takes just that one off. Save this filter in the sheet keeps a favourite, like "Regret over ৳500", to use again.',
         'Tap a transaction to open it, change it or delete it. Account balances follow at once.',
+        'Swipe a row to the left, all the way, to delete it: there is no question, but Undo stays on the screen for 8 seconds. Swipe right, or tap, to change it.',
+        'Select several: press and hold a transaction, then tap Select several. Tap more rows, then change their category, change their account, or delete them together. Undo stays for 8 seconds. Transfers and balance fixes can only be deleted this way.',
         'A transfer moves money between your own accounts. It is not income and not an expense.',
       ]),
     ],
@@ -126,6 +130,10 @@ const guideTopics = <GuideTopic>[
         'Under Inside, choose the category it belongs to, or leave it at the top. Hishab suggests a place for a new name, like Looks like it goes inside Fish.',
         'Archive a category you no longer use. Old transactions keep it.',
       ]),
+      GuideSection('Tidying up', [
+        'Two names for the same thing? Open the menu of a category with no sub-categories and choose Merge into. Pick the category to keep. Its transactions, budgets, repeating entries and challenges move there, and the old one is archived. This cannot be undone here, so make a backup first if you are unsure.',
+        'Move a category to another place from its Edit screen, under Inside. What is inside it goes with it.',
+      ]),
     ],
   ),
   GuideTopic(
@@ -164,6 +172,8 @@ const guideTopics = <GuideTopic>[
         'Pick a month at the top, or a custom date range with the calendar button. You get income, expense and what you kept.',
         'A pie chart shows spending by category, a bar chart compares income and expense over the last months, and a list shows the biggest expenses.',
         'The category tree card shows each group with everything inside it added up.',
+        'Tap Year, above the date, to see a whole year. A bar chart shows each month, and a list gives every month its income, expense and what was left. Tap a month in the list to open it.',
+        'Under the list: your average per month, the month you spent most and the month you kept most. Averages count only the months that have entries, so a year you began in October is not pulled down by empty months. The year is compared with the year before.',
         'Transfers and balance corrections are left out, so they never inflate your income or expense.',
       ]),
     ],
@@ -219,6 +229,7 @@ const guideTopics = <GuideTopic>[
       GuideSection('Good to know', [
         'Goal money is set aside inside the app only. Your account balances and reports do not change.',
         'Eid, Qurbani and Pohela Boishakh funds start with one tap, and Home counts down the days.',
+        'Each festival card and each goal has a three-dot menu. On a festival: Change the date once the moon is seen (Eid is only a guess until then), Hide this festival if you do not keep it, and Edit or Delete its fund. Hidden festivals come back with Show hidden festivals. On a goal: Edit or Delete.',
       ]),
     ],
   ),
@@ -380,16 +391,38 @@ const guideTopics = <GuideTopic>[
         'The daily reminder nudges you in the evening if you have not written anything. The wrapped alert tells you when your month is ready.',
       ]),
       GuideSection('Seeing what came', steps: true, [
-        'Tap the bell at the top of Home. The number on it counts what you have not opened. Sent lists what already came, newest first. Coming up lists what is set to show later.',
+        'Tap the bell at the top of Home. The number on it counts what you have not opened. The list shows what already came, newest first.',
         'Tap a notification to mark it read and go to the screen it is about. The double tick at the top marks them all as read.',
-        'A reminder moves to Sent once its time has passed. If notifications were blocked on your phone, it did not show.',
+        'A reminder is listed once its time has passed. If notifications were blocked on your phone, it did not show.',
         'A tap on a notification on your phone opens the screen it is about.',
-        'The clear button empties Sent and leaves Coming up alone. The last 200 are kept, for up to 90 days.',
+        'The clear button empties the list. The last 200 are kept, for up to 90 days.',
       ]),
       GuideSection('Controlling them', steps: true, [
         'Open Settings > Alerts. Each alert has its own switch.',
         'Funny alert sounds off means your phone\'s usual notification sound.',
         'If a notification never shows up, check that notifications are allowed for Hishab in your phone\'s settings.',
+      ]),
+    ],
+  ),
+  GuideTopic(
+    id: 'data-check',
+    icon: Icons.fact_check_outlined,
+    group: 'data',
+    title: 'Data check',
+    summary: 'Find entries that may be mistakes, after an import or any time.',
+    route: AppRoutes.dataCheck,
+    sections: [
+      GuideSection('What it looks for', [
+        'Entered twice: the same day, kind, amount, account and note, from ৳500. Delete the extra ones, or keep them if both are real. Undo stays for 8 seconds.',
+        'Dated in the future: often a wrong year, or a day and month the wrong way round.',
+        'Far above the usual: at least 10 times the usual amount of its category and ৳1,000 or more, like a slip of a zero.',
+        'In Other: spending that has no real category yet.',
+        'Categories that look alike, like Utility and Utilities. Merge them from the Categories screen.',
+      ]),
+      GuideSection('Good to know', [
+        'Nothing is changed unless you say so. Tap an entry to open and fix it.',
+        'It looks at every entry you have, so run it after importing a sheet.',
+        'Balance corrections are not looked at.',
       ]),
     ],
   ),
@@ -406,6 +439,19 @@ const guideTopics = <GuideTopic>[
         'The screen shows when you last made one, and Home reminds you after two weeks.',
         'Restore from a backup replaces what is on this phone with the file. Do it on a new phone or after a reset.',
         'Export CSV gives a spreadsheet of your transactions. Import CSV brings in a sheet from another app.',
+      ]),
+      GuideSection('Importing a sheet', steps: true, [
+        'Save your Google Sheet or Excel file as CSV, then open Backup & export > Import from CSV.',
+        'Choose the file and say which column is which. If income and expense have a column each, pick "Separate income and expense columns".',
+        'Choose the account for the rows, or tap New account to make one here. Turn "Count it in my total balance" off for old records, so your total stays the same.',
+        'The preview shows what changes in each account and which categories will be made. If a new category is one you already have, tap Use it or the swap button.',
+        'Rows marked "to check" have a date far from the rows around them, often with the day and month the wrong way round. They are imported as they are: fix them afterwards.',
+        'The next file with the same column names starts with the same columns.',
+      ]),
+      GuideSection('If it was a mistake', [
+        'Right after an import, tap Undo this import. Later, Backup & export shows Undo last import for the latest one.',
+        'Undo removes the transactions that import added. Categories and accounts it made that nothing else uses are hidden, not deleted.',
+        'Entries you added by hand are never touched.',
       ]),
       GuideSection('Be careful', [
         'Hishab does not keep a copy online. If you lose the phone without a backup, the data is gone.',

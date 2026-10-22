@@ -105,7 +105,22 @@ void main() {
         PreferenceKeys.textSize: 'normal',
         PreferenceKeys.hideBalances: 'false',
         PreferenceKeys.backupReminder: 'true',
+        PreferenceKeys.homeMoreOpen: 'false',
       });
+    });
+
+    test('the open part of Home is closed by default and can be read back', () {
+      expect(AppPreferences.defaults.homeMoreOpen, isFalse);
+
+      final saved = const AppPreferences(homeMoreOpen: true).toMap();
+
+      expect(
+        AppPreferences.fromMap({
+          for (final e in saved.entries)
+            if (e.value != null) e.key: e.value!,
+        }).homeMoreOpen,
+        isTrue,
+      );
     });
 
     test('has null for the default account when none is set', () {

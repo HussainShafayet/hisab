@@ -297,7 +297,54 @@ const defaultExpenseCategories = [
     icon: 'card_giftcard',
     color: 0xFFFF7043,
     children: [
-      DefaultCategory('Support to parents', icon: 'volunteer_activism'),
+      DefaultCategory(
+        'Support to parents',
+        icon: 'volunteer_activism',
+        children: [
+          DefaultCategory('Monthly money', icon: 'payments'),
+          DefaultCategory('Parents\' medicine', icon: 'medical_services'),
+          DefaultCategory('Clothes for parents', icon: 'checkroom'),
+          DefaultCategory('Visits home', icon: 'directions_bus'),
+        ],
+      ),
+      DefaultCategory(
+        'Wife / Husband',
+        children: [
+          DefaultCategory('Clothes & jewellery', icon: 'checkroom'),
+          DefaultCategory('Cosmetics & beauty', icon: 'spa'),
+          DefaultCategory('Medicine & doctor', icon: 'medical_services'),
+          DefaultCategory('Gifts'),
+          DefaultCategory('Pocket money', icon: 'wallet'),
+          DefaultCategory('Outings together', icon: 'movie'),
+        ],
+      ),
+      DefaultCategory(
+        'Children',
+        icon: 'child_care',
+        children: [
+          DefaultCategory('Baby food & diapers', icon: 'local_grocery_store'),
+          DefaultCategory('Clothes & shoes', icon: 'checkroom'),
+          DefaultCategory('Toys & games', icon: 'sports_esports'),
+          DefaultCategory('Medicine & doctor', icon: 'medical_services'),
+          DefaultCategory('Treats & birthdays'),
+        ],
+      ),
+      DefaultCategory(
+        'Brothers & sisters',
+        children: [
+          DefaultCategory('Monthly help', icon: 'payments'),
+          DefaultCategory('Gifts'),
+          DefaultCategory('Education help', icon: 'school'),
+        ],
+      ),
+      DefaultCategory(
+        'In-laws',
+        children: [
+          DefaultCategory('Monthly help', icon: 'payments'),
+          DefaultCategory('Gifts'),
+          DefaultCategory('Feast & visits'),
+        ],
+      ),
       DefaultCategory('Salami (Eid)'),
       DefaultCategory('Wedding & gaye holud gift'),
       DefaultCategory('Birthday gifts'),

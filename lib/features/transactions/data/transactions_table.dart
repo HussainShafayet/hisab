@@ -64,6 +64,11 @@ class Transactions extends Table {
   /// said. Null for income and transfers.
   TextColumn get feeling => textEnum<Feeling>().nullable()();
 
+  /// The CSV import that added this transaction, so the import can be
+  /// undone. Null for everything entered by hand. No foreign key, so the
+  /// column can be dropped; it is not part of a backup.
+  IntColumn get importBatchId => integer().nullable()();
+
   DateTimeColumn get createdAt => dateTime().withDefault(currentDateAndTime)();
 
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

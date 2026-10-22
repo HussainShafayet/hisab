@@ -10,6 +10,7 @@ import 'package:hishab/features/accounts/presentation/screens/account_form_scree
 import 'package:hishab/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/backup_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/csv_import_screen.dart';
+import 'package:hishab/features/data_check/presentation/screens/data_check_screen.dart';
 import 'package:hishab/features/bazar/presentation/screens/bazar_prices_screen.dart';
 import 'package:hishab/features/bazar/presentation/screens/bazar_screen.dart';
 import 'package:hishab/features/budget/presentation/screens/budget_screen.dart';
@@ -429,6 +430,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                         builder: (context, state) => const CsvImportScreen(),
                       ),
                     ],
+                  ),
+                  GoRoute(
+                    path: 'data-check',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const DataCheckScreen(),
                   ),
                   GoRoute(
                     path: 'settings',

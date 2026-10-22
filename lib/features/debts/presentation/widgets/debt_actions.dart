@@ -48,6 +48,7 @@ Future<void> markLoanPaid(
     if (context.mounted) celebrate(context, ref);
     messenger.showMessage(
       tr('All paid.'),
+      duration: undoDuration,
       action: SnackBarAction(
         label: tr('Undo'),
         onPressed: () => repository.deletePayment(paymentId),
@@ -144,6 +145,7 @@ Future<void> setOffWithPerson(
     );
     messenger.showMessage(
       tr('Set off {amount}.', {'amount': formatPoisha(amount)}),
+      duration: undoDuration,
       action: SnackBarAction(
         label: tr('Undo'),
         onPressed: () => repository.deletePayments(ids),

@@ -21,6 +21,7 @@ import 'package:hishab/core/router/app_router.dart';
 import 'package:hishab/core/theme/app_theme.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 import '../helpers/fake_file_gateway.dart';
 import '../helpers/fixtures.dart';
@@ -237,6 +238,7 @@ void main() {
     db,
   ) async {
     await tester.runAsync(loadRealFonts);
+    await initializeDateFormatting('en');
     tester.view.physicalSize = const Size(360, 740);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);

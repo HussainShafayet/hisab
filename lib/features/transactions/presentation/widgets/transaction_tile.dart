@@ -19,6 +19,7 @@ class TransactionTile extends StatelessWidget {
     this.onTap,
     this.onLongPress,
     this.showDate = false,
+    this.selected = false,
     super.key,
   });
 
@@ -28,6 +29,10 @@ class TransactionTile extends StatelessWidget {
   final TransactionItem item;
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
+
+  /// The row is picked, while several are being chosen: a tick takes the
+  /// place of the category's picture and the row is tinted.
+  final bool selected;
 
   @override
   Widget build(BuildContext context) {
@@ -68,7 +73,17 @@ class TransactionTile extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       onLongPress: onLongPress,
-      leading: isTransfer
+      selected: selected,
+      selectedTileColor: theme.colorScheme.primaryContainer.withValues(
+        alpha: 0.5,
+      ),
+      leading: selected
+          ? CircleAvatar(
+              backgroundColor: theme.colorScheme.primary,
+              foregroundColor: theme.colorScheme.onPrimary,
+              child: const Icon(Icons.check),
+            )
+          : isTransfer
           ? CircleAvatar(
               backgroundColor: theme.colorScheme.secondaryContainer,
               foregroundColor: theme.colorScheme.onSecondaryContainer,

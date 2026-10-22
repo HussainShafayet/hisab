@@ -8,6 +8,8 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 enum ImportField {
   date('Date', isRequired: true),
   amount('Amount', isRequired: true),
+  incomeAmount('Income amount'),
+  expenseAmount('Expense amount'),
   type('Type (income, expense, transfer)'),
   category('Category'),
   account('Account'),
@@ -22,6 +24,15 @@ enum ImportField {
   String get label => tr(_label);
 
   final bool isRequired;
+
+  /// Whether the field is asked for when the type comes from [source]: with a
+  /// column each for income and expense, those two stand in for the one amount.
+  bool isAskedFor(TypeSource source) => switch (this) {
+    ImportField.amount => source != TypeSource.twoColumns,
+    ImportField.incomeAmount ||
+    ImportField.expenseAmount => source == TypeSource.twoColumns,
+    _ => true,
+  };
 }
 
 /// Where the type (income, expense, transfer) of each row comes from.
@@ -36,7 +47,11 @@ enum TypeSource {
   allExpense('All rows are expenses'),
 
   /// Every row is income.
-  allIncome('All rows are income');
+  allIncome('All rows are income'),
+
+  /// One column holds the income amounts and another the expense amounts; a
+  /// row fills one of them.
+  twoColumns('Separate income and expense columns');
 
   const TypeSource(this._label);
 
@@ -66,6 +81,47 @@ class ImportMapping {
   final int? defaultAccountId;
 
   int? columnOf(ImportField field) => columns[field];
+
+  Map<String, Object?> toJson() => {
+    'columns': {for (final e in columns.entries) e.key.name: e.value},
+    'dateFormat': dateFormat.name,
+    'typeSource': typeSource.name,
+    'defaultAccountId': defaultAccountId,
+  };
+
+  /// A mapping saved with [toJson] for a file with [columnCount] columns, or
+  /// null when the saved one is damaged or points past the columns of the file.
+  static ImportMapping? fromJson(Object? json, {required int columnCount}) {
+    if (json is! Map) return null;
+    final raw = json['columns'];
+    if (raw is! Map) return null;
+
+    final columns = <ImportField, int>{};
+    for (final entry in raw.entries) {
+      final field = ImportField.values
+          .where((f) => f.name == entry.key)
+          .firstOrNull;
+      final column = entry.value;
+      if (field == null || column is! int) return null;
+      if (column < 0 || column >= columnCount) return null;
+      columns[field] = column;
+    }
+    final format = SheetDateFormat.values
+        .where((f) => f.name == json['dateFormat'])
+        .firstOrNull;
+    final source = TypeSource.values
+        .where((s) => s.name == json['typeSource'])
+        .firstOrNull;
+    if (format == null || source == null) return null;
+
+    final account = json['defaultAccountId'];
+    return ImportMapping(
+      columns: columns,
+      dateFormat: format,
+      typeSource: source,
+      defaultAccountId: account is int ? account : null,
+    );
+  }
 
   ImportMapping copyWith({
     Map<ImportField, int>? columns,
@@ -123,15 +179,73 @@ const _keywords = <ImportField, List<String>>{
   ],
 };
 
+// Words in the names of the two amount columns of a sheet that keeps income
+// and expense apart.
+const _incomeColumnWords = [
+  'income',
+  'credit',
+  'deposit',
+  'received',
+  'আয়',
+  'জমা',
+];
+const _expenseColumnWords = [
+  'expense',
+  'debit',
+  'withdrawal',
+  'spent',
+  'ব্যয়',
+  'খরচ',
+];
+
+// Columns with these in the name are about something else than an amount:
+// "Income/Expense" is a type, "Expense category" a category.
+const _notAnAmountWords = [
+  '/',
+  'type',
+  'categ',
+  'account',
+  'note',
+  'desc',
+  'ক্যাটাগরি',
+  'অ্যাকাউন্ট',
+];
+
+int? _firstAmountColumn(List<String> lower, List<String> words, Set<int> used) {
+  for (var column = 0; column < lower.length; column++) {
+    if (used.contains(column)) continue;
+    final name = lower[column];
+    if (_notAnAmountWords.any(name.contains)) continue;
+    if (words.any(name.contains)) return column;
+  }
+  return null;
+}
+
 /// A first guess at the mapping from the names in the header row. Each field
 /// gets the first column whose name contains one of its keywords, and a column
-/// is used for one field only. Fields without a match are left out.
+/// is used for one field only. Fields without a match are left out. A column
+/// for income and one for expense are found together, and then there is no
+/// single amount column.
 Map<ImportField, int> guessColumns(List<String> headers) {
   final lower = [for (final header in headers) header.trim().toLowerCase()];
   final used = <int>{};
   final result = <ImportField, int>{};
 
+  final income = _firstAmountColumn(lower, _incomeColumnWords, used);
+  final expense = income == null
+      ? null
+      : _firstAmountColumn(lower, _expenseColumnWords, {income});
+  if (income != null && expense != null) {
+    result[ImportField.incomeAmount] = income;
+    result[ImportField.expenseAmount] = expense;
+    used.addAll([income, expense]);
+  }
+
   for (final entry in _keywords.entries) {
+    if (entry.key == ImportField.amount &&
+        result.containsKey(ImportField.incomeAmount)) {
+      continue;
+    }
     for (var column = 0; column < lower.length; column++) {
       if (used.contains(column)) continue;
       if (entry.value.any(lower[column].contains)) {
@@ -198,11 +312,16 @@ ImportMapping suggestMapping(
       : detectDateFormat(table.rows.map((row) => row[dateColumn])) ??
             SheetDateFormat.dayMonthYear;
 
+  final twoColumns =
+      columns.containsKey(ImportField.incomeAmount) &&
+      columns.containsKey(ImportField.expenseAmount);
   final amountColumn = columns[ImportField.amount];
   final hasNegativeAmounts =
       amountColumn != null &&
       table.rows.any((row) => (parseSheetAmount(row[amountColumn]) ?? 0) < 0);
-  final typeSource = columns.containsKey(ImportField.type)
+  final typeSource = twoColumns
+      ? TypeSource.twoColumns
+      : columns.containsKey(ImportField.type)
       ? TypeSource.column
       : hasNegativeAmounts
       ? TypeSource.amountSign
@@ -222,7 +341,15 @@ String? mappingProblem(ImportMapping mapping) {
   if (mapping.columnOf(ImportField.date) == null) {
     return tr('Choose the column that has the date.');
   }
-  if (mapping.columnOf(ImportField.amount) == null) {
+  if (mapping.typeSource == TypeSource.twoColumns) {
+    if (mapping.columnOf(ImportField.incomeAmount) == null &&
+        mapping.columnOf(ImportField.expenseAmount) == null) {
+      return tr(
+        'Choose the column that has the income amount, the expense amount, '
+        'or both.',
+      );
+    }
+  } else if (mapping.columnOf(ImportField.amount) == null) {
     return tr('Choose the column that has the amount.');
   }
   if (mapping.typeSource == TypeSource.column &&
@@ -238,3 +365,8 @@ String? mappingProblem(ImportMapping mapping) {
   }
   return null;
 }
+
+/// What a file with these [headers] is called when its mapping is saved: the
+/// names of the columns, so the next file with the same columns finds it.
+String headerSignature(List<String> headers) =>
+    [for (final header in headers) header.trim().toLowerCase()].join('|');

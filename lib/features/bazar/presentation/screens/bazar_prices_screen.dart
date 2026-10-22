@@ -47,6 +47,7 @@ class BazarPricesScreen extends ConsumerWidget {
     await repository.deletePrice(price.name);
     messenger.showMessage(
       tr('Removed the price of {name}', {'name': price.name}),
+      duration: undoDuration,
       action: SnackBarAction(
         label: tr('Undo'),
         onPressed: () => repository.restorePrice(price),

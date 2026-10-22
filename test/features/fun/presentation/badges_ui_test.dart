@@ -23,6 +23,7 @@ void main() {
     db,
   ) async {
     useTallScreen(tester);
+    await showHomeExtras(db);
     await pumpAppWithDatabase(tester, db);
 
     expect(find.byKey(const ValueKey('streak-card')), findsOneWidget);
@@ -43,6 +44,7 @@ void main() {
     for (final d in [7, 9, 10, 11]) {
       await write(db, b, d);
     }
+    await showHomeExtras(db);
     await pumpAppWithDatabase(tester, db);
 
     expect(find.text('3 days in a row'), findsOneWidget);
@@ -54,6 +56,7 @@ void main() {
     useTallScreen(tester);
     final b = await seedBasics(db);
     await write(db, b, 11);
+    await showHomeExtras(db);
     await pumpAppWithDatabase(tester, db);
 
     await tester.tap(find.byKey(const ValueKey('streak-card')));
@@ -71,6 +74,8 @@ void main() {
   ) async {
     useTallScreen(tester);
     await SettingsRepository(db).update((p) => p.copyWith(funMode: false));
+    // Open, so that the absence means something.
+    await showHomeExtras(db);
     await pumpAppWithDatabase(tester, db);
 
     expect(find.byKey(const ValueKey('streak-card')), findsNothing);

@@ -80,6 +80,7 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
     await repository.deleteItem(item.id);
     messenger.showMessage(
       tr('Removed {name}', {'name': item.name}),
+      duration: undoDuration,
       action: SnackBarAction(
         label: tr('Undo'),
         onPressed: () => repository.restoreItem(item),

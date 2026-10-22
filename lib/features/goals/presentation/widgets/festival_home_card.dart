@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/features/goals/domain/festival.dart';
+import 'package:hishab/features/goals/domain/festival_settings.dart';
 import 'package:hishab/features/goals/presentation/providers/goals_providers.dart';
 import 'package:hishab/features/goals/presentation/widgets/festival_tile.dart';
 
@@ -14,7 +15,12 @@ class FestivalHomeCard extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final today = ref.watch(clockProvider)();
     final goals = ref.watch(goalsProvider).value ?? const [];
-    final next = upcomingFestivals(today, goals).first;
+    final settings =
+        ref.watch(festivalSettingsProvider).value ?? const FestivalSettings();
+    final festivals = upcomingFestivals(today, goals, settings: settings);
+    // Every festival may be hidden.
+    if (festivals.isEmpty) return const SizedBox.shrink();
+    final next = festivals.first;
     if (next.daysLeft > festivalWindowDays) return const SizedBox.shrink();
     return FestivalTile(
       item: next,

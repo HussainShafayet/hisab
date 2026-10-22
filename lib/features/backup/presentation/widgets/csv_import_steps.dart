@@ -11,6 +11,106 @@ import 'package:hishab/features/backup/domain/sheet_date.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:intl/intl.dart';
 
+/// A category of the file that the person matched with one of the app's.
+class MatchedCategory {
+  const MatchedCategory({
+    required this.key,
+    required this.fileLabel,
+    required this.appLabel,
+  });
+
+  /// The key the plan matches the file's rows by (`categoryKey`).
+  final String key;
+
+  /// The category as the file names it.
+  final String fileLabel;
+
+  /// The category of the app it was matched with, with what it is inside.
+  final String appLabel;
+}
+
+/// Asks for the name of a new account and whether it counts in the total
+/// balance. Returns null when cancelled.
+Future<({String name, bool includeInTotal})?> showNewAccountDialog(
+  BuildContext context,
+) {
+  return showDialog<({String name, bool includeInTotal})>(
+    context: context,
+    builder: (context) => const _NewAccountDialog(),
+  );
+}
+
+class _NewAccountDialog extends StatefulWidget {
+  const _NewAccountDialog();
+
+  @override
+  State<_NewAccountDialog> createState() => _NewAccountDialogState();
+}
+
+class _NewAccountDialogState extends State<_NewAccountDialog> {
+  final _name = TextEditingController();
+  bool _includeInTotal = true;
+
+  @override
+  void dispose() {
+    _name.dispose();
+    super.dispose();
+  }
+
+  void _save() {
+    final name = _name.text.trim();
+    if (name.isEmpty) return;
+    Navigator.of(context).pop((name: name, includeInTotal: _includeInTotal));
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: Text(tr('New account')),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            key: const ValueKey('new-account-name'),
+            controller: _name,
+            autofocus: true,
+            textCapitalization: TextCapitalization.words,
+            decoration: InputDecoration(
+              labelText: tr('Account name'),
+              hintText: tr('For example: Old records'),
+            ),
+            onSubmitted: (_) => _save(),
+          ),
+          const SizedBox(height: 8),
+          SwitchListTile(
+            key: const ValueKey('new-account-in-total'),
+            contentPadding: EdgeInsets.zero,
+            title: Text(tr('Count it in my total balance')),
+            subtitle: Text(
+              tr(
+                'Turn this off for old records, so your total stays as it is.',
+              ),
+            ),
+            value: _includeInTotal,
+            onChanged: (value) => setState(() => _includeInTotal = value),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: Text(tr('Cancel')),
+        ),
+        FilledButton(
+          key: const ValueKey('new-account-save'),
+          onPressed: _save,
+          child: Text(tr('Create account')),
+        ),
+      ],
+    );
+  }
+}
+
 /// The first step: choose the file.
 class ImportChooseStep extends StatelessWidget {
   const ImportChooseStep({required this.error, super.key});
@@ -77,6 +177,8 @@ class ImportMapStep extends StatelessWidget {
     required this.onDateFormatChanged,
     required this.onTypeSourceChanged,
     required this.onDefaultAccountChanged,
+    required this.onCreateAccount,
+    this.remembered = false,
     super.key,
   });
 
@@ -93,6 +195,10 @@ class ImportMapStep extends StatelessWidget {
   final ValueChanged<SheetDateFormat> onDateFormatChanged;
   final ValueChanged<TypeSource> onTypeSourceChanged;
   final ValueChanged<int?> onDefaultAccountChanged;
+  final VoidCallback onCreateAccount;
+
+  /// The columns were set the way they were for the last file like this.
+  final bool remembered;
 
   /// The first non-empty cell of [column], to show what the column holds.
   String _sample(int column) {
@@ -164,8 +270,22 @@ class ImportMapStep extends StatelessWidget {
             ),
           ),
         ),
+        if (remembered)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              tr(
+                'The columns are set as they were for your last file like '
+                'this. Check them.',
+              ),
+              key: const ValueKey('remembered-mapping'),
+              style: theme.textTheme.bodySmall,
+            ),
+          ),
         heading(tr('Which column is which?')),
-        for (final field in ImportField.values)
+        for (final field in ImportField.values.where(
+          (f) => f.isAskedFor(mapping.typeSource),
+        ))
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
             child: DropdownButtonFormField<int?>(
@@ -270,18 +390,47 @@ class ImportMapStep extends StatelessWidget {
           ],
           onChanged: onDefaultAccountChanged,
         ),
+        Align(
+          alignment: AlignmentDirectional.centerStart,
+          child: TextButton.icon(
+            key: const ValueKey('create-account'),
+            onPressed: onCreateAccount,
+            icon: const Icon(Icons.add),
+            label: Text(tr('New account')),
+          ),
+        ),
       ],
     );
   }
 }
 
-enum _RowFilter { all, toImport, duplicates, errors }
+enum _RowFilter { all, toImport, duplicates, errors, check }
 
 /// The third step: what the import will do.
 class ImportPreviewStep extends StatefulWidget {
-  const ImportPreviewStep({required this.plan, super.key});
+  const ImportPreviewStep({
+    required this.plan,
+    this.matches = const [],
+    this.onChooseCategory,
+    this.onUseSuggestion,
+    this.onClearMatch,
+    super.key,
+  });
 
   final ImportPlan plan;
+
+  /// The categories matched with the app's by hand, so that they can be taken
+  /// back.
+  final List<MatchedCategory> matches;
+
+  /// Asks which category of the app a new category should be.
+  final ValueChanged<CategoryToCreate>? onChooseCategory;
+
+  /// Matches a new category with the one that looks like it.
+  final ValueChanged<CategoryToCreate>? onUseSuggestion;
+
+  /// Takes a match back, by its key.
+  final ValueChanged<String>? onClearMatch;
 
   /// The most rows listed, so the screen stays fast for a big file.
   static const maxRowsShown = 200;
@@ -301,6 +450,8 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
       widget.plan.rows.where((r) => r.status == RowStatus.duplicate).toList(),
     _RowFilter.errors =>
       widget.plan.rows.where((r) => r.status == RowStatus.error).toList(),
+    _RowFilter.check =>
+      widget.plan.rows.where((r) => r.warning != null).toList(),
   };
 
   @override
@@ -362,6 +513,82 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
             ),
           ),
         ),
+        if (plan.warningCount > 0)
+          Card(
+            key: const ValueKey('odd-dates'),
+            margin: const EdgeInsets.only(top: 8),
+            child: ListTile(
+              leading: Icon(
+                Icons.warning_amber_rounded,
+                color: theme.colorScheme.tertiary,
+              ),
+              title: Text(
+                tr('{rows} to check', {
+                  'rows': plural(plan.warningCount, '1 row', '{n} rows'),
+                }),
+              ),
+              subtitle: Text(
+                tr(
+                  'Their dates do not fit the rows around them. They will be '
+                  'imported as they are.',
+                ),
+              ),
+              onTap: () => setState(() => _filter = _RowFilter.check),
+            ),
+          ),
+        if (plan.accountChanges.isNotEmpty)
+          Card(
+            key: const ValueKey('balance-changes'),
+            margin: const EdgeInsets.only(top: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr('What changes in your accounts'),
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  const SizedBox(height: 4),
+                  for (final change in plan.accountChanges)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(change.name),
+                                if (change.isNew || !change.includeInTotal)
+                                  Text(
+                                    [
+                                      if (change.isNew) tr('new account'),
+                                      if (!change.includeInTotal)
+                                        tr('not in your total balance'),
+                                    ].join(' · '),
+                                    style: theme.textTheme.bodySmall,
+                                  ),
+                              ],
+                            ),
+                          ),
+                          Text(
+                            '${change.change > 0 ? '+' : ''}'
+                            '${formatPoisha(change.change)}',
+                            key: ValueKey('balance-change-${change.name}'),
+                            style: theme.textTheme.titleSmall?.copyWith(
+                              color: change.change < 0
+                                  ? colors.expense
+                                  : colors.income,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          ),
         if (plan.newAccounts.isNotEmpty || plan.newCategories.isNotEmpty)
           Card(
             key: const ValueKey('will-create'),
@@ -385,13 +612,47 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
                   ],
                   if (plan.newCategories.isNotEmpty) ...[
                     const SizedBox(height: 8),
-                    Text(
-                      tr('Categories: {names}', {
-                        'names': [for (final c in plan.newCategories) c.label]
-                            .join(', '),
-                      }),
-                    ),
+                    Text(tr('Categories:')),
+                    for (final category in plan.newCategories)
+                      _NewCategoryRow(
+                        category: category,
+                        onChoose: widget.onChooseCategory,
+                        onUseSuggestion: widget.onUseSuggestion,
+                      ),
                   ],
+                ],
+              ),
+            ),
+          ),
+        if (widget.matches.isNotEmpty)
+          Card(
+            key: const ValueKey('matched-categories'),
+            margin: const EdgeInsets.only(top: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    tr('Matched with your categories'),
+                    style: theme.textTheme.titleSmall,
+                  ),
+                  for (final match in widget.matches)
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '${match.fileLabel}  →  ${match.appLabel}',
+                          ),
+                        ),
+                        IconButton(
+                          key: ValueKey('unmatch-${match.key}'),
+                          tooltip: tr('Take back'),
+                          icon: const Icon(Icons.close),
+                          onPressed: () => widget.onClearMatch?.call(match.key),
+                        ),
+                      ],
+                    ),
                 ],
               ),
             ),
@@ -405,6 +666,7 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
               (_RowFilter.toImport, tr('To import')),
               (_RowFilter.duplicates, tr('Already in the app')),
               (_RowFilter.errors, tr('Cannot be read')),
+              if (plan.warningCount > 0) (_RowFilter.check, tr('To check')),
             ])
               ChoiceChip(
                 label: Text(label),
@@ -442,6 +704,57 @@ class _ImportPreviewStepState extends State<ImportPreviewStep> {
   }
 }
 
+/// A category the import will make, with a way to use one of the app's instead.
+class _NewCategoryRow extends StatelessWidget {
+  const _NewCategoryRow({
+    required this.category,
+    required this.onChoose,
+    required this.onUseSuggestion,
+  });
+
+  final CategoryToCreate category;
+  final ValueChanged<CategoryToCreate>? onChoose;
+  final ValueChanged<CategoryToCreate>? onUseSuggestion;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final suggestion = category.suggestion;
+    return Row(
+      key: ValueKey('new-category-${category.key}'),
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('• ${category.label}'),
+              if (suggestion != null)
+                Text(
+                  tr('Looks like "{name}", which you have.', {
+                    'name': suggestion.name,
+                  }),
+                  style: theme.textTheme.bodySmall,
+                ),
+            ],
+          ),
+        ),
+        if (suggestion != null)
+          TextButton(
+            key: ValueKey('use-suggestion-${category.key}'),
+            onPressed: () => onUseSuggestion?.call(category),
+            child: Text(tr('Use it')),
+          ),
+        IconButton(
+          key: ValueKey('choose-category-${category.key}'),
+          tooltip: tr('Use a category I have'),
+          icon: const Icon(Icons.swap_horiz),
+          onPressed: () => onChoose?.call(category),
+        ),
+      ],
+    );
+  }
+}
+
 class _PlannedRowTile extends StatelessWidget {
   const _PlannedRowTile({required this.row});
 
@@ -454,6 +767,10 @@ class _PlannedRowTile extends StatelessWidget {
     final parsed = row.parsed;
 
     final (icon, color) = switch (row.status) {
+      RowStatus.ok when row.warning != null => (
+        Icons.warning_amber_rounded,
+        theme.colorScheme.tertiary,
+      ),
       RowStatus.ok => (Icons.check_circle_outline, colors.income),
       RowStatus.duplicate => (
         Icons.content_copy_outlined,
@@ -483,6 +800,7 @@ class _PlannedRowTile extends StatelessWidget {
         if (parsed.note.isNotEmpty) parsed.note,
         if (row.status == RowStatus.duplicate)
           tr('Already in the app, skipped'),
+        if (row.warning != null) row.warning!,
       ].join(' · ');
     }
 
@@ -499,9 +817,12 @@ class _PlannedRowTile extends StatelessWidget {
 
 /// The last step: what was done.
 class ImportDoneStep extends StatelessWidget {
-  const ImportDoneStep({required this.result, super.key});
+  const ImportDoneStep({required this.result, this.onUndo, super.key});
 
   final ImportResult result;
+
+  /// Takes the import back. Null hides the button.
+  final VoidCallback? onUndo;
 
   @override
   Widget build(BuildContext context) {
@@ -566,6 +887,17 @@ class ImportDoneStep extends StatelessWidget {
               'rows': plural(result.errors, '1 row', '{n} rows'),
             }),
           ),
+        if (onUndo != null && result.batchId != null) ...[
+          const SizedBox(height: 16),
+          Center(
+            child: TextButton.icon(
+              key: const ValueKey('undo-import'),
+              onPressed: onUndo,
+              icon: const Icon(Icons.undo),
+              label: Text(tr('Undo this import')),
+            ),
+          ),
+        ],
       ],
     );
   }

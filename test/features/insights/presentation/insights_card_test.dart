@@ -30,6 +30,8 @@ void main() {
   ) async {
     useTallScreen(tester);
     await seedBasics(db);
+    // Open, so that the absence means something.
+    await showHomeExtras(db);
     await pumpAppWithDatabase(tester, db);
 
     expect(find.byKey(const ValueKey('insights')), findsNothing);
@@ -43,6 +45,7 @@ void main() {
     final b = await seedBasics(db);
     await spend(db, b.cash, b.food, 150000, DateTime(2026, 10, 5));
     await spend(db, b.cash, b.food, 100000, DateTime(2026, 9, 8));
+    await showHomeExtras(db);
     await pumpAppWithDatabase(tester, db);
 
     expect(find.byKey(const ValueKey('insights')), findsOneWidget);
@@ -62,6 +65,7 @@ void main() {
     final b = await seedBasics(db);
     await spend(db, b.cash, b.food, 150000, DateTime(2026, 10, 5));
     await spend(db, b.cash, b.food, 100000, DateTime(2026, 9, 8));
+    await showHomeExtras(db);
     await pumpAppWithDatabase(tester, db);
 
     final shown = find.byWidgetPredicate(
@@ -89,6 +93,7 @@ void main() {
     useTallScreen(tester);
     final b = await seedBasics(db);
     await spend(db, b.cash, b.food, 100000, DateTime(2026, 9, 8));
+    await showHomeExtras(db);
     await pumpAppWithDatabase(tester, db);
     expect(find.byKey(const ValueKey('insight-spendingUp')), findsNothing);
 

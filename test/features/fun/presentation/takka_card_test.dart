@@ -39,6 +39,7 @@ void main() {
     testWithDatabase('Takka says something, with a face', (tester, db) async {
       useTallScreen(tester);
       await seedBasics(db);
+      await showHomeExtras(db);
       await pumpAppWithDatabase(tester, db);
 
       expect(find.byKey(_card), findsOneWidget);
@@ -61,6 +62,7 @@ void main() {
           date: DateTime(2026, 10, 5),
         ),
       );
+      await showHomeExtras(db);
       await pumpAppWithDatabase(tester, db);
 
       expect(face(tester), TakkaMood.worried);
@@ -70,6 +72,7 @@ void main() {
     testWithDatabase('says another line when tapped', (tester, db) async {
       useTallScreen(tester);
       await seedBasics(db);
+      await showHomeExtras(db);
       await pumpAppWithDatabase(tester, db);
       final first = said(tester);
 

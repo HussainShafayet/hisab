@@ -17,6 +17,7 @@ import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
+import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 /// The categories as a tree: each one can be opened and closed to show or
@@ -284,7 +285,7 @@ class _AddDefaultsTile extends ConsumerWidget {
   }
 }
 
-enum _CategoryAction { edit, addSub, archive, restore }
+enum _CategoryAction { edit, addSub, merge, archive, restore }
 
 class _CategoryTile extends ConsumerWidget {
   const _CategoryTile({
@@ -391,6 +392,11 @@ class _CategoryTile extends ConsumerWidget {
                   value: _CategoryAction.addSub,
                   child: Text(tr('Add sub-category')),
                 ),
+              if (!category.isArchived)
+                PopupMenuItem(
+                  value: _CategoryAction.merge,
+                  child: Text(tr('Merge into…')),
+                ),
               if (category.isArchived)
                 PopupMenuItem(
                   value: _CategoryAction.restore,
@@ -423,10 +429,90 @@ class _CategoryTile extends ConsumerWidget {
             parentId: category.id,
           ),
         );
+      case _CategoryAction.merge:
+        await _merge(context, ref);
       case _CategoryAction.archive:
         await _archive(context, ref);
       case _CategoryAction.restore:
         await _restore(context, ref);
+    }
+  }
+
+  /// Folds this category into another one of the same type: where it went,
+  /// then a question, then everything that used it moves.
+  Future<void> _merge(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (childCount > 0) {
+      messenger.showError(
+        tr('"{name}" has sub-categories. Move or merge them first.', {
+          'name': category.name,
+        }),
+      );
+      return;
+    }
+    final repository = ref.read(categoriesRepositoryProvider);
+    final all = await repository.getCategories();
+    if (!context.mounted) return;
+    final byId = {for (final c in all) c.id: c};
+    final options = all.where(
+      (c) => c.type == category.type && c.id != category.id,
+    );
+    final pick = await showCategoryPicker(
+      context,
+      title: tr('Merge "{name}" into', {'name': category.name}),
+      categories: flattenCategoryTree(buildCategoryTree(options)),
+      allowAdd: false,
+    );
+    if (pick is! CategoryPicked || !context.mounted) return;
+    final into = byId[pick.id];
+    if (into == null) return;
+
+    final args = {'from': category.name, 'into': categoryPathLabel(into, byId)};
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr('Merge "{from}" into "{into}"?', args)),
+        content: Text(
+          tr(
+            'Everything that uses "{from}" moves to "{into}": transactions, '
+            'budgets, repeating entries and challenges. Then "{from}" is '
+            'archived. This cannot be undone here; to go back, restore a '
+            'backup.',
+            args,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(tr('Cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('confirm-merge'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(tr('Merge')),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    try {
+      final result = await repository.mergeCategory(
+        category.id,
+        intoId: into.id,
+      );
+      messenger.showMessage(
+        tr('{transactions} moved to {name}', {
+          'transactions': plural(
+            result.transactions,
+            '1 transaction',
+            '{n} transactions',
+          ),
+          'name': categoryPathLabel(into, byId),
+        }),
+      );
+    } on Object catch (error) {
+      messenger.showError(describeError(error));
     }
   }
 
@@ -466,6 +552,7 @@ class _CategoryTile extends ConsumerWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showMessage(
       tr('{name} archived', {'name': category.name}),
+      duration: undoDuration,
       action: SnackBarAction(
         label: tr('Undo'),
         onPressed: () => repository.restoreCategory(category.id),

@@ -1,15 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/goals/domain/festival.dart';
+import 'package:hishab/features/goals/presentation/widgets/festival_actions.dart';
 import 'package:intl/intl.dart';
 
 /// A coming festival: how many days are left and, below, either how far its
 /// fund has come (a tap opens it) or a button to start one.
-class FestivalTile extends StatelessWidget {
+class FestivalTile extends ConsumerWidget {
   const FestivalTile({
     required this.item,
     required this.today,
@@ -22,12 +24,13 @@ class FestivalTile extends StatelessWidget {
   final EdgeInsetsGeometry margin;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final fund = item.fund;
     final isEid = item.festival != Festival.pohelaBoishakh;
     final date = DateFormat.MMMd().format(item.date);
-    final when = isEstimated(item.festival)
+    // A day the person set is not a guess any more.
+    final when = isEstimated(item.festival) && !item.isChosen
         ? tr('About {date}', {'date': date})
         : date;
     final days = item.daysLeft == 0
@@ -78,6 +81,36 @@ class FestivalTile extends StatelessWidget {
                     style: theme.textTheme.labelLarge?.copyWith(
                       color: theme.colorScheme.primary,
                     ),
+                  ),
+                  PopupMenuButton<FestivalAction>(
+                    key: ValueKey('festival-menu-${item.festival.name}'),
+                    onSelected: (action) =>
+                        doFestivalAction(context, ref, item, action),
+                    itemBuilder: (context) => [
+                      PopupMenuItem(
+                        value: FestivalAction.changeDate,
+                        child: Text(tr('Change the date')),
+                      ),
+                      if (item.isChosen)
+                        PopupMenuItem(
+                          value: FestivalAction.usualDate,
+                          child: Text(tr('Use the usual date')),
+                        ),
+                      if (fund != null) ...[
+                        PopupMenuItem(
+                          value: FestivalAction.editFund,
+                          child: Text(tr('Edit fund')),
+                        ),
+                        PopupMenuItem(
+                          value: FestivalAction.deleteFund,
+                          child: Text(tr('Delete fund')),
+                        ),
+                      ],
+                      PopupMenuItem(
+                        value: FestivalAction.hide,
+                        child: Text(tr('Hide this festival')),
+                      ),
+                    ],
                   ),
                 ],
               ),

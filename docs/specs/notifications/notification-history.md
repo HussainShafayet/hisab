@@ -9,30 +9,30 @@ missed, was gone.
 - **The bell** is in the top bar of the five main tabs (Home, Transactions,
   Budget, Reports, More). A number on it counts the notifications that have
   shown and were not opened (*99+* beyond 99); no number when all are seen. A
-  tap opens the list: a screen with two tabs:
-  - **Sent**: what has shown, newest first, under a heading for each day
-    (*Today*, *Yesterday*, then the date). Each line has an icon for its kind,
-    the title, the text and the time.
-  - **Coming up**: what is set to show later, the soonest first, in the same
-    layout.
+  tap opens the list: one list of what has shown, newest first, under a
+  heading for each day (*Today*, *Yesterday*, then the date). Each line has an
+  icon for its kind, the title, the text and the time. What is set to show
+  later is **not listed**: there is no *Coming up* tab (it was taken away
+  because a reminder is of use once it has come). Such rows are still kept in
+  the log and join the list when their time has passed.
 - **Seen and unseen.** A notification that has shown is *unseen* until the
   person opens it: it is bold with a dot, and counted on the bell. A tap on it
   marks it seen and goes to the screen it is about (`routeForAlert`: budget
   alerts to Budget, habit alerts to Transactions, loans to Loans, bills to
   Recurring, the daily reminder to a new entry, month wrapped to the wrapped,
-  zakat to Zakat). The double tick at the top marks all as seen. Coming up
-  ones have no mark.
+  zakat to Zakat). The double tick at the top marks all as seen.
 - **A tap on the notification on the phone** opens the same screen
   (`routeForAlert`): the plugin gives the route as the notification's payload,
   sets `pendingNotificationRoute`, and `HishabApp` opens it (a tab is switched
   to, any other screen is put on top). It also works when the tap started the
   app.
-- Empty tabs say so (*Nothing sent yet*, *Nothing coming up*).
-- A footnote under *Sent* says that reminders are listed once their time has
+- An empty list says so (*Nothing sent yet*).
+- A footnote under the list says that reminders are listed once their time has
   passed, and that if notifications were blocked on the phone they did not
   show.
-- A **clear** button in the app bar (only when *Sent* has something) asks
-  *Clear the history?* and then empties *Sent*. *Coming up* is not touched.
+- A **clear** button in the app bar (only when the list has something) asks
+  *Clear the history?* and then empties it. Rows that have not come yet are
+  not touched.
 - The **?** button opens the *Alerts and reminders* topic of the guide.
 
 ## Rules
@@ -46,10 +46,10 @@ missed, was gone.
     the new schedule (`syncScheduled`); what is already past stays, and is
     taken as shown;
   - when the app takes a reminder off the schedule (today's daily reminder once
-    something is written today) it is dropped from *Coming up*
+    something is written today) it is dropped from the log
     (`forgetScheduled`).
-- A row at exactly the current time counts as shown. The tabs are split when
-  the screen is opened (`splitNotifications`).
+- A row at exactly the current time counts as shown. The list is split from
+  the rest when the screen is opened (`splitNotifications`).
 - What was in the history before the bell existed (schema 16) is taken as seen.
 - At most 200 shown notifications are kept, and none older than 90 days; the
   oldest go first (`prune`, after each write).

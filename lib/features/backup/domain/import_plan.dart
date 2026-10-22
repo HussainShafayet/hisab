@@ -7,6 +7,7 @@ import 'package:hishab/features/backup/domain/sheet_date.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
+import 'package:intl/intl.dart';
 
 /// The category used for an expense row with no category.
 const defaultExpenseCategoryName = 'Other';
@@ -22,10 +23,17 @@ String normalizeName(String name) =>
     name.trim().replaceAll(RegExp(r'\s+'), ' ').toLowerCase();
 
 class ExistingAccount {
-  const ExistingAccount({required this.id, required this.name});
+  const ExistingAccount({
+    required this.id,
+    required this.name,
+    this.includeInTotal = true,
+  });
 
   final int id;
   final String name;
+
+  /// Whether its balance counts in the total balance.
+  final bool includeInTotal;
 }
 
 class ExistingCategory {
@@ -112,6 +120,52 @@ class CategoryResolver {
     }
     return current;
   }
+}
+
+/// The key of a category named in a file, to match it with one of the app's.
+String categoryKey(CategoryType type, List<String> path) =>
+    '${type.name}|${path.map(normalizeName).join('>')}';
+
+/// An existing category that the new category [name] probably means: of the
+/// same [type], with a name that holds the new one or is held by it
+/// ("Transportation" and "Transport"), the closest in length first. Null when
+/// nothing looks alike. This is only a suggestion for the person to accept.
+ExistingCategory? similarCategory(
+  String name,
+  CategoryType type,
+  Iterable<ExistingCategory> existing,
+) {
+  // Letters only, and the plural taken off: "Utilities" is "utility", "Foods"
+  // is "food".
+  String squash(String text) {
+    final word = normalizeName(text)
+        .replaceAll(RegExp(r'[^\p{L}\p{N}]', unicode: true), '');
+    if (word.length > 4 && word.endsWith('ies')) {
+      return '${word.substring(0, word.length - 3)}y';
+    }
+    if (word.length > 3 && word.endsWith('s') && !word.endsWith('ss')) {
+      return word.substring(0, word.length - 1);
+    }
+    return word;
+  }
+
+  final wanted = squash(name);
+  if (wanted.length < 4) return null;
+
+  ExistingCategory? best;
+  var bestGap = 1 << 30;
+  for (final category in existing) {
+    if (category.type != type || category.isArchived) continue;
+    final other = squash(category.name);
+    if (other.length < 4) continue;
+    if (!other.contains(wanted) && !wanted.contains(other)) continue;
+    final gap = (other.length - wanted.length).abs();
+    if (gap < bestGap) {
+      best = category;
+      bestGap = gap;
+    }
+  }
+  return best;
 }
 
 /// A guess at the kind of account from its name, for accounts that are created
@@ -209,6 +263,7 @@ class PlannedRow {
     required this.status,
     this.parsed,
     this.error,
+    this.warning,
   });
 
   /// 1 for the first data row (the header row is not counted).
@@ -218,18 +273,73 @@ class PlannedRow {
   /// Set unless the row is an error.
   final ParsedRow? parsed;
   final String? error;
+
+  /// Something to look at in a row that is imported all the same, such as a
+  /// date that does not fit the rows around it.
+  final String? warning;
+
+  PlannedRow withWarning(String warning) => PlannedRow(
+    rowNumber: rowNumber,
+    status: status,
+    parsed: parsed,
+    error: error,
+    warning: warning,
+  );
 }
 
 /// A category the import will create, with its parent when it has one.
 class CategoryToCreate {
-  const CategoryToCreate({required this.path, required this.type});
+  const CategoryToCreate({
+    required this.path,
+    required this.type,
+    this.suggestion,
+  });
 
   /// From the top-level category down: one name, or several for a
   /// sub-category.
   final List<String> path;
   final CategoryType type;
 
+  /// A category the app has that this one may be meant as, if one looks alike.
+  final ExistingCategory? suggestion;
+
   String get label => path.join(' > ');
+
+  /// What the file's rows of this category are matched by.
+  String get key => categoryKey(type, path);
+
+  CategoryToCreate withSuggestion(ExistingCategory? suggestion) =>
+      CategoryToCreate(path: path, type: type, suggestion: suggestion);
+}
+
+/// What an import does to the balance of one account.
+class AccountChange {
+  const AccountChange({
+    required this.name,
+    required this.change,
+    required this.isNew,
+    required this.includeInTotal,
+  });
+
+  final String name;
+
+  /// In poisha, negative when the account ends with less.
+  final int change;
+
+  /// The account does not exist yet: it starts from nothing.
+  final bool isNew;
+
+  /// Whether the account counts in the total balance.
+  final bool includeInTotal;
+}
+
+class _Change {
+  _Change(this.name, {required this.isNew, required this.includeInTotal});
+
+  final String name;
+  final bool isNew;
+  final bool includeInTotal;
+  int delta = 0;
 }
 
 /// What an import will do, worked out before anything is changed so it can be
@@ -239,9 +349,19 @@ class ImportPlan {
     required this.rows,
     required this.newAccounts,
     required this.newCategories,
+    this.accountChanges = const [],
+    this.categoryMap = const {},
   });
 
   final List<PlannedRow> rows;
+
+  /// How the rows to import change the balance of each account they touch.
+  final List<AccountChange> accountChanges;
+
+  /// The categories of the file that were matched with one of the app's by
+  /// the person, by [categoryKey]. The import uses them in place of making
+  /// a new category.
+  final Map<String, int> categoryMap;
 
   /// Accounts in the file that the app does not have yet.
   final List<String> newAccounts;
@@ -256,6 +376,101 @@ class ImportPlan {
   int get duplicateCount =>
       rows.where((r) => r.status == RowStatus.duplicate).length;
   int get errorCount => rows.where((r) => r.status == RowStatus.error).length;
+
+  /// Rows to import that have something to look at.
+  int get warningCount => rows.where((r) => r.warning != null).length;
+}
+
+/// A date this far from the rows around it is looked at.
+const _oddDateDays = 45;
+
+/// Marks the rows to import whose date is far from the rows around them: the
+/// day and month the wrong way round, a wrong year. The rows near it (two
+/// before and two after) have to agree among themselves, so a file that jumps
+/// between dates is not marked.
+List<PlannedRow> markOddDates(List<PlannedRow> rows) {
+  final dated = [
+    for (var i = 0; i < rows.length; i++)
+      if (rows[i].status == RowStatus.ok) i,
+  ];
+  final result = [...rows];
+  final format = DateFormat('d MMM yyyy');
+
+  for (var k = 0; k < dated.length; k++) {
+    final around = <DateTime>[
+      for (var j = k - 2; j <= k + 2; j++)
+        if (j != k && j >= 0 && j < dated.length) rows[dated[j]].parsed!.date,
+    ]..sort();
+    if (around.length < 2) continue;
+    if (around.last.difference(around.first).inDays > _oddDateDays) continue;
+
+    final middle = around[around.length ~/ 2];
+    final date = rows[dated[k]].parsed!.date;
+    if (date.difference(middle).inDays.abs() <= _oddDateDays) continue;
+
+    final swapped = date.day <= 12
+        ? DateTime(date.year, date.day, date.month, date.hour, date.minute)
+        : null;
+    final fits =
+        swapped != null &&
+        swapped.month == date.day &&
+        swapped.difference(middle).inDays.abs() <= _oddDateDays;
+    result[dated[k]] = rows[dated[k]].withWarning(
+      fits
+          ? tr(
+              'This date may have the day and month the wrong way round: {date}?',
+              {'date': format.format(swapped)},
+            )
+          : tr(
+              'This date is far from the rows around it, which are near {date}.',
+              {'date': format.format(middle)},
+            ),
+    );
+  }
+  return result;
+}
+
+/// What the amount cells of a row say: the amount in poisha with its sign and,
+/// when income and expense have a column each, the type; or why the row cannot
+/// be read.
+({int signed, TransactionType? type, String? error}) _readAmount(
+  String Function(ImportField field) cell,
+  ImportMapping mapping,
+) {
+  ({int signed, TransactionType? type, String? error}) fail(String error) =>
+      (signed: 0, type: null, error: error);
+
+  if (mapping.typeSource == TypeSource.twoColumns) {
+    final incomeText = cell(ImportField.incomeAmount);
+    final expenseText = cell(ImportField.expenseAmount);
+    if (incomeText.isEmpty && expenseText.isEmpty) {
+      return fail(tr('The amount is empty.'));
+    }
+    final income = incomeText.isEmpty ? 0 : parseSheetAmount(incomeText);
+    final expense = expenseText.isEmpty ? 0 : parseSheetAmount(expenseText);
+    if (income == null) {
+      return fail(tr('"{text}" is not an amount.', {'text': incomeText}));
+    }
+    if (expense == null) {
+      return fail(tr('"{text}" is not an amount.', {'text': expenseText}));
+    }
+    if (income != 0 && expense != 0) {
+      return fail(tr('Both the income and the expense column have an amount.'));
+    }
+    if (income == 0 && expense == 0) return fail(tr('The amount is zero.'));
+    return income != 0
+        ? (signed: income.abs(), type: TransactionType.income, error: null)
+        : (signed: expense.abs(), type: TransactionType.expense, error: null);
+  }
+
+  final amountText = cell(ImportField.amount);
+  if (amountText.isEmpty) return fail(tr('The amount is empty.'));
+  final signed = parseSheetAmount(amountText);
+  if (signed == null) {
+    return fail(tr('"{text}" is not an amount.', {'text': amountText}));
+  }
+  if (signed == 0) return fail(tr('The amount is zero.'));
+  return (signed: signed, type: null, error: null);
 }
 
 /// Reads every row of [table] with [mapping] and decides what to do with it:
@@ -265,13 +480,32 @@ ImportPlan buildImportPlan({
   required CsvTable table,
   required ImportMapping mapping,
   required ImportContext context,
+  Map<String, int> categoryMap = const {},
 }) {
   final accounts = {for (final a in context.accounts) normalizeName(a.name): a};
   final resolver = CategoryResolver(context.categories);
   final remaining = Map<String, int>.of(context.existingKeyCounts);
   final newAccounts = <String, String>{};
   final newCategories = <String, CategoryToCreate>{};
+  final changes = <String, _Change>{};
   final rows = <PlannedRow>[];
+  final categoryIds = {for (final c in context.categories) c.id};
+
+  void move(String accountName, int delta) {
+    final key = normalizeName(accountName);
+    final account = accounts[key];
+    changes
+            .putIfAbsent(
+              key,
+              () => _Change(
+                account?.name ?? accountName,
+                isNew: account == null,
+                includeInTotal: account?.includeInTotal ?? true,
+              ),
+            )
+            .delta +=
+        delta;
+  }
 
   final defaultAccount = context.accounts
       .where((a) => a.id == mapping.defaultAccountId)
@@ -308,20 +542,12 @@ ImportPlan buildImportPlan({
       continue;
     }
 
-    final amountText = cell(ImportField.amount);
-    if (amountText.isEmpty) {
-      rows.add(fail(tr('The amount is empty.')));
+    final read = _readAmount(cell, mapping);
+    if (read.error != null) {
+      rows.add(fail(read.error!));
       continue;
     }
-    final signed = parseSheetAmount(amountText);
-    if (signed == null) {
-      rows.add(fail(tr('"{text}" is not an amount.', {'text': amountText})));
-      continue;
-    }
-    if (signed == 0) {
-      rows.add(fail(tr('The amount is zero.')));
-      continue;
-    }
+    final signed = read.signed;
 
     final TransactionType type;
     switch (mapping.typeSource) {
@@ -347,6 +573,8 @@ ImportPlan buildImportPlan({
         type = TransactionType.expense;
       case TypeSource.allIncome:
         type = TransactionType.income;
+      case TypeSource.twoColumns:
+        type = read.type!;
     }
     final amount = signed.abs();
 
@@ -455,14 +683,25 @@ ImportPlan buildImportPlan({
     }
     if (type != TransactionType.transfer) {
       final categoryType = type.categoryType!;
-      if (resolver.find(categoryPath, categoryType) == null) {
-        final key =
-            '${categoryType.name}|${categoryPath.map(normalizeName).join('>')}';
+      final key = categoryKey(categoryType, categoryPath);
+      final mapped = categoryMap[key];
+      final isMapped = mapped != null && categoryIds.contains(mapped);
+      if (!isMapped && resolver.find(categoryPath, categoryType) == null) {
         newCategories.putIfAbsent(
           key,
           () => CategoryToCreate(path: categoryPath, type: categoryType),
         );
       }
+    }
+
+    switch (type) {
+      case TransactionType.income:
+        move(accountName, amount);
+      case TransactionType.expense:
+        move(accountName, -amount);
+      case TransactionType.transfer:
+        move(accountName, -amount);
+        move(toAccountName!, amount);
     }
     rows.add(
       PlannedRow(rowNumber: rowNumber, status: RowStatus.ok, parsed: parsed),
@@ -470,8 +709,29 @@ ImportPlan buildImportPlan({
   }
 
   return ImportPlan(
-    rows: rows,
+    rows: markOddDates(rows),
     newAccounts: newAccounts.values.toList(),
-    newCategories: newCategories.values.toList(),
+    newCategories: [
+      for (final category in newCategories.values)
+        category.path.length == 1
+            ? category.withSuggestion(
+                similarCategory(
+                  category.path.first,
+                  category.type,
+                  context.categories,
+                ),
+              )
+            : category,
+    ],
+    accountChanges: [
+      for (final change in changes.values)
+        AccountChange(
+          name: change.name,
+          change: change.delta,
+          isNew: change.isNew,
+          includeInTotal: change.includeInTotal,
+        ),
+    ]..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+    categoryMap: categoryMap,
   );
 }

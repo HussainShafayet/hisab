@@ -1,5 +1,6 @@
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/features/goals/domain/festival_settings.dart';
 import 'package:hishab/features/goals/domain/goal.dart';
 
 /// The days people put money aside for.
@@ -78,11 +79,20 @@ class UpcomingFestival {
     required this.festival,
     required this.date,
     required this.daysLeft,
+    required this.usualDate,
     this.fund,
   });
 
   final Festival festival;
+
+  /// The day it is shown for: the one the person chose, else [usualDate].
   final DateTime date;
+
+  /// The next day of the festival by the calendar.
+  final DateTime usualDate;
+
+  /// The person set the day by hand.
+  bool get isChosen => date != usualDate;
 
   /// Zero on the day.
   final int daysLeft;
@@ -91,28 +101,38 @@ class UpcomingFestival {
   final GoalWithSaved? fund;
 }
 
-/// Every festival's next day, the nearest first, each with its fund.
+/// Every festival's next day, the nearest first, each with its fund. A
+/// festival the person hid is left out, unless [includeHidden]. A day the
+/// person chose by hand is used while it has not passed.
 List<UpcomingFestival> upcomingFestivals(
   DateTime today,
-  Iterable<GoalWithSaved> goals,
-) {
+  Iterable<GoalWithSaved> goals, {
+  FestivalSettings settings = const FestivalSettings(),
+  bool includeHidden = false,
+}) {
   final from = dateOnly(today);
   final list = [
     for (final festival in Festival.values)
-      () {
-        final date = nextFestivalDate(festival, from);
-        final fund = goals.where((g) {
-          final day = g.goal.targetDate;
-          return day != null &&
-              daysBetween(dateOnly(day), date).abs() <= _sameFestivalDays;
-        }).firstOrNull;
-        return UpcomingFestival(
-          festival: festival,
-          date: date,
-          daysLeft: daysBetween(from, date),
-          fund: fund,
-        );
-      }(),
+      if (includeHidden || !settings.hidden.contains(festival))
+        () {
+          final usual = nextFestivalDate(festival, from);
+          final chosen = settings.dates[festival];
+          final date = chosen != null && !chosen.isBefore(from)
+              ? chosen
+              : usual;
+          final fund = goals.where((g) {
+            final day = g.goal.targetDate;
+            return day != null &&
+                daysBetween(dateOnly(day), date).abs() <= _sameFestivalDays;
+          }).firstOrNull;
+          return UpcomingFestival(
+            festival: festival,
+            date: date,
+            usualDate: usual,
+            daysLeft: daysBetween(from, date),
+            fund: fund,
+          );
+        }(),
   ];
   list.sort((a, b) => a.date.compareTo(b.date));
   return list;

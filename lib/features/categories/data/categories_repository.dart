@@ -8,6 +8,21 @@ import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 
+/// What a merge of two categories moved.
+class MergeResult {
+  const MergeResult({
+    required this.transactions,
+    required this.budgets,
+    required this.rules,
+    required this.challenges,
+  });
+
+  final int transactions;
+  final int budgets;
+  final int rules;
+  final int challenges;
+}
+
 /// Everything the UI needs to know about categories. Validates input, turns
 /// database rows into domain models and enforces the category rules:
 /// categories can sit inside categories up to [maxCategoryDepth] levels, a
@@ -190,6 +205,86 @@ class CategoriesRepository {
       for (final affected in everyone) {
         await _db.categoriesDao.setArchived(affected, archived: archived);
       }
+    });
+  }
+
+  /// Folds category [fromId] into [intoId]: its transactions, its budgets
+  /// (added to the budget of the other for the same month), its repeating
+  /// entries and its challenges all go to [intoId], and [fromId] is archived.
+  /// Both must be of one type, [intoId] must not be archived, and [fromId]
+  /// must have no sub-categories in use. All or nothing.
+  Future<MergeResult> mergeCategory(int fromId, {required int intoId}) {
+    return _db.transaction(() async {
+      if (fromId == intoId) {
+        throw ValidationException(tr('Choose another category to merge into.'));
+      }
+      final all = await _db.categoriesDao.getAll(includeArchived: true);
+      final from = _requireRow(all, fromId);
+      final into = _requireRow(all, intoId);
+      if (from.type != into.type) {
+        throw ValidationException(
+          tr('A category can only be merged into one of the same type.'),
+        );
+      }
+      if (into.isArchived) {
+        throw ValidationException(
+          tr('The category "{name}" is archived.', {'name': into.name}),
+        );
+      }
+      if (all.any((c) => c.parentId == fromId && !c.isArchived)) {
+        throw ValidationException(
+          tr('"{name}" has sub-categories. Move or merge them first.', {
+            'name': from.name,
+          }),
+        );
+      }
+
+      Future<int> move(String table, TableInfo<Table, dynamic> affected) {
+        return _db.customUpdate(
+          'UPDATE $table SET category_id = ? WHERE category_id = ?',
+          variables: [Variable.withInt(intoId), Variable.withInt(fromId)],
+          updates: {affected},
+        );
+      }
+
+      final transactions = await move('transactions', _db.transactions);
+      final rules = await move('recurring_rules', _db.recurringRules);
+      final challenges = await move('challenges', _db.challenges);
+
+      // One budget per month and category: when both have one, they add up.
+      final budgetRows = await (_db.select(
+        _db.budgets,
+      )..where((b) => b.categoryId.equals(fromId))).get();
+      for (final budget in budgetRows) {
+        final same =
+            await (_db.select(_db.budgets)..where(
+                  (b) =>
+                      b.categoryId.equals(intoId) &
+                      b.month.equals(budget.month),
+                ))
+                .getSingleOrNull();
+        if (same == null) {
+          await (_db.update(_db.budgets)..where((b) => b.id.equals(budget.id)))
+              .write(BudgetsCompanion(categoryId: Value(intoId)));
+        } else {
+          await (_db.update(
+            _db.budgets,
+          )..where((b) => b.id.equals(same.id))).write(
+            BudgetsCompanion(amount: Value(same.amount + budget.amount)),
+          );
+          await (_db.delete(
+            _db.budgets,
+          )..where((b) => b.id.equals(budget.id))).go();
+        }
+      }
+
+      await _db.categoriesDao.setArchived(fromId, archived: true);
+      return MergeResult(
+        transactions: transactions,
+        budgets: budgetRows.length,
+        rules: rules,
+        challenges: challenges,
+      );
     });
   }
 
