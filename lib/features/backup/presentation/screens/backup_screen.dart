@@ -12,6 +12,7 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/backup/domain/backup_data.dart';
 import 'package:hishab/features/backup/presentation/providers/backup_providers.dart';
+import 'package:hishab/features/backup/presentation/widgets/undo_import.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 
@@ -345,6 +346,25 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 enabled: !_busy,
                 onTap: () => context.push(AppRoutes.importCsv),
               ),
+              if (ref.watch(lastImportProvider).value case final last?)
+                ListTile(
+                  key: const ValueKey('undo-last-import'),
+                  leading: const Icon(Icons.undo),
+                  title: Text(tr('Undo last import')),
+                  subtitle: Text(
+                    [
+                      last.fileName.isEmpty ? tr('A CSV file') : last.fileName,
+                      plural(
+                        last.transactionCount,
+                        '1 transaction',
+                        '{n} transactions',
+                      ),
+                      DateFormat('d MMM yyyy').format(last.createdAt),
+                    ].join(' · '),
+                  ),
+                  enabled: !_busy,
+                  onTap: () => undoImportAfterAsking(context, ref, last.id),
+                ),
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Text(

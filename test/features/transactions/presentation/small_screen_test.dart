@@ -862,6 +862,9 @@ void main() {
         await openFromMore(tester, 'Backup & export');
         expect(tester.takeException(), isNull);
 
+        // The Backup screen is a long list: scroll to the tile.
+        await tester.ensureVisible(find.byKey(const ValueKey('import-csv')));
+        await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('import-csv')));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);

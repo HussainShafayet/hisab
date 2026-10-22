@@ -7,6 +7,7 @@ import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/backup/data/backup_repository.dart';
 import 'package:hishab/features/backup/domain/sheet_date.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 import '../../../helpers/fake_file_gateway.dart';
@@ -362,9 +363,9 @@ void main() {
         findsOneWidget,
       );
       // Only the rows that will be imported make new categories.
-      expect(find.text('Categories: Bonus'), findsOneWidget);
+      expect(find.text('• Bonus'), findsOneWidget);
       // 'Pets' is only in a row that cannot be read, so it is not created.
-      expect(find.textContaining('Categories: Bonus, Pets'), findsNothing);
+      expect(find.text('• Pets'), findsNothing);
       expect(find.byKey(const ValueKey('plan-row-1')), findsOneWidget);
     });
 
@@ -605,7 +606,7 @@ void main() {
       await pumpImport(tester, db, gateway);
       await chooseFile(tester);
       await tapText(tester, 'Preview');
-      expect(find.text('Categories: Other'), findsOneWidget);
+      expect(find.text('• Other'), findsOneWidget);
 
       await tapText(tester, 'Import 1 transaction');
 
@@ -689,5 +690,353 @@ void main() {
         expect(countOf(tester, 'count-errors'), '0');
       },
     );
+  });
+
+  group('the import tools', () {
+    Future<void> importFile(
+      WidgetTester tester,
+      AppDatabase db,
+      String name,
+      String text,
+    ) async {
+      gateway.pickText(name, text);
+      await pumpImport(tester, db, gateway);
+      await chooseFile(tester);
+    }
+
+    testWithDatabase('the preview says what changes in each account', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await importFile(tester, db, 'sheet.csv', sheet);
+
+      await tapText(tester, 'Preview');
+
+      expect(find.byKey(const ValueKey('balance-changes')), findsOneWidget);
+      String changeOf(String name) => tester
+          .widget<Text>(find.byKey(ValueKey('balance-change-$name')))
+          .data!;
+      expect(changeOf('Cash'), '-৳560.00');
+      expect(changeOf('bKash'), '+৳50,000.00');
+      // Nothing is odd about these dates.
+      expect(find.byKey(const ValueKey('odd-dates')), findsNothing);
+    });
+
+    testWithDatabase(
+      'a category that looks like one of yours can be matched with it',
+      (tester, db) async {
+        final b = await seedBasics(db);
+        await importFile(
+          tester,
+          db,
+          't.csv',
+          'Date,Amount,Category,Account\n11/10/2026,-60,Transportation,Cash\n',
+        );
+        await tapText(tester, 'Preview');
+        expect(find.text('• Transportation'), findsOneWidget);
+        expect(
+          find.text('Looks like "Transport", which you have.'),
+          findsOneWidget,
+        );
+
+        await tester.tap(
+          find.byKey(const ValueKey('use-suggestion-expense|transportation')),
+        );
+        await tester.pumpAndSettle();
+
+        expect(find.text('• Transportation'), findsNothing);
+        expect(find.text('Transportation  →  Transport'), findsOneWidget);
+
+        await tapText(tester, 'Import 1 transaction');
+        final names = (await db.categoriesDao.getAll()).map((c) => c.name);
+        expect(names, isNot(contains('Transportation')));
+        expect(
+          (await db.transactionsDao.getAll()).single.categoryId,
+          b.transport,
+        );
+        expect(find.text('Created 1 category'), findsNothing);
+      },
+    );
+
+    testWithDatabase('a match can be taken back', (tester, db) async {
+      await seedBasics(db);
+      await importFile(
+        tester,
+        db,
+        't.csv',
+        'Date,Amount,Category,Account\n11/10/2026,-60,Transportation,Cash\n',
+      );
+      await tapText(tester, 'Preview');
+      await tester.tap(
+        find.byKey(const ValueKey('use-suggestion-expense|transportation')),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(
+        find.byKey(const ValueKey('unmatch-expense|transportation')),
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('• Transportation'), findsOneWidget);
+      expect(find.byKey(const ValueKey('matched-categories')), findsNothing);
+    });
+
+    testWithDatabase('a category can be chosen from your own', (
+      tester,
+      db,
+    ) async {
+      final b = await seedBasics(db);
+      await importFile(
+        tester,
+        db,
+        'p.csv',
+        'Date,Amount,Category,Account\n11/10/2026,-60,Pets,Cash\n',
+      );
+      await tapText(tester, 'Preview');
+      // Nothing looks like it, so there is no suggestion.
+      expect(find.textContaining('Looks like'), findsNothing);
+
+      await tester.tap(
+        find.byKey(const ValueKey('choose-category-expense|pets')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byType(CategoryPickerSheet),
+              matching: find.text('Food'),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+
+      expect(find.text('Pets  →  Food'), findsOneWidget);
+      await tapText(tester, 'Import 1 transaction');
+      expect((await db.transactionsDao.getAll()).single.categoryId, b.food);
+    });
+
+    testWithDatabase('an account can be made here and left out of the total', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await importFile(
+        tester,
+        db,
+        'o.csv',
+        'Date,Amount,Category\n11/10/2026,-250,Food\n',
+      );
+
+      await tester.tap(find.byKey(const ValueKey('create-account')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.byKey(const ValueKey('new-account-name')),
+        'Old records',
+      );
+      await tester.tap(find.byKey(const ValueKey('new-account-in-total')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('new-account-save')));
+      await tester.pumpAndSettle();
+
+      // It is the account for the rows.
+      expect(find.text('Old records'), findsOneWidget);
+      await tapText(tester, 'Preview');
+      expect(find.text('not in your total balance'), findsOneWidget);
+      await tapText(tester, 'Import 1 transaction');
+
+      final account = (await db.accountsDao.getAll()).firstWhere(
+        (a) => a.name == 'Old records',
+      );
+      expect(account.includeInTotal, isFalse);
+      expect((await db.transactionsDao.getAll()).single.accountId, account.id);
+    });
+
+    testWithDatabase('a new account needs a name', (tester, db) async {
+      await seedBasics(db);
+      await importFile(
+        tester,
+        db,
+        'o.csv',
+        'Date,Amount,Category\n11/10/2026,-250,Food\n',
+      );
+      await tester.tap(find.byKey(const ValueKey('create-account')));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('new-account-save')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('new-account-name')), findsOneWidget);
+      expect((await db.accountsDao.getAll()), hasLength(2));
+    });
+
+    testWithDatabase('a column for income and one for expense is read', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await importFile(
+        tester,
+        db,
+        'two.csv',
+        'Date,Income,Expense,Category,Account\n'
+            '11/10/2026,1000,,Salary,Cash\n'
+            '12/10/2026,,250,Food,Cash\n'
+            '13/10/2026,100,50,Food,Cash\n',
+      );
+
+      expect(find.text('Separate income and expense columns'), findsOneWidget);
+      expect(fieldDropdown('Income amount'), findsOneWidget);
+      expect(fieldDropdown('Expense amount'), findsOneWidget);
+      expect(fieldDropdown('Amount *'), findsNothing);
+      expect(find.byKey(const ValueKey('mapping-problem')), findsNothing);
+
+      await tapText(tester, 'Preview');
+      expect(countOf(tester, 'count-import'), '2');
+      expect(countOf(tester, 'count-errors'), '1');
+
+      await tapText(tester, 'Import 2 transactions');
+      final rows = await db.transactionsDao.getAll();
+      expect(rows.map((t) => (t.type, t.amount)), [
+        (TransactionType.income, 100000),
+        (TransactionType.expense, 25000),
+      ]);
+    });
+
+    testWithDatabase('the columns are remembered for the next file', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await importFile(tester, db, 'a.csv', 'A,B,C\n11/10/2026,-250,Lunch\n');
+      // Nothing in the names says which column is which.
+      expect(find.byKey(const ValueKey('remembered-mapping')), findsNothing);
+      await pickColumn(tester, 'Date *', find.textContaining('A  ·'));
+      await pickColumn(tester, 'Amount *', find.textContaining('B  ·'));
+      await tapText(tester, 'Preview');
+      await tapText(tester, 'Import 1 transaction');
+      await tapText(tester, 'Done');
+
+      gateway.pickText('b.csv', 'A,B,C\n12/10/2026,-60,Tea\n');
+      await tester.tap(find.byKey(const ValueKey('import-csv')));
+      await tester.pumpAndSettle();
+      await chooseFile(tester);
+
+      expect(find.byKey(const ValueKey('remembered-mapping')), findsOneWidget);
+      expect(find.byKey(const ValueKey('mapping-problem')), findsNothing);
+      await tapText(tester, 'Preview');
+      expect(countOf(tester, 'count-import'), '1');
+    });
+
+    testWithDatabase('dates that do not fit the rows around them are marked', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await importFile(
+        tester,
+        db,
+        'odd.csv',
+        'Date,Amount,Category,Account\n'
+            '10/08/2024,-10,Food,Cash\n'
+            '11/08/2024,-10,Food,Cash\n'
+            '08/11/2024,-10,Food,Cash\n'
+            '12/08/2024,-10,Food,Cash\n'
+            '12/08/2024,-10,Food,Cash\n',
+      );
+
+      await tapText(tester, 'Preview');
+
+      expect(find.byKey(const ValueKey('odd-dates')), findsOneWidget);
+      expect(find.text('1 row to check'), findsOneWidget);
+      // They are still imported.
+      expect(countOf(tester, 'count-import'), '5');
+      await tester.tap(find.widgetWithText(ChoiceChip, 'To check'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('wrong way round'), findsOneWidget);
+      expect(find.byKey(const ValueKey('plan-row-3')), findsOneWidget);
+      expect(find.byKey(const ValueKey('plan-row-1')), findsNothing);
+    });
+
+    testWithDatabase('an import can be undone when it is finished', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await importFile(tester, db, 'sheet.csv', sheet);
+      await tapText(tester, 'Preview');
+      await tapText(tester, 'Import 4 transactions');
+
+      await tester.tap(find.byKey(const ValueKey('undo-import')));
+      await tester.pumpAndSettle();
+      expect(find.text('Undo this import?'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('confirm-undo')));
+      await tester.pumpAndSettle();
+
+      expect(appBarTitle('Backup & export'), findsOneWidget);
+      expect(
+        find.text('Import undone: 4 transactions removed.'),
+        findsOneWidget,
+      );
+      expect(await db.transactionsDao.getAll(), isEmpty);
+      final bonus = (await db.categoriesDao.getAll(includeArchived: true))
+          .firstWhere((c) => c.name == 'Bonus');
+      expect(bonus.isArchived, isTrue);
+    });
+
+    testWithDatabase('asking and then saying no keeps the import', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await importFile(tester, db, 'sheet.csv', sheet);
+      await tapText(tester, 'Preview');
+      await tapText(tester, 'Import 4 transactions');
+
+      await tester.tap(find.byKey(const ValueKey('undo-import')));
+      await tester.pumpAndSettle();
+      await tapText(tester, 'Cancel');
+
+      expect(appBarTitle('Import finished'), findsOneWidget);
+      expect(await db.transactionsDao.getAll(), hasLength(4));
+    });
+
+    testWithDatabase('the last import can be undone from Backup & export', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      await importFile(tester, db, 'sheet.csv', sheet);
+      await tapText(tester, 'Preview');
+      await tapText(tester, 'Import 4 transactions');
+      await tapText(tester, 'Done');
+
+      expect(find.byKey(const ValueKey('undo-last-import')), findsOneWidget);
+      expect(find.textContaining('sheet.csv'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('undo-last-import')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('confirm-undo')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('undo-last-import')), findsNothing);
+      expect(await db.transactionsDao.getAll(), isEmpty);
+    });
+
+    testWithDatabase('there is nothing to undo before an import', (
+      tester,
+      db,
+    ) async {
+      await seedBasics(db);
+      gateway.pickText('x.csv', sheet);
+      useTallScreen(tester);
+      await pumpAppWithDatabase(
+        tester,
+        db,
+        overrides: [fileGatewayProvider.overrideWithValue(gateway)],
+      );
+      await openFromMore(tester, 'Backup & export');
+
+      expect(find.byKey(const ValueKey('undo-last-import')), findsNothing);
+    });
   });
 }

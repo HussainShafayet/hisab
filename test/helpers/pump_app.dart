@@ -122,3 +122,8 @@ void useTallScreen(WidgetTester tester) {
   tester.view.devicePixelRatio = 1;
   addTearDown(tester.view.reset);
 }
+
+/// Opens the part of Home with the mascot, the streak and the insights, which
+/// is closed until it is tapped. Call it before the app is pumped.
+Future<void> showHomeExtras(AppDatabase db) =>
+    db.settingsDao.put('home_more_open', 'true');

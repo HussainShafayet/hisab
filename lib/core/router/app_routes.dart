@@ -15,6 +15,7 @@ abstract final class AppRoutes {
   static const backup = '/more/backup';
   static const importCsv = '/more/backup/import-csv';
   static const settings = '/more/settings';
+  static const dataCheck = '/more/data-check';
   static const debts = '/more/debts';
   static const tags = '/more/tags';
   static String tag(int id) => '/more/tags/$id';

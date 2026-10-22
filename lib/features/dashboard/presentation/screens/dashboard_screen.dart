@@ -21,6 +21,7 @@ import 'package:hishab/features/dashboard/domain/dashboard_data.dart';
 import 'package:hishab/features/dashboard/presentation/providers/dashboard_providers.dart';
 import 'package:hishab/features/dashboard/presentation/widgets/dashboard_cards.dart';
 import 'package:hishab/features/dashboard/presentation/widgets/safe_to_spend_card.dart';
+import 'package:hishab/features/dashboard/presentation/widgets/home_more_section.dart';
 import 'package:hishab/features/dashboard/presentation/widgets/home_shortcuts.dart';
 import 'package:hishab/features/fun/presentation/widgets/regret_meter_card.dart';
 import 'package:hishab/features/fun/presentation/widgets/streak_card.dart';
@@ -93,20 +94,16 @@ class _DashboardContent extends ConsumerWidget {
       // Room below the last row so the add button never covers it.
       padding: const EdgeInsets.only(bottom: 96),
       children: _arriving([
-        const WelcomeCard(),
-        const BackupReminderCard(),
-        TakkaCard(inputs: quipInputs),
-        const WrappedHomeCard(),
-        const StreakCard(),
-        const DueRecurringCard(),
+        // What matters first: where the money stands, and what needs doing.
         TotalBalanceCard(balance: data.totalBalance),
-        const OverdrawnCard(),
         const WalletStrip(),
+        const OverdrawnCard(),
+        const DueRecurringCard(),
+        const BackupReminderCard(),
+        const WelcomeCard(),
+        const WrappedHomeCard(),
         const HomeShortcuts(),
         SafeToSpendCard(figures: safeToSpend, totalBalance: data.totalBalance),
-        const LoansHomeCard(),
-        const InvestmentsHomeCard(),
-        const ChallengeHomeCard(),
         DashboardHeading(
           tr('This month · {month}', {'month': monthLabel(data.month)}),
         ),
@@ -117,9 +114,11 @@ class _DashboardContent extends ConsumerWidget {
           today: now,
         ),
         SpendingTiles(today: data.todayExpense, week: data.weekExpense),
-        const RegretMeterCard(),
+        DashboardHeading(tr('Plans and loans')),
+        const LoansHomeCard(),
+        const ChallengeHomeCard(),
+        const InvestmentsHomeCard(),
         const FestivalHomeCard(),
-        const InsightsCard(),
         DashboardHeading(tr('Top spending')),
         TopCategoriesCard(
           categories: data.topCategories,
@@ -133,6 +132,15 @@ class _DashboardContent extends ConsumerWidget {
           ),
         ),
         RecentTransactionsCard(items: data.recent),
+        // Closed until opened: nice to have, not needed every day.
+        HomeMoreSection(
+          children: [
+            TakkaCard(inputs: quipInputs),
+            const StreakCard(),
+            const RegretMeterCard(),
+            const InsightsCard(),
+          ],
+        ),
       ]),
     );
   }

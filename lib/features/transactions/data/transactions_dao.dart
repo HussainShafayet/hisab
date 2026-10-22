@@ -72,6 +72,14 @@ class TransactionsDao extends DatabaseAccessor<AppDatabase>
     (t) => t.date.isBiggerOrEqualValue(start) & t.date.isSmallerThanValue(end),
   ).watch();
 
+  /// Like [watchBetweenWithDetails], once.
+  Future<List<TransactionWithDetails>> getBetweenWithDetails(
+    DateTime start,
+    DateTime end,
+  ) => _selectWithDetails(
+    (t) => t.date.isBiggerOrEqualValue(start) & t.date.isSmallerThanValue(end),
+  ).get();
+
   /// Every transaction with tag [tagId], newest first, with its accounts and
   /// category.
   Stream<List<TransactionWithDetails>> watchByTagWithDetails(int tagId) =>

@@ -991,61 +991,56 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       ];
     }
     final canSwap = _accountId != null && _toAccountId != null;
+    // One above the other, each as wide as the screen, so the name and the
+    // balance have room. The swap button has a row of its own between them:
+    // it never covers a card.
     return [
-      Stack(
-        alignment: Alignment.center,
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: _accountCard(
-                  key: const ValueKey('from-field'),
-                  accountId: _accountId,
-                  caption: tr('From'),
-                  placeholder: tr('From'),
-                  stacked: true,
-                  balances: balances,
-                  onTap: () => _chooseAccount(
-                    title: tr('Move money from'),
-                    selected: _accountId,
-                    disabled: _toAccountId,
-                    onChosen: (id) => _accountId = id,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: _accountCard(
-                  key: const ValueKey('to-field'),
-                  accountId: _toAccountId,
-                  caption: tr('To'),
-                  placeholder: tr('To'),
-                  stacked: true,
-                  balances: balances,
-                  onTap: () => _chooseAccount(
-                    title: tr('Move money to'),
-                    selected: _toAccountId,
-                    disabled: _accountId,
-                    onChosen: (id) => _toAccountId = id,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          IconButton.filledTonal(
-            key: const ValueKey('swap-accounts'),
-            tooltip: tr('Swap From and To'),
-            icon: const Icon(Icons.swap_horiz),
-            onPressed: canSwap
-                ? () => setState(() {
-                    final from = _accountId;
-                    _accountId = _toAccountId;
-                    _toAccountId = from;
-                  })
-                : null,
-          ),
-        ],
+      _accountCard(
+        key: const ValueKey('from-field'),
+        accountId: _accountId,
+        caption: tr('From'),
+        placeholder: tr('From'),
+        balances: balances,
+        onTap: () => _chooseAccount(
+          title: tr('Move money from'),
+          selected: _accountId,
+          disabled: _toAccountId,
+          onChosen: (id) => _accountId = id,
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            const Expanded(child: Divider()),
+            IconButton.filledTonal(
+              key: const ValueKey('swap-accounts'),
+              tooltip: tr('Swap From and To'),
+              icon: const Icon(Icons.swap_vert),
+              onPressed: canSwap
+                  ? () => setState(() {
+                      final from = _accountId;
+                      _accountId = _toAccountId;
+                      _toAccountId = from;
+                    })
+                  : null,
+            ),
+            const Expanded(child: Divider()),
+          ],
+        ),
+      ),
+      _accountCard(
+        key: const ValueKey('to-field'),
+        accountId: _toAccountId,
+        caption: tr('To'),
+        placeholder: tr('To'),
+        balances: balances,
+        onTap: () => _chooseAccount(
+          title: tr('Move money to'),
+          selected: _toAccountId,
+          disabled: _accountId,
+          onChosen: (id) => _toAccountId = id,
+        ),
       ),
     ];
   }

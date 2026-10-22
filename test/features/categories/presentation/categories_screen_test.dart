@@ -4,7 +4,9 @@ import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/categories/data/categories_repository.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
+import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
+import '../../../helpers/fixtures.dart';
 import '../../../helpers/pump_app.dart';
 import '../../../helpers/test_database.dart';
 
@@ -691,6 +693,134 @@ void main() {
 
       expect(find.byKey(ValueKey('category-option-${ids.rice}')), findsOne);
       expect(find.byKey(const ValueKey('category-top-level')), findsNothing);
+    });
+  });
+
+  group('merging', () {
+    Future<void> chooseTarget(WidgetTester tester, String name) async {
+      await tester.tap(
+        find
+            .descendant(
+              of: find.byType(CategoryPickerSheet),
+              matching: find.text(name),
+            )
+            .first,
+      );
+      await tester.pumpAndSettle();
+    }
+
+    testWithDatabase('folds a category into another and says so', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      final rickshaw = await insertTestCategory(db, name: 'Rickshaw');
+      await addTransaction(
+        db,
+        type: TransactionType.expense,
+        amount: 4000,
+        accountId: b.cash,
+        categoryId: rickshaw,
+        date: DateTime(2026, 10, 5, 12),
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      await openRowMenu(tester, 'Rickshaw');
+      await tester.tap(find.text('Merge into…'));
+      await tester.pumpAndSettle();
+      expect(find.text('Merge "Rickshaw" into'), findsOneWidget);
+      await chooseTarget(tester, 'Transport');
+      expect(find.text('Merge "Rickshaw" into "Transport"?'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('confirm-merge')));
+      await tester.pumpAndSettle();
+
+      expect(listRow('Rickshaw'), findsNothing);
+      expect(find.text('1 transaction moved to Transport'), findsOneWidget);
+      expect(
+        (await db.transactionsDao.getAll()).single.categoryId,
+        b.transport,
+      );
+      expect((await categoryNamed(db, 'Rickshaw')).isArchived, isTrue);
+    });
+
+    testWithDatabase(
+      'the list of places leaves out itself and the other type',
+      (tester, db) async {
+        useTallScreen(tester);
+        await seedBasics(db);
+        await insertTestCategory(db, name: 'Rickshaw');
+        await pumpAppWithDatabase(tester, db);
+        await openFromMore(tester, 'Categories');
+
+        await openRowMenu(tester, 'Rickshaw');
+        await tester.tap(find.text('Merge into…'));
+        await tester.pumpAndSettle();
+
+        Finder inSheet(String name) => find.descendant(
+          of: find.byType(CategoryPickerSheet),
+          matching: find.text(name),
+        );
+        expect(inSheet('Transport'), findsWidgets);
+        expect(inSheet('Rickshaw'), findsNothing);
+        // Salary is income.
+        expect(inSheet('Salary'), findsNothing);
+      },
+    );
+
+    testWithDatabase('Cancel keeps everything', (tester, db) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      await insertTestCategory(db, name: 'Rickshaw');
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      await openRowMenu(tester, 'Rickshaw');
+      await tester.tap(find.text('Merge into…'));
+      await tester.pumpAndSettle();
+      await chooseTarget(tester, 'Transport');
+      await tester.tap(find.text('Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(listRow('Rickshaw'), findsOneWidget);
+      expect((await categoryNamed(db, 'Rickshaw')).isArchived, isFalse);
+    });
+
+    testWithDatabase('a category with sub-categories is explained', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedDeep(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+
+      await openRowMenu(tester, 'Food');
+      await tester.tap(find.text('Merge into…'));
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text('"Food" has sub-categories. Move or merge them first.'),
+        findsOneWidget,
+      );
+      expect(find.byType(CategoryPickerSheet), findsNothing);
+    });
+
+    testWithDatabase('an archived category has no merge', (tester, db) async {
+      useTallScreen(tester);
+      await seedBasics(db);
+      final old = await insertTestCategory(db, name: 'Old');
+      await db.categoriesDao.setArchived(old, archived: true);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Categories');
+      await tester.tap(find.byKey(const ValueKey('show-archived')));
+      await tester.pumpAndSettle();
+
+      await openRowMenu(tester, 'Old');
+
+      expect(find.text('Merge into…'), findsNothing);
+      expect(find.text('Restore'), findsOneWidget);
     });
   });
 }

@@ -118,6 +118,12 @@ class MoreScreen extends StatelessWidget {
             route: AppRoutes.categories,
           ),
           _MoreTile(
+            icon: Icons.fact_check_outlined,
+            title: tr('Data check'),
+            subtitle: tr('Duplicates, odd dates and amounts'),
+            route: AppRoutes.dataCheck,
+          ),
+          _MoreTile(
             icon: Icons.backup_outlined,
             title: tr('Backup & export'),
             subtitle: tr('Keep your data safe'),

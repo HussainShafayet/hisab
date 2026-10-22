@@ -16,4 +16,13 @@ const bnFestivals = <String, String>{
   'Coming up': 'সামনে আসছে',
   'The days of Eid are a guess: the moon decides.':
       'ঈদের তারিখ আন্দাজ: চাঁদ দেখার উপর নির্ভর করে।',
+  'Change the date': 'তারিখ বদলান',
+  'Delete fund': 'তহবিল মুছুন',
+  'Edit fund': 'তহবিল সম্পাদনা করুন',
+  'Hide this festival': 'এই উৎসব লুকান',
+  'Show 1 hidden festival': '১টি লুকানো উৎসব দেখান',
+  'Show {n} hidden festivals': '{n}টি লুকানো উৎসব দেখান',
+  'The day of {festival}': '{festival}-এর দিন',
+  'Use the usual date': 'সাধারণ তারিখ ব্যবহার করুন',
+  '{name} hidden': '{name} লুকানো হয়েছে',
 };

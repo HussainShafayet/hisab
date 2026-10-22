@@ -15,8 +15,8 @@ import 'package:hishab/features/notifications/domain/logged_notification.dart';
 import 'package:hishab/features/notifications/presentation/providers/notification_providers.dart';
 import 'package:intl/intl.dart';
 
-/// What the app has told you, and what it will tell you: the notifications
-/// that showed (newest first) and the ones set to show later.
+/// What the app has told you: the notifications that showed, newest first,
+/// under a heading for their day. (What is set to show later is not listed.)
 class NotificationsScreen extends ConsumerWidget {
   const NotificationsScreen({super.key});
 
@@ -26,72 +26,47 @@ class NotificationsScreen extends ConsumerWidget {
     final hasSent = lists.value?.sent.isNotEmpty ?? false;
     final hasUnseen = lists.value?.sent.any((n) => !n.seen) ?? false;
 
-    return DefaultTabController(
-      length: 2,
-      child: Scaffold(
-        appBar: AppBar(
-          title: Text(tr('Notifications')),
-          actions: [
-            if (hasUnseen)
-              IconButton(
-                key: const ValueKey('mark-all-read'),
-                tooltip: tr('Mark all as read'),
-                icon: const Icon(Icons.done_all),
-                onPressed: () => ref
-                    .read(notificationLogRepositoryProvider)
-                    .markAllSeen(ref.read(clockProvider)()),
-              ),
-            if (hasSent)
-              IconButton(
-                key: const ValueKey('clear-notifications'),
-                tooltip: tr('Clear history'),
-                icon: const Icon(Icons.delete_sweep_outlined),
-                onPressed: () => _clear(context, ref),
-              ),
-            const HelpButton('alerts'),
-          ],
-          bottom: TabBar(
-            tabs: [
-              Tab(key: const ValueKey('tab-sent'), text: tr('Sent')),
-              Tab(key: const ValueKey('tab-upcoming'), text: tr('Coming up')),
-            ],
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(tr('Notifications')),
+        actions: [
+          if (hasUnseen)
+            IconButton(
+              key: const ValueKey('mark-all-read'),
+              tooltip: tr('Mark all as read'),
+              icon: const Icon(Icons.done_all),
+              onPressed: () => ref
+                  .read(notificationLogRepositoryProvider)
+                  .markAllSeen(ref.read(clockProvider)()),
+            ),
+          if (hasSent)
+            IconButton(
+              key: const ValueKey('clear-notifications'),
+              tooltip: tr('Clear history'),
+              icon: const Icon(Icons.delete_sweep_outlined),
+              onPressed: () => _clear(context, ref),
+            ),
+          const HelpButton('alerts'),
+        ],
+      ),
+      body: lists.when(
+        loading: () => const LoadingView(),
+        error: (error, _) => ErrorView(message: describeError(error)),
+        data: (data) => _NotificationList(
+          listKey: 'notifications-sent',
+          items: data.sent,
+          empty: EmptyState(
+            icon: Icons.notifications_none,
+            title: tr('Nothing sent yet'),
+            message: tr(
+              'Alerts and reminders will show up here once they have '
+              'come.',
+            ),
           ),
-        ),
-        body: lists.when(
-          loading: () => const LoadingView(),
-          error: (error, _) => ErrorView(message: describeError(error)),
-          data: (data) => TabBarView(
-            children: [
-              _NotificationList(
-                listKey: 'notifications-sent',
-                items: data.sent,
-                empty: EmptyState(
-                  icon: Icons.notifications_none,
-                  title: tr('Nothing sent yet'),
-                  message: tr(
-                    'Alerts and reminders will show up here once they have '
-                    'come.',
-                  ),
-                ),
-                footnote: tr(
-                  'Reminders are listed once their time has passed. If '
-                  'notifications were blocked on your phone, they did not '
-                  'show.',
-                ),
-              ),
-              _NotificationList(
-                listKey: 'notifications-upcoming',
-                items: data.upcoming,
-                empty: EmptyState(
-                  icon: Icons.schedule,
-                  title: tr('Nothing coming up'),
-                  message: tr(
-                    'Bills, loans, the daily reminder and the zakat day '
-                    'appear here before their time.',
-                  ),
-                ),
-              ),
-            ],
+          footnote: tr(
+            'Reminders are listed once their time has passed. If '
+            'notifications were blocked on your phone, they did not '
+            'show.',
           ),
         ),
       ),
@@ -135,7 +110,7 @@ class NotificationsScreen extends ConsumerWidget {
   }
 }
 
-/// One tab: the notifications under a heading for their day.
+/// The notifications under a heading for their day.
 class _NotificationList extends ConsumerWidget {
   const _NotificationList({
     required this.listKey,
@@ -181,9 +156,8 @@ class _NotificationList extends ConsumerWidget {
           arrived++,
           _NotificationTile(
             item,
-            shown: !item.at.isAfter(now),
             onTap: () {
-              if (!item.seen && !item.at.isAfter(now)) {
+              if (!item.seen) {
                 ref.read(notificationLogRepositoryProvider).markSeen(item.id);
               }
               openRoute(context, routeForAlert(item.kind));
@@ -214,22 +188,15 @@ class _NotificationList extends ConsumerWidget {
 }
 
 class _NotificationTile extends StatelessWidget {
-  const _NotificationTile(
-    this.item, {
-    required this.shown,
-    required this.onTap,
-  });
+  const _NotificationTile(this.item, {required this.onTap});
 
   final LoggedNotification item;
-
-  /// It has shown already (it is not one that is still to come).
-  final bool shown;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final unseen = shown && !item.seen;
+    final unseen = !item.seen;
     return ListTile(
       key: ValueKey('notification-${item.id}'),
       onTap: onTap,

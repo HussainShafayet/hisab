@@ -26,7 +26,9 @@ const bnGuide = <String, String>{
       'প্রতিটি স্ক্রিনের উপরে একটি ? বোতাম আছে। সেটি ওই স্ক্রিনের গাইড খোলে।',
   'Where you stand today, on one screen.': 'আজ আপনি কোথায় আছেন, এক স্ক্রিনেই।',
   'What the cards show': 'কার্ডগুলো কী দেখায়',
-  'Takka, the coin, says something short and sometimes funny. Tap it for another line.': 'টাক্কা, মানে মুদ্রাটি, ছোট্ট একটা কথা বলে, কখনো মজার। আরেকটা কথা শুনতে ছুঁয়ে দিন।',
+  'The order is: total balance and wallets, what needs you (a bill, an account below zero, a backup), shortcuts, what you can spend today, this month, plans and loans, top spending and recent entries.': 'ক্রমটা এরকম: মোট ব্যালান্স ও ওয়ালেট, যা আপনার নজর চায় (বিল, শূন্যের নিচে থাকা অ্যাকাউন্ট, ব্যাকআপ), শর্টকাট, আজ কত খরচ করা যায়, এই মাস, পরিকল্পনা ও ধার, সবচেয়ে বেশি খরচ আর সাম্প্রতিক এন্ট্রি।',
+  'Habits, tips and fun is closed until you open it: Takka, your streak, how the month felt and tips. Tap its bar to open or close it. Home remembers.': '"অভ্যাস, পরামর্শ আর মজা" আপনি না খোলা পর্যন্ত বন্ধ থাকে: টাক্কা, আপনার ধারা, মাসটা কেমন গেল আর পরামর্শ। খুলতে বা বন্ধ করতে তার বারে চাপ দিন। হোম মনে রাখে।',
+  'Takka, the coin, lives under Habits, tips and fun at the bottom. It says something short and sometimes funny. Tap it for another line.': 'টাক্কা নিচে "অভ্যাস, পরামর্শ আর মজা"-র ভেতরে থাকে। টাক্কা, মানে মুদ্রাটি, ছোট্ট একটা কথা বলে, কখনো মজার। আরেকটা কথা শুনতে ছুঁয়ে দিন।',
   'Total balance is the sum of your accounts. Accounts marked Not in total are left out.': 'মোট ব্যালেন্স হলো আপনার সব অ্যাকাউন্টের যোগফল। "মোটে ধরা হয় না" দেওয়া অ্যাকাউন্ট বাদ যায়।',
   'Safe to spend today divides what is left of the month\'s budget by the days left, after the bills still to come. It needs a budget.': 'আজকের নিরাপদ খরচ: মাসের বাজেটের বাকি টাকা, আসন্ন বিল বাদ দিয়ে, বাকি দিন দিয়ে ভাগ করা হয়। এর জন্য বাজেট লাগে।',
   'Can I afford it? on that card checks a price you type before you buy.':
@@ -43,7 +45,7 @@ const bnGuide = <String, String>{
       '+ চাপুন। খরচ, আয় বা ট্রান্সফার বেছে নিন।',
   'Type the amount. The calculator button is there when you need to add things up.':
       'টাকার অঙ্ক লিখুন। যোগ-বিয়োগ করতে হলে ক্যালকুলেটর বোতাম আছে।',
-  'Pick the category and the account. The preview under the account shows what will be left.': 'ক্যাটাগরি ও অ্যাকাউন্ট বেছে নিন। অ্যাকাউন্টের নিচের প্রিভিউতে দেখা যায় কত থাকবে।',
+  'Pick the category and the account. The preview under the account shows what will be left. For a transfer, From is above To, with a swap button between them.': 'ক্যাটাগরি ও অ্যাকাউন্ট বেছে নিন। অ্যাকাউন্টের নিচের প্রিভিউতে দেখা যায় কত থাকবে। ট্রান্সফারে "কোথা থেকে" ওপরে আর "কোথায়" নিচে থাকে, মাঝখানে অদলবদলের বোতাম।',
   'Add a note or the day if you like, then Save. Save & new keeps the form open for the next one.': 'চাইলে নোট বা তারিখ দিন, তারপর সংরক্ষণ করুন। "সংরক্ষণ করে নতুন" পরেরটার জন্য ফর্ম খোলা রাখে।',
   'Faster ways': 'দ্রুত উপায়',
   'Quick type: write one line like rickshaw 50 or bazar 450 bkash or +salary 30k, and the form fills itself. Add yesterday, gotokal or 2 days ago to set the day.': 'দ্রুত লেখা: rickshaw 50, bazar 450 bkash বা +salary 30k-র মতো এক লাইন লিখলেই ফর্ম নিজে ভরে যায়। দিন ঠিক করতে yesterday, gotokal বা 2 days ago জুড়ে দিন।',
@@ -215,12 +217,13 @@ const bnGuide = <String, String>{
   'The running challenge that ends soonest shows on Home.':
       'যে চলমান চ্যালেঞ্জ সবচেয়ে আগে শেষ হবে সেটি হোমে দেখা যায়।',
   'Seeing what came': 'কী কী এসেছে দেখা',
-  'Tap the bell at the top of Home. The number on it counts what you have not opened. Sent lists what already came, newest first. Coming up lists what is set to show later.': 'হোমের ওপরের ঘণ্টায় চাপ দিন। ওর গায়ের সংখ্যা না-খোলা নোটিফিকেশনের হিসাব। "এসেছে"-তে যা এসে গেছে তা নতুনটা আগে দেখানো হয়। "সামনে আসছে"-তে যা পরে আসবে তা থাকে।',
+  'Tap the bell at the top of Home. The number on it counts what you have not opened. The list shows what already came, newest first.': 'হোমের ওপরের ঘণ্টায় চাপ দিন। ওর গায়ের সংখ্যা না-খোলা নোটিফিকেশনের হিসাব। তালিকায় যা এসে গেছে তা নতুনটা আগে দেখানো হয়।',
   'Tap a notification to mark it read and go to the screen it is about. The double tick at the top marks them all as read.': 'নোটিফিকেশনে চাপ দিলে সেটি পড়া হয়ে যায় আর সংশ্লিষ্ট স্ক্রিনে যায়। ওপরের দুই টিক সব পড়া হিসেবে চিহ্নিত করে।',
-  'A reminder moves to Sent once its time has passed. If notifications were blocked on your phone, it did not show.': 'রিমাইন্ডারের সময় পার হলে সেটি "এসেছে"-তে চলে যায়। ফোনে নোটিফিকেশন বন্ধ থাকলে সেটি আসেনি।',
+  'A reminder is listed once its time has passed. If notifications were blocked on your phone, it did not show.': 'রিমাইন্ডারের সময় পার হলে সেটি তালিকায় আসে। ফোনে নোটিফিকেশন বন্ধ থাকলে সেটি আসেনি।',
   'A tap on a notification on your phone opens the screen it is about.':
       'ফোনের নোটিফিকেশনে চাপ দিলে সংশ্লিষ্ট স্ক্রিন খুলে যায়।',
-  'The clear button empties Sent and leaves Coming up alone. The last 200 are kept, for up to 90 days.': 'মোছার বোতাম "এসেছে" খালি করে, "সামনে আসছে" ছোঁয় না। সর্বশেষ ২০০টি থাকে, সর্বোচ্চ ৯০ দিন।',
+  'The clear button empties the list. The last 200 are kept, for up to 90 days.':
+      'মোছার বোতাম তালিকা খালি করে। সর্বশেষ ২০০টি থাকে, সর্বোচ্চ ৯০ দিন।',
   'Open Settings > Alerts. Each alert has its own switch.':
       'সেটিংস > সতর্কতায় যান। প্রতিটি সতর্কতার আলাদা সুইচ আছে।',
   'Funny alert sounds off means your phone\'s usual notification sound.':
@@ -307,4 +310,41 @@ const bnGuide = <String, String>{
   'Food, transport and the rest': 'খাবার, যাতায়াত ও আরও সব',
   'Keep your data safe': 'আপনার তথ্য নিরাপদ রাখুন',
   'Language, look and alerts': 'ভাষা, চেহারা ও সতর্কতা',
+  'Importing a sheet': 'শিট ইমপোর্ট করা',
+  'If it was a mistake': 'ভুল হয়ে গেলে',
+  'Save your Google Sheet or Excel file as CSV, then open Backup & export > Import from CSV.': 'আপনার Google Sheet বা Excel ফাইলটি CSV হিসেবে সংরক্ষণ করুন, তারপর ব্যাকআপ ও এক্সপোর্ট > CSV থেকে ইমপোর্ট খুলুন।',
+  'Choose the file and say which column is which. If income and expense have a column each, pick "Separate income and expense columns".': 'ফাইলটি বেছে নিন এবং কোন কলাম কোনটি তা বলুন। আয় আর খরচের আলাদা কলাম থাকলে "আয় ও খরচের আলাদা কলাম" বেছে নিন।',
+  'Choose the account for the rows, or tap New account to make one here. Turn "Count it in my total balance" off for old records, so your total stays the same.': 'সারিগুলোর অ্যাকাউন্ট বেছে নিন, অথবা নতুন অ্যাকাউন্টে চেপে এখানেই একটি বানান। পুরোনো হিসাবের জন্য "আমার মোট ব্যালান্সে ধরুন" বন্ধ রাখুন, তাহলে মোট ব্যালান্স একই থাকবে।',
+  'The preview shows what changes in each account and which categories will be made. If a new category is one you already have, tap Use it or the swap button.': 'প্রিভিউতে দেখা যায় প্রতিটি অ্যাকাউন্টে কী বদলাবে আর কোন ক্যাটাগরিগুলো তৈরি হবে। নতুন ক্যাটাগরিটি যদি আপনার আগের কোনোটিই হয়, তাহলে "এটি ব্যবহার করুন" বা অদলবদলের বোতাম চাপুন।',
+  'Rows marked "to check" have a date far from the rows around them, often with the day and month the wrong way round. They are imported as they are: fix them afterwards.': '"দেখার আছে" চিহ্নিত সারিগুলোর তারিখ আশপাশের সারি থেকে অনেক দূরে, প্রায়ই দিন আর মাস উল্টে গিয়ে। এগুলো যেমন আছে তেমনই ইমপোর্ট হয়, পরে ঠিক করে নিন।',
+  'The next file with the same column names starts with the same columns.':
+      'একই কলামের নামের পরের ফাইল একই কলাম সাজানো অবস্থায় শুরু হয়।',
+  'Right after an import, tap Undo this import. Later, Backup & export shows Undo last import for the latest one.': 'ইমপোর্টের পরপরই "এই ইমপোর্ট ফিরিয়ে নিন" চাপুন। পরে ব্যাকআপ ও এক্সপোর্ট পাতায় সবচেয়ে সাম্প্রতিকটির জন্য "শেষ ইমপোর্ট ফিরিয়ে নিন" দেখা যায়।',
+  'Undo removes the transactions that import added. Categories and accounts it made that nothing else uses are hidden, not deleted.': 'ফিরিয়ে নিলে সেই ইমপোর্টের যোগ করা লেনদেনগুলো মুছে যায়। এটি যে ক্যাটাগরি ও অ্যাকাউন্ট বানিয়েছিল, আর কোথাও ব্যবহার না হলে সেগুলো লুকিয়ে যায়, মুছে যায় না।',
+  'Entries you added by hand are never touched.':
+      'আপনার হাতে যোগ করা এন্ট্রিতে কখনো হাত পড়ে না।',
+  'Swipe a row to the left, all the way, to delete it: there is no question, but Undo stays on the screen for 8 seconds. Swipe right, or tap, to change it.': 'একটি সারি বাঁ দিকে পুরো টেনে দিলে সেটি মুছে যায়। কোনো প্রশ্ন করা হয় না, তবে "ফিরিয়ে আনুন" ৮ সেকেন্ড থাকে। বদলাতে ডান দিকে টানুন, বা চাপ দিন।',
+  'Select several: press and hold a transaction, then tap Select several. Tap more rows, then change their category, change their account, or delete them together. Undo stays for 8 seconds. Transfers and balance fixes can only be deleted this way.': 'কয়েকটি বাছুন: একটি লেনদেনে চেপে ধরে রাখুন, তারপর "কয়েকটি বাছুন"-এ চাপ দিন। আরও সারিতে চাপ দিন, তারপর একসঙ্গে তাদের ক্যাটাগরি বদলান, অ্যাকাউন্ট বদলান, বা মুছে ফেলুন। ফিরিয়ে আনা ৮ সেকেন্ড থাকে। ট্রান্সফার আর ব্যালান্স ঠিক করা শুধু এভাবে মোছা যায়।',
+  'Tidying up': 'গুছিয়ে নেওয়া',
+  'Two names for the same thing? Open the menu of a category with no sub-categories and choose Merge into. Pick the category to keep. Its transactions, budgets, repeating entries and challenges move there, and the old one is archived. This cannot be undone here, so make a backup first if you are unsure.': 'একই জিনিসের দুটি নাম? সাব-ক্যাটাগরি নেই এমন একটি ক্যাটাগরির মেনু খুলে "অন্যটির সঙ্গে একত্র করুন" বেছে নিন। যেটি রাখবেন সেটি বেছে নিন। এর লেনদেন, বাজেট, বারবার হওয়া এন্ট্রি আর চ্যালেঞ্জ সেখানে চলে যায়, আর পুরোনোটি আর্কাইভ হয়। এখানে এটা ফেরানো যায় না, তাই নিশ্চিত না হলে আগে ব্যাকআপ নিন।',
+  'Move a category to another place from its Edit screen, under Inside. What is inside it goes with it.': 'একটি ক্যাটাগরি অন্য জায়গায় সরাতে তার সম্পাদনা পাতায় "ভেতরে"-তে যান। এর ভেতরে যা আছে তা সঙ্গে যায়।',
+  'Tap Year, above the date, to see a whole year. A bar chart shows each month, and a list gives every month its income, expense and what was left. Tap a month in the list to open it.': 'তারিখের ওপরে "বছর"-এ চাপ দিলে পুরো বছর দেখা যায়। একটি বার চার্টে প্রতিটি মাস দেখা যায়, আর তালিকায় প্রতিটি মাসের আয়, খরচ আর কত বেঁচেছে। তালিকার কোনো মাসে চাপ দিলে সেই মাস খোলে।',
+  'Under the list: your average per month, the month you spent most and the month you kept most. Averages count only the months that have entries, so a year you began in October is not pulled down by empty months. The year is compared with the year before.': 'তালিকার নিচে থাকে: মাসে গড়ে কত, কোন মাসে সবচেয়ে বেশি খরচ হয়েছে আর কোন মাসে সবচেয়ে বেশি বেঁচেছে। গড়ে শুধু এন্ট্রি থাকা মাস ধরা হয়, তাই অক্টোবরে শুরু করলে ফাঁকা মাসগুলো গড় কমায় না। বছরটিকে আগের বছরের সঙ্গে তুলনা করা হয়।',
+  'Find entries that may be mistakes, after an import or any time.':
+      'ইমপোর্টের পরে বা যেকোনো সময়, ভুল হতে পারে এমন এন্ট্রি খুঁজে বের করুন।',
+  'What it looks for': 'কী খোঁজে',
+  'Entered twice: the same day, kind, amount, account and note, from ৳500. Delete the extra ones, or keep them if both are real. Undo stays for 8 seconds.': 'দুবার লেখা: একই দিন, ধরন, অঙ্ক, অ্যাকাউন্ট আর নোট, ৳৫০০ থেকে। বাড়তিগুলো মুছুন, দুটোই সত্যি হলে রেখে দিন। ফিরিয়ে আনা ৮ সেকেন্ড থাকে।',
+  'Dated in the future: often a wrong year, or a day and month the wrong way round.':
+      'ভবিষ্যতের তারিখ: প্রায়ই ভুল বছর, বা দিন আর মাস উল্টে যাওয়া।',
+  'Far above the usual: at least 10 times the usual amount of its category and ৳1,000 or more, like a slip of a zero.': 'স্বাভাবিকের চেয়ে অনেক বেশি: ক্যাটাগরির স্বাভাবিক অঙ্কের অন্তত ১০ গুণ আর ৳১,০০০ বা বেশি, যেমন একটা শূন্য বেশি পড়ে যাওয়া।',
+  'In Other: spending that has no real category yet.':
+      '"অন্যান্য"-তে: যে খরচের এখনো সত্যিকারের ক্যাটাগরি নেই।',
+  'Categories that look alike, like Utility and Utilities. Merge them from the Categories screen.': 'প্রায় একই নামের ক্যাটাগরি, যেমন Utility আর Utilities। ক্যাটাগরি পাতা থেকে এগুলো একত্র করুন।',
+  'Nothing is changed unless you say so. Tap an entry to open and fix it.':
+      'আপনি না বললে কিছুই বদলায় না। একটি এন্ট্রিতে চাপ দিয়ে খুলে ঠিক করুন।',
+  'It looks at every entry you have, so run it after importing a sheet.':
+      'এটি আপনার সব এন্ট্রি দেখে, তাই শিট ইমপোর্টের পরে চালান।',
+  'Balance corrections are not looked at.':
+      'ব্যালান্স ঠিক করা এন্ট্রি দেখা হয় না।',
+  'Each festival card and each goal has a three-dot menu. On a festival: Change the date once the moon is seen (Eid is only a guess until then), Hide this festival if you do not keep it, and Edit or Delete its fund. Hidden festivals come back with Show hidden festivals. On a goal: Edit or Delete.': 'প্রতিটি উৎসবের কার্ড আর প্রতিটি লক্ষ্যে তিন-বিন্দুর মেনু আছে। উৎসবে: চাঁদ দেখা গেলে "তারিখ বদলান" (তার আগে ঈদের তারিখ শুধু আন্দাজ), যে উৎসব পালন করেন না তা "এই উৎসব লুকান", আর তার তহবিল সম্পাদনা বা মোছা। লুকানোগুলো "লুকানো উৎসব দেখান" দিয়ে ফিরে আসে। লক্ষ্যে: সম্পাদনা বা মোছা।',
 };

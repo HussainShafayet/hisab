@@ -15,6 +15,11 @@ final csvImportRepositoryProvider = Provider<CsvImportRepository>(
   (ref) => CsvImportRepository(ref.watch(appDatabaseProvider)),
 );
 
+/// The latest CSV import that can still be undone, or null.
+final lastImportProvider = StreamProvider.autoDispose<ImportBatch?>(
+  (ref) => ref.watch(csvImportRepositoryProvider).watchLastBatch(),
+);
+
 /// When this phone last made a backup, and until when the reminder is put off.
 final backupInfoProvider = StreamProvider.autoDispose<BackupInfo>(
   (ref) => ref.watch(backupRepositoryProvider).watchInfo(),

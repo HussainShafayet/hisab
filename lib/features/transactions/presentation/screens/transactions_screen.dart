@@ -10,10 +10,16 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
+import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
+import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 import 'package:hishab/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/transaction_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
+import 'package:hishab/features/transactions/domain/transaction_type.dart';
+import 'package:hishab/features/transactions/presentation/widgets/account_choice_sheet.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
 import 'package:hishab/core/widgets/month_switcher.dart';
 import 'package:hishab/core/widgets/range_banner.dart';
@@ -38,6 +44,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   /// Deleted rows stay hidden here until the database stream catches up. A
   /// swiped `Dismissible` must leave the tree in the same frame.
   final _hiddenIds = <int>{};
+
+  /// Several rows are being chosen, to change or delete them together.
+  bool _selecting = false;
+  final _selected = <int>{};
 
   @override
   void dispose() {
@@ -72,6 +82,235 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     setState(() => _filter = const TransactionFilter());
   }
 
+  void _startSelecting([int? first]) => setState(() {
+    _selecting = true;
+    _selected
+      ..clear()
+      ..addAll([?first]);
+  });
+
+  void _stopSelecting() => setState(() {
+    _selecting = false;
+    _selected.clear();
+  });
+
+  void _toggle(int id) => setState(() {
+    if (!_selected.remove(id)) _selected.add(id);
+  });
+
+  Future<void> _bulkDelete(List<TransactionItem> items) async {
+    final sure = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          items.length == 1
+              ? tr('Delete 1 transaction?')
+              : tr('Delete {n} transactions?', {'n': items.length}),
+        ),
+        content: Text(
+          tr(
+            'Account balances follow at once. For a few seconds you can '
+            'undo it.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(tr('Cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('confirm-bulk-delete'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(tr('Delete')),
+          ),
+        ],
+      ),
+    );
+    if (sure != true || !mounted) return;
+
+    final repository = ref.read(transactionsRepositoryProvider);
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      final deleted = await repository.deleteTransactions([
+        for (final item in items) item.id,
+      ]);
+      if (!mounted) return;
+      _stopSelecting();
+      messenger.showMessage(
+        tr('{transactions} deleted', {
+          'transactions': plural(
+            deleted.length,
+            '1 transaction',
+            '{n} transactions',
+          ),
+        }),
+        duration: undoDuration,
+        action: SnackBarAction(
+          label: tr('Undo'),
+          onPressed: () => repository.restoreTransactions(deleted),
+        ),
+      );
+    } on Object catch (error) {
+      messenger.showError(describeError(error));
+    }
+  }
+
+  /// Transfers and balance fixes have no category and no single account.
+  bool _onlyIncomeAndExpense(List<TransactionItem> items) => !items.any(
+    (item) => item.type == TransactionType.transfer || item.isAdjustment,
+  );
+
+  Future<void> _bulkCategory(List<TransactionItem> items) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final types = {for (final item in items) item.type};
+    if (!_onlyIncomeAndExpense(items) || types.length != 1) {
+      messenger.showError(
+        tr(
+          'Pick only expenses, or only income, to change their category. '
+          'Transfers and balance fixes have none.',
+        ),
+      );
+      return;
+    }
+    final repository = ref.read(transactionsRepositoryProvider);
+    final all = await ref.read(categoriesRepositoryProvider).getCategories();
+    if (!mounted) return;
+    final byId = {for (final category in all) category.id: category};
+    final ofType = all.where((c) => c.type == types.single.categoryType);
+    final pick = await showCategoryPicker(
+      context,
+      title: items.length == 1
+          ? tr('Move 1 transaction to')
+          : tr('Move {n} transactions to', {'n': items.length}),
+      categories: flattenCategoryTree(buildCategoryTree(ofType)),
+      allowAdd: false,
+    );
+    if (pick is! CategoryPicked || !mounted) return;
+
+    try {
+      final before = await repository.changeCategories([
+        for (final item in items) item.id,
+      ], pick.id);
+      if (!mounted) return;
+      _stopSelecting();
+      messenger.showMessage(
+        tr('{transactions} moved to {name}', {
+          'transactions': plural(
+            before.length,
+            '1 transaction',
+            '{n} transactions',
+          ),
+          'name': categoryPathLabel(byId[pick.id]!, byId),
+        }),
+        duration: undoDuration,
+        action: SnackBarAction(
+          label: tr('Undo'),
+          onPressed: () => repository.restoreCategories(before),
+        ),
+      );
+    } on Object catch (error) {
+      messenger.showError(describeError(error));
+    }
+  }
+
+  Future<void> _bulkAccount(List<TransactionItem> items) async {
+    final messenger = ScaffoldMessenger.of(context);
+    if (!_onlyIncomeAndExpense(items)) {
+      messenger.showError(
+        tr(
+          'Pick only expenses and income to move them to another account. '
+          'Transfers and balance fixes stay where they are.',
+        ),
+      );
+      return;
+    }
+    final repository = ref.read(transactionsRepositoryProvider);
+    final accounts = await ref.read(accountsRepositoryProvider).getAccounts();
+    if (!mounted) return;
+    final id = await showAccountChoice(
+      context,
+      title: items.length == 1
+          ? tr('Move 1 transaction to')
+          : tr('Move {n} transactions to', {'n': items.length}),
+      accounts: accounts,
+    );
+    if (id == null || !mounted) return;
+
+    try {
+      final before = await repository.changeAccounts([
+        for (final item in items) item.id,
+      ], id);
+      if (!mounted) return;
+      _stopSelecting();
+      messenger.showMessage(
+        tr('{transactions} moved to {name}', {
+          'transactions': plural(
+            before.length,
+            '1 transaction',
+            '{n} transactions',
+          ),
+          'name': accounts.firstWhere((a) => a.id == id).name,
+        }),
+        duration: undoDuration,
+        action: SnackBarAction(
+          label: tr('Undo'),
+          onPressed: () => repository.restoreAccounts(before),
+        ),
+      );
+    } on Object catch (error) {
+      messenger.showError(describeError(error));
+    }
+  }
+
+  AppBar _selectionBar(
+    List<TransactionItem> selected,
+    List<TransactionItem> shown,
+  ) {
+    final none = selected.isEmpty;
+    return AppBar(
+      leading: IconButton(
+        key: const ValueKey('selection-close'),
+        tooltip: tr('Cancel'),
+        icon: const Icon(Icons.close),
+        onPressed: _stopSelecting,
+      ),
+      title: Text(
+        tr('{n} selected', {'n': selected.length}),
+        key: const ValueKey('selection-count'),
+      ),
+      actions: [
+        IconButton(
+          key: const ValueKey('selection-all'),
+          tooltip: tr('Select all'),
+          icon: const Icon(Icons.select_all),
+          onPressed: () => setState(
+            () => _selected
+              ..clear()
+              ..addAll(shown.map((item) => item.id)),
+          ),
+        ),
+        IconButton(
+          key: const ValueKey('selection-category'),
+          tooltip: tr('Change category'),
+          icon: const Icon(Icons.category_outlined),
+          onPressed: none ? null : () => _bulkCategory(selected),
+        ),
+        IconButton(
+          key: const ValueKey('selection-account'),
+          tooltip: tr('Change account'),
+          icon: const Icon(Icons.account_balance_wallet_outlined),
+          onPressed: none ? null : () => _bulkAccount(selected),
+        ),
+        IconButton(
+          key: const ValueKey('selection-delete'),
+          tooltip: tr('Delete'),
+          icon: const Icon(Icons.delete_outline),
+          onPressed: none ? null : () => _bulkDelete(selected),
+        ),
+      ],
+    );
+  }
+
   Future<void> _edit(TransactionItem item) =>
       context.push(AppRoutes.editTransaction(item.id));
 
@@ -92,6 +331,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
 
     messenger.showMessage(
       tr('Transaction deleted'),
+      duration: undoDuration,
       action: SnackBarAction(
         label: tr('Undo'),
         onPressed: () async {
@@ -110,6 +350,15 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            ListTile(
+              key: const ValueKey('action-select'),
+              leading: const Icon(Icons.checklist),
+              title: Text(tr('Select several')),
+              onTap: () {
+                Navigator.of(sheetContext).pop();
+                _startSelecting(item.id);
+              },
+            ),
             ListTile(
               leading: const Icon(Icons.edit_outlined),
               title: Text(tr('Edit')),
@@ -146,72 +395,91 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     final range = _filter.range ?? monthRange(_month);
     final transactions = ref.watch(transactionsInRangeProvider(range));
     final optionCount = _filter.sheetOptionCount;
+    // What is on the screen now, to count and to act on what is picked.
+    final shownNow = applyTransactionFilter([
+      for (final item in transactions.value ?? const <TransactionItem>[])
+        if (!_hiddenIds.contains(item.id)) item,
+    ], _filter);
+    final selectedItems = [
+      for (final item in shownNow)
+        if (_selected.contains(item.id)) item,
+    ];
 
-    return Scaffold(
-      appBar: AppBar(
-        title: _searching
-            ? TextField(
-                controller: _search,
-                autofocus: true,
-                textInputAction: TextInputAction.search,
-                decoration: InputDecoration(
-                  hintText: tr('Search note, category or amount'),
-                  border: InputBorder.none,
-                ),
-                onChanged: (text) =>
-                    setState(() => _filter = _filter.withQuery(text)),
-              )
-            : Text(tr('Transactions')),
-        actions: [
-          const NotificationBell(),
-          const HelpButton('transactions'),
-          IconButton(
-            tooltip: _searching ? tr('Close search') : tr('Search'),
-            icon: Icon(_searching ? Icons.close : Icons.search),
-            onPressed: _toggleSearch,
-          ),
-          IconButton(
-            tooltip: tr('Filter'),
-            icon: Badge(
-              isLabelVisible: optionCount > 0,
-              label: Text(localizeDigits('$optionCount')),
-              child: const Icon(Icons.filter_list),
-            ),
-            onPressed: _openFilterSheet,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          if (_filter.range case final customRange?)
-            RangeBanner(
-              range: customRange,
-              onClear: () => setState(() => _filter = _filter.withoutRange()),
-            )
-          else
-            MonthSwitcher(
-              month: _month,
-              canGoNext: _month.isBefore(monthStart(now)),
-              onPrevious: () => setState(() => _month = addMonths(_month, -1)),
-              onNext: () => setState(() => _month = addMonths(_month, 1)),
-            ),
-          FilterChips(
-            filter: _filter,
-            onRemove: (option) =>
-                setState(() => _filter = _filter.without(option)),
-          ),
-          Expanded(
-            child: transactions.when(
-              loading: () => const LoadingView(),
-              error: (error, _) => ErrorView(
-                message: describeError(error),
-                onRetry: () =>
-                    ref.invalidate(transactionsInRangeProvider(range)),
+    return PopScope(
+      // Back leaves choosing before it leaves the screen.
+      canPop: !_selecting,
+      onPopInvokedWithResult: (didPop, _) {
+        if (!didPop) _stopSelecting();
+      },
+      child: Scaffold(
+        appBar: _selecting
+            ? _selectionBar(selectedItems, shownNow)
+            : AppBar(
+                title: _searching
+                    ? TextField(
+                        controller: _search,
+                        autofocus: true,
+                        textInputAction: TextInputAction.search,
+                        decoration: InputDecoration(
+                          hintText: tr('Search note, category or amount'),
+                          border: InputBorder.none,
+                        ),
+                        onChanged: (text) =>
+                            setState(() => _filter = _filter.withQuery(text)),
+                      )
+                    : Text(tr('Transactions')),
+                actions: [
+                  const NotificationBell(),
+                  const HelpButton('transactions'),
+                  IconButton(
+                    tooltip: _searching ? tr('Close search') : tr('Search'),
+                    icon: Icon(_searching ? Icons.close : Icons.search),
+                    onPressed: _toggleSearch,
+                  ),
+                  IconButton(
+                    tooltip: tr('Filter'),
+                    icon: Badge(
+                      isLabelVisible: optionCount > 0,
+                      label: Text(localizeDigits('$optionCount')),
+                      child: const Icon(Icons.filter_list),
+                    ),
+                    onPressed: _openFilterSheet,
+                  ),
+                ],
               ),
-              data: (all) => _buildList(context, all, now),
+        body: Column(
+          children: [
+            if (_filter.range case final customRange?)
+              RangeBanner(
+                range: customRange,
+                onClear: () => setState(() => _filter = _filter.withoutRange()),
+              )
+            else
+              MonthSwitcher(
+                month: _month,
+                canGoNext: _month.isBefore(monthStart(now)),
+                onPrevious: () =>
+                    setState(() => _month = addMonths(_month, -1)),
+                onNext: () => setState(() => _month = addMonths(_month, 1)),
+              ),
+            FilterChips(
+              filter: _filter,
+              onRemove: (option) =>
+                  setState(() => _filter = _filter.without(option)),
             ),
-          ),
-        ],
+            Expanded(
+              child: transactions.when(
+                loading: () => const LoadingView(),
+                error: (error, _) => ErrorView(
+                  message: describeError(error),
+                  onRetry: () =>
+                      ref.invalidate(transactionsInRangeProvider(range)),
+                ),
+                data: (all) => _buildList(context, all, now),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -268,6 +536,16 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   }
 
   Widget _buildRow(BuildContext context, TransactionItem item) {
+    // While choosing, a tap picks the row, and there is no swiping.
+    if (_selecting) {
+      return TransactionTile(
+        key: ValueKey('transaction-${item.id}'),
+        item: item,
+        selected: _selected.contains(item.id),
+        onTap: () => _toggle(item.id),
+        onLongPress: () => _toggle(item.id),
+      );
+    }
     final scheme = Theme.of(context).colorScheme;
     return Dismissible(
       key: ValueKey('transaction-${item.id}'),
@@ -283,6 +561,10 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
         icon: Icons.delete_outline,
         alignment: Alignment.centerRight,
       ),
+      // Deleting takes a longer swipe than editing, so that a thumb that only
+      // scrolls does not delete a row. There is no question after it, but
+      // "Undo" stays for a while.
+      dismissThresholds: const {DismissDirection.endToStart: 0.6},
       // Swiping right opens the editor and snaps back; swiping left deletes.
       confirmDismiss: (direction) async {
         if (direction == DismissDirection.startToEnd) {

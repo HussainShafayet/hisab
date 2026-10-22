@@ -37,6 +37,12 @@ class TransactionsRepository {
         .map((rows) => rows.map(toTransactionItem).toList());
   }
 
+  /// Transactions with `start <= date < end`, newest first, once.
+  Future<List<TransactionItem>> getBetween(DateTime start, DateTime end) async {
+    final rows = await _db.transactionsDao.getBetweenWithDetails(start, end);
+    return rows.map(toTransactionItem).toList();
+  }
+
   /// Every transaction with tag [tagId], newest first.
   Stream<List<TransactionItem>> watchByTag(int tagId) => _db.transactionsDao
       .watchByTagWithDetails(tagId)
@@ -160,6 +166,133 @@ class TransactionsRepository {
         feeling: Value(item.feeling),
       ),
     );
+  }
+
+  /// Deletes the transactions [ids] together and returns what was deleted,
+  /// for [restoreTransactions]. One that is not there is skipped.
+  Future<List<TransactionItem>> deleteTransactions(Iterable<int> ids) {
+    return _db.transaction(() async {
+      final deleted = <TransactionItem>[];
+      for (final id in ids) {
+        final item = await deleteTransaction(id);
+        if (item != null) deleted.add(item);
+      }
+      return deleted;
+    });
+  }
+
+  /// Puts back what [deleteTransactions] took away.
+  Future<void> restoreTransactions(Iterable<TransactionItem> items) {
+    return _db.transaction(() async {
+      for (final item in items) {
+        await restoreTransaction(item);
+      }
+    });
+  }
+
+  /// Puts the transactions [ids] in category [categoryId]. Each must be of the
+  /// type the category is (income or expense), and none a transfer or a balance
+  /// fix, which have no category to change. All or nothing. Returns the
+  /// category each one had, by id, for [restoreCategories].
+  Future<Map<int, int?>> changeCategories(Iterable<int> ids, int categoryId) {
+    return _db.transaction(() async {
+      final category = await _db.categoriesDao.getById(categoryId);
+      if (category == null) {
+        throw ValidationException(tr('Category not found.'));
+      }
+      if (category.isArchived) {
+        throw ValidationException(
+          tr('The category "{name}" is archived.', {'name': category.name}),
+        );
+      }
+      final before = <int, int?>{};
+      for (final id in ids) {
+        final existing = await _db.transactionsDao.getById(id);
+        if (existing == null) {
+          throw ValidationException(tr('Transaction not found.'));
+        }
+        if (existing.type == TransactionType.transfer ||
+            existing.isAdjustment) {
+          throw ValidationException(
+            tr('A transfer or a balance fix has no category to change.'),
+          );
+        }
+        if (category.type != existing.type.categoryType) {
+          final args = {'name': category.name};
+          throw ValidationException(
+            existing.type == TransactionType.income
+                ? tr('The category "{name}" is not an income category.', args)
+                : tr('The category "{name}" is not an expense category.', args),
+          );
+        }
+        before[id] = existing.categoryId;
+        await _db.transactionsDao.updateTransaction(
+          existing.copyWith(categoryId: Value(categoryId)),
+        );
+      }
+      return before;
+    });
+  }
+
+  /// Gives each transaction the category it had ([changeCategories]'s answer).
+  Future<void> restoreCategories(Map<int, int?> before) {
+    return _db.transaction(() async {
+      for (final entry in before.entries) {
+        final existing = await _db.transactionsDao.getById(entry.key);
+        if (existing == null) continue;
+        await _db.transactionsDao.updateTransaction(
+          existing.copyWith(categoryId: Value(entry.value)),
+        );
+      }
+    });
+  }
+
+  /// Moves the transactions [ids] to account [accountId]. None may be a
+  /// transfer (it has two accounts) or a balance fix, and one with dollars
+  /// needs a credit card. All or nothing. Returns the account each one had,
+  /// by id, for [restoreAccounts].
+  Future<Map<int, int>> changeAccounts(Iterable<int> ids, int accountId) {
+    return _db.transaction(() async {
+      await _requireUsableAccount(accountId);
+      final account = await _db.accountsDao.getById(accountId);
+      final before = <int, int>{};
+      for (final id in ids) {
+        final existing = await _db.transactionsDao.getById(id);
+        if (existing == null) {
+          throw ValidationException(tr('Transaction not found.'));
+        }
+        if (existing.type == TransactionType.transfer ||
+            existing.isAdjustment) {
+          throw ValidationException(
+            tr('A transfer or a balance fix cannot be moved here.'),
+          );
+        }
+        if (existing.usdAmount != null &&
+            account?.type != AccountType.creditCard) {
+          throw ValidationException(
+            tr('A dollar amount can only be used with a credit card.'),
+          );
+        }
+        before[id] = existing.accountId;
+        await _db.transactionsDao.updateTransaction(
+          existing.copyWith(accountId: accountId),
+        );
+      }
+      return before;
+    });
+  }
+
+  /// Gives each transaction the account it had ([changeAccounts]'s answer).
+  Future<void> restoreAccounts(Map<int, int> before) {
+    return _db.transaction(() async {
+      for (final entry in before.entries) {
+        final existing = await _db.transactionsDao.getById(entry.key);
+        if (existing == null) continue;
+        await _db.transactionsDao.updateTransaction(
+          existing.copyWith(accountId: entry.value),
+        );
+      }
+    });
   }
 
   /// What the add/edit form can choose from. When [editing] is given, its

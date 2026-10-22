@@ -353,6 +353,7 @@ class _AccountCardTile extends ConsumerWidget {
     if (!context.mounted) return;
     ScaffoldMessenger.of(context).showMessage(
       tr('{name} archived', {'name': _account.name}),
+      duration: undoDuration,
       action: SnackBarAction(
         label: tr('Undo'),
         onPressed: () => repository.restoreAccount(_account.id),

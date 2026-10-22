@@ -56,6 +56,7 @@ abstract final class PreferenceKeys {
   static const textSize = 'text_size';
   static const hideBalances = 'hide_balances';
   static const backupReminder = 'backup_reminder';
+  static const homeMoreOpen = 'home_more_open';
 }
 
 /// What the user chose in Settings.
@@ -77,6 +78,7 @@ class AppPreferences {
     this.textSize = TextSize.normal,
     this.hideBalances = false,
     this.backupReminder = true,
+    this.homeMoreOpen = false,
   });
 
   static const defaults = AppPreferences();
@@ -124,6 +126,10 @@ class AppPreferences {
   /// A card on Home asks for a backup when it has been two weeks.
   final bool backupReminder;
 
+  /// The part of Home with the streak, tips and the mascot is open. It is
+  /// closed until the person opens it.
+  final bool homeMoreOpen;
+
   AppPreferences copyWith({
     ThemePreference? theme,
     AppLanguage? language,
@@ -141,6 +147,7 @@ class AppPreferences {
     TextSize? textSize,
     bool? hideBalances,
     bool? backupReminder,
+    bool? homeMoreOpen,
   }) => AppPreferences(
     theme: theme ?? this.theme,
     language: language ?? this.language,
@@ -160,6 +167,7 @@ class AppPreferences {
     textSize: textSize ?? this.textSize,
     hideBalances: hideBalances ?? this.hideBalances,
     backupReminder: backupReminder ?? this.backupReminder,
+    homeMoreOpen: homeMoreOpen ?? this.homeMoreOpen,
   );
 
   /// Reads saved preferences. Anything missing or not understood (a value
@@ -216,6 +224,8 @@ class AppPreferences {
       hideBalances: saved[PreferenceKeys.hideBalances] == 'true',
       // Only an explicit "false" turns it off.
       backupReminder: saved[PreferenceKeys.backupReminder] != 'false',
+      // Closed until the person opens it.
+      homeMoreOpen: saved[PreferenceKeys.homeMoreOpen] == 'true',
     );
   }
 
@@ -238,6 +248,7 @@ class AppPreferences {
     PreferenceKeys.textSize: textSize.name,
     PreferenceKeys.hideBalances: hideBalances.toString(),
     PreferenceKeys.backupReminder: backupReminder.toString(),
+    PreferenceKeys.homeMoreOpen: homeMoreOpen.toString(),
   };
 
   /// A saved time of day, or [fallback] when it is missing or not a time.
@@ -266,7 +277,8 @@ class AppPreferences {
       other.budgetRollover == budgetRollover &&
       other.textSize == textSize &&
       other.hideBalances == hideBalances &&
-      other.backupReminder == backupReminder;
+      other.backupReminder == backupReminder &&
+      other.homeMoreOpen == homeMoreOpen;
 
   @override
   int get hashCode => Object.hash(
@@ -286,5 +298,6 @@ class AppPreferences {
     textSize,
     hideBalances,
     backupReminder,
+    homeMoreOpen,
   );
 }

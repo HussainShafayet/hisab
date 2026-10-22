@@ -13,6 +13,7 @@ import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/goals/domain/goal.dart';
 import 'package:hishab/features/goals/presentation/providers/goals_providers.dart';
+import 'package:hishab/features/goals/presentation/widgets/goal_actions.dart';
 import 'package:hishab/features/goals/presentation/widgets/goal_hint.dart';
 import 'package:hishab/features/goals/presentation/widgets/goal_icons.dart';
 import 'package:hishab/features/goals/presentation/widgets/goal_money_dialog.dart';
@@ -37,32 +38,8 @@ class GoalDetailScreen extends ConsumerWidget {
       case _GoalAction.edit:
         await context.push(AppRoutes.editGoal(item.goal.id));
       case _GoalAction.delete:
-        final ok = await showDialog<bool>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: Text(tr('Delete "{name}"?', {'name': item.goal.name})),
-            content: Text(
-              tr(
-                'The goal and its list of savings are removed. Your accounts '
-                'are not changed.',
-              ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.of(context).pop(false),
-                child: Text(tr('Cancel')),
-              ),
-              FilledButton(
-                key: const ValueKey('confirm-delete-goal'),
-                onPressed: () => Navigator.of(context).pop(true),
-                child: Text(tr('Delete')),
-              ),
-            ],
-          ),
-        );
-        if (ok == true) {
-          await ref.read(goalsRepositoryProvider).deleteGoal(item.goal.id);
-          if (context.mounted) context.pop();
+        if (await confirmDeleteGoal(context, ref, item) && context.mounted) {
+          context.pop();
         }
     }
   }

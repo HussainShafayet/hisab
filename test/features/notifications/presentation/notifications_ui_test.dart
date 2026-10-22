@@ -34,11 +34,6 @@ int? badgeCount(WidgetTester tester) {
   return int.parse((badge.label! as Text).data!);
 }
 
-Future<void> showTab(WidgetTester tester, String key) async {
-  await tester.tap(find.byKey(ValueKey(key)));
-  await tester.pumpAndSettle();
-}
-
 void main() {
   group('the notifications screen', () {
     testWithDatabase('opens from the bell and starts empty', (
@@ -52,9 +47,9 @@ void main() {
       expect(appBarTitle('Notifications'), findsOneWidget);
       expect(find.text('Nothing sent yet'), findsOneWidget);
       expect(find.byKey(const ValueKey('clear-notifications')), findsNothing);
-
-      await showTab(tester, 'tab-upcoming');
-      expect(find.text('Nothing coming up'), findsOneWidget);
+      // There is one list: what came. No tabs, no "coming up".
+      expect(find.byType(TabBar), findsNothing);
+      expect(find.text('Coming up'), findsNothing);
     });
 
     testWithDatabase('lists what was sent, newest first, by day', (
@@ -84,25 +79,15 @@ void main() {
       expect(find.byKey(const ValueKey('clear-notifications')), findsOneWidget);
     });
 
-    testWithDatabase('lists what is coming up, the soonest first', (
-      tester,
-      db,
-    ) async {
+    testWithDatabase('what is still to come is not listed', (tester, db) async {
       // The app puts its own reminders on the list when it starts, so the
       // daily reminder (9 pm each evening) is the source here.
       await db.settingsDao.put('daily_reminder', 'true');
       await pumpAppWithDatabase(tester, db);
 
       await openNotifications(tester);
-      await showTab(tester, 'tab-upcoming');
 
-      expect(find.text('Takka is waiting'), findsWidgets);
-      expect(find.text('9:00 PM'), findsWidgets);
-      final today = tester.getTopLeft(find.text('Today')).dy;
-      final tomorrow = tester.getTopLeft(find.text('Mon, 12 Oct')).dy;
-      expect(today, lessThan(tomorrow));
-      // They have not come yet, so they are not in the sent list.
-      await showTab(tester, 'tab-sent');
+      expect(find.text('Takka is waiting'), findsNothing);
       expect(find.text('Nothing sent yet'), findsOneWidget);
     });
 
@@ -133,8 +118,6 @@ void main() {
       expect(find.text('Habit alert'), findsNothing);
       expect(find.text('Nothing sent yet'), findsOneWidget);
       expect(find.text('History cleared'), findsOneWidget);
-      await showTab(tester, 'tab-upcoming');
-      expect(find.text('Takka is waiting'), findsWidgets);
     });
   });
 

@@ -168,6 +168,40 @@ void main() {
     });
   });
 
+  group('yearRange', () {
+    test('is the whole calendar year, the end not included', () {
+      final range = yearRange(2026);
+
+      expect(range.start, DateTime(2026));
+      expect(range.end, DateTime(2027));
+    });
+  });
+
+  group('previousPeriod of a year', () {
+    test('a whole calendar year is compared with the year before', () {
+      final previous = previousPeriod(yearRange(2026));
+
+      expect(previous.start, DateTime(2025));
+      expect(previous.end, DateTime(2026));
+    });
+
+    test('also after a leap year, which has a day more', () {
+      final previous = previousPeriod(yearRange(2025));
+
+      expect(previous, yearRange(2024));
+      expect(daysBetween(previous.start, previous.end), 366);
+    });
+
+    test('a range that only starts on 1 January is not a year', () {
+      final range = (start: DateTime(2026), end: DateTime(2026, 7));
+
+      final previous = previousPeriod(range);
+
+      expect(previous.end, DateTime(2026));
+      expect(previous.start, isNot(DateTime(2025)));
+    });
+  });
+
   group('previousPeriod', () {
     test('a whole month is compared with the month before', () {
       final previous = previousPeriod(monthRange(DateTime(2026, 10)));

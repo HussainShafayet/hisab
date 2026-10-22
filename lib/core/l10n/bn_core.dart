@@ -98,7 +98,6 @@ const bnCore = <String, String>{
   'Categories': 'ক্যাটাগরি',
   'Categories can go {levels} levels deep at most.':
       'ক্যাটাগরি সর্বোচ্চ {levels} স্তর পর্যন্ত হতে পারে।',
-  'Categories: {names}': 'ক্যাটাগরি: {names}',
   'Category': 'ক্যাটাগরি',
   'Category name': 'ক্যাটাগরির নাম',
   'Category not found.': 'ক্যাটাগরি পাওয়া যায়নি।',

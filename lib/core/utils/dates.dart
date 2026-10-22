@@ -48,6 +48,11 @@ typedef DateRange = ({DateTime start, DateTime end});
 DateRange monthRange(DateTime date) =>
     (start: monthStart(date), end: addMonths(date, 1));
 
+/// The local range of calendar year [year]: [start] is 1 January, [end] is 1
+/// January of the next year.
+DateRange yearRange(int year) =>
+    (start: DateTime(year), end: DateTime(year + 1));
+
 /// The [count] months that end with [month], oldest first, each as the first
 /// day of the month.
 List<DateTime> lastMonths(DateTime month, int count) => [
@@ -55,13 +60,17 @@ List<DateTime> lastMonths(DateTime month, int count) => [
 ];
 
 /// The period right before [range], to compare with. A whole calendar month
-/// is compared with the month before it; any other range with the same
-/// number of days directly before it.
+/// is compared with the month before it, a whole calendar year with the year
+/// before it; any other range with the same number of days directly before it.
 DateRange previousPeriod(DateRange range) {
   final isWholeMonth =
       range.start == monthStart(range.start) &&
       range.end == addMonths(range.start, 1);
   if (isWholeMonth) return monthRange(addMonths(range.start, -1));
+  final isWholeYear =
+      range.start == DateTime(range.start.year) &&
+      range.end == DateTime(range.start.year + 1);
+  if (isWholeYear) return yearRange(range.start.year - 1);
   final days = daysBetween(range.start, range.end);
   return (
     start: DateTime(

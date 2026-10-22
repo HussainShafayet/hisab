@@ -10,9 +10,11 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/goals/domain/festival.dart';
+import 'package:hishab/features/goals/domain/festival_settings.dart';
 import 'package:hishab/features/goals/domain/goal.dart';
 import 'package:hishab/features/goals/presentation/providers/goals_providers.dart';
 import 'package:hishab/features/goals/presentation/widgets/festival_tile.dart';
+import 'package:hishab/features/goals/presentation/widgets/goal_actions.dart';
 import 'package:hishab/features/goals/presentation/widgets/goal_tile.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
@@ -39,12 +41,20 @@ class GoalsScreen extends ConsumerWidget {
         loading: () => const LoadingView(),
         error: (error, _) => ErrorView(message: describeError(error)),
         data: (list) {
-          final festivals = upcomingFestivals(today, list);
+          final settings =
+              ref.watch(festivalSettingsProvider).value ??
+              const FestivalSettings();
+          final festivals = upcomingFestivals(today, list, settings: settings);
+          final hiddenCount = settings.hidden.length;
           if (list.isEmpty) {
             return ListView(
               padding: const EdgeInsets.only(top: 8, bottom: 96),
               children: [
-                _Festivals(festivals: festivals, today: today),
+                _Festivals(
+                  festivals: festivals,
+                  today: today,
+                  hiddenCount: hiddenCount,
+                ),
                 SizedBox(
                   height: 320,
                   child: EmptyState(
@@ -66,7 +76,14 @@ class GoalsScreen extends ConsumerWidget {
           return ListView(
             padding: const EdgeInsets.only(top: 8, bottom: 96),
             children: [
-              arriving(0, _Festivals(festivals: festivals, today: today)),
+              arriving(
+                0,
+                _Festivals(
+                  festivals: festivals,
+                  today: today,
+                  hiddenCount: hiddenCount,
+                ),
+              ),
               arriving(1, _Summary(goals: list)),
               for (final (index, item) in list.indexed)
                 arriving(
@@ -76,6 +93,9 @@ class GoalsScreen extends ConsumerWidget {
                     item: item,
                     today: today,
                     onTap: () => context.push(AppRoutes.goal(item.goal.id)),
+                    onEdit: () =>
+                        context.push(AppRoutes.editGoal(item.goal.id)),
+                    onDelete: () => confirmDeleteGoal(context, ref, item),
                   ),
                 ),
             ],
@@ -86,16 +106,23 @@ class GoalsScreen extends ConsumerWidget {
   }
 }
 
-/// The festivals coming up, each with its fund or a button to start one.
-class _Festivals extends StatelessWidget {
-  const _Festivals({required this.festivals, required this.today});
+/// The festivals coming up, each with its fund or a button to start one, and
+/// a way to bring back the ones that were hidden.
+class _Festivals extends ConsumerWidget {
+  const _Festivals({
+    required this.festivals,
+    required this.today,
+    required this.hiddenCount,
+  });
 
   final List<UpcomingFestival> festivals;
   final DateTime today;
+  final int hiddenCount;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    if (festivals.isEmpty && hiddenCount == 0) return const SizedBox.shrink();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -104,15 +131,34 @@ class _Festivals extends StatelessWidget {
           child: Text(tr('Coming up'), style: theme.textTheme.titleSmall),
         ),
         for (final item in festivals) FestivalTile(item: item, today: today),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-          child: Text(
-            tr('The days of Eid are a guess: the moon decides.'),
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
+        if (festivals.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 4),
+            child: Text(
+              tr('The days of Eid are a guess: the moon decides.'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
           ),
-        ),
+        if (hiddenCount > 0)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 0, 8, 8),
+            child: TextButton.icon(
+              key: const ValueKey('show-hidden-festivals'),
+              onPressed: () =>
+                  ref.read(festivalSettingsRepositoryProvider).showAll(),
+              icon: const Icon(Icons.visibility_outlined),
+              label: Text(
+                plural(
+                  hiddenCount,
+                  'Show 1 hidden festival',
+                  'Show {n} hidden festivals',
+                ),
+              ),
+            ),
+          ),
+        const SizedBox(height: 8),
       ],
     );
   }

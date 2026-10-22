@@ -535,6 +535,7 @@ class BackupRepository {
   /// Rows that others point at go last: transactions and budgets first, then
   /// categories from the innermost out, then accounts.
   Future<void> _deleteEverything() async {
+    await _db.delete(_db.importBatches).go();
     await _db.delete(_db.challenges).go();
     await _db.delete(_db.investmentEntries).go();
     await _db.delete(_db.investments).go();
