@@ -19,6 +19,8 @@ import 'package:hishab/features/categories/presentation/providers/categories_pro
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
+import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
+import 'package:hishab/features/settings/presentation/widgets/hidden_income.dart';
 
 /// The categories as a tree: each one can be opened and closed to show or
 /// hide what is inside it.
@@ -318,6 +320,7 @@ class _CategoryTile extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final incomeHidden = ref.watch(incomeHiddenProvider);
     final theme = Theme.of(context);
     final muted = category.isArchived;
     final notes = [
@@ -370,14 +373,21 @@ class _CategoryTile extends ConsumerWidget {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerRight,
-                child: Text(
-                  formatPoisha(monthTotal!),
-                  key: ValueKey('category-amount-${category.id}'),
-                  style: theme.textTheme.bodyMedium?.tabular.copyWith(
+                child: () {
+                  final style = theme.textTheme.bodyMedium?.tabular.copyWith(
                     fontWeight: depth == 0 ? FontWeight.w700 : null,
                     color: muted ? theme.colorScheme.onSurfaceVariant : null,
-                  ),
-                ),
+                  );
+                  // What an income category took in is a secret too.
+                  if (incomeHidden && category.type == CategoryType.income) {
+                    return HiddenIncome(style: style);
+                  }
+                  return Text(
+                    formatPoisha(monthTotal!),
+                    key: ValueKey('category-amount-${category.id}'),
+                    style: style,
+                  );
+                }(),
               ),
             ),
           PopupMenuButton<_CategoryAction>(

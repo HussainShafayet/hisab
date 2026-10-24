@@ -6,10 +6,11 @@ Add an everyday entry in one line (`rickshaw 50`, `bazar 450 bkash`,
 
 ## Behaviour
 - At the top of **Add transaction** (not when editing, not when paying a card
-  bill) there is a line with a bolt icon: *Type it in one line: rickshaw 50*.
+  bill) there is a line with a bolt icon: *One line: rickshaw 50*, with an **SMS** button beside it (see sms-paste.md).
 - While typing, small pills show what was understood: income (only when it is
   one), the amount (or *No amount yet*), the category, the account.
-- The tick (or the keyboard's Done) fills the form: type, amount, note,
+- The tick (it appears once the line says something, so the hint has room; or the
+  keyboard's Done) fills the form: type, amount, note,
   category, account. What was not understood stays as it was. A notice says
   *Filled in. Check it and save.* The entry is never saved without the Save
   button.

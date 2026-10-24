@@ -72,20 +72,25 @@ class _QuickTypeBarState extends State<QuickTypeBar> {
                 decoration: InputDecoration(
                   isDense: true,
                   prefixIcon: const Icon(Icons.bolt),
-                  hintText: tr('Type it in one line: rickshaw 50'),
-                  suffixIcon: IconButton(
-                    key: const ValueKey('quick-type-apply'),
-                    tooltip: tr('Fill the form'),
-                    icon: const Icon(Icons.check),
-                    onPressed: entry == null ? null : _apply,
-                  ),
+                  hintText: tr('One line: rickshaw 50'),
+                  // The tick shows only when there is something to fill in,
+                  // so the hint has the room.
+                  suffixIcon: entry == null
+                      ? null
+                      : IconButton(
+                          key: const ValueKey('quick-type-apply'),
+                          tooltip: tr('Fill the form'),
+                          icon: const Icon(Icons.check),
+                          onPressed: _apply,
+                        ),
                 ),
               ),
             ),
-            IconButton(
+            const SizedBox(width: 4),
+            TextButton.icon(
               key: const ValueKey('paste-sms'),
-              tooltip: tr('Paste a bKash, Nagad or bank SMS'),
-              icon: const Icon(Icons.sms_outlined),
+              icon: const Icon(Icons.sms_outlined, size: 18),
+              label: Text(tr('SMS')),
               onPressed: widget.onPasteSms,
             ),
           ],

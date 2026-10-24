@@ -13,6 +13,8 @@ import 'package:hishab/features/tags/presentation/providers/tags_providers.dart'
 import 'package:hishab/features/tags/presentation/screens/tags_screen.dart';
 import 'package:hishab/features/tags/presentation/widgets/tag_name_dialog.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
+import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
+import 'package:hishab/features/settings/presentation/widgets/hidden_income.dart';
 
 enum _TagAction { rename, delete }
 
@@ -138,15 +140,32 @@ class TagDetailScreen extends ConsumerWidget {
                       ),
                     ),
                     if (summary.income > 0)
-                      Text(
-                        tr('Received {amount}', {
-                          'amount': formatPoisha(summary.income),
-                        }),
-                        key: const ValueKey('tag-income'),
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: colors.income,
-                        ),
-                      ),
+                      ref.watch(incomeHiddenProvider)
+                          ? Row(
+                              children: [
+                                Text(
+                                  tr('Received'),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colors.income,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                HiddenIncome(
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: colors.income,
+                                  ),
+                                ),
+                              ],
+                            )
+                          : Text(
+                              tr('Received {amount}', {
+                                'amount': formatPoisha(summary.income),
+                              }),
+                              key: const ValueKey('tag-income'),
+                              style: theme.textTheme.bodyMedium?.copyWith(
+                                color: colors.income,
+                              ),
+                            ),
                     Text(
                       [
                         plural(

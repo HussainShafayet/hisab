@@ -5,12 +5,14 @@ import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/percent.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
 import 'package:hishab/features/reports/domain/category_branch.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
 
 /// Where the money went (or came from), down the category tree: each group
 /// shows the total of what is inside it, and opens to show the categories
 /// inside, down as far as they go. Bars and percentages are of the whole
 /// period.
-class CategoryTreeCard extends StatefulWidget {
+class CategoryTreeCard extends ConsumerStatefulWidget {
   const CategoryTreeCard({
     required this.expense,
     required this.income,
@@ -21,17 +23,20 @@ class CategoryTreeCard extends StatefulWidget {
   final List<CategoryBranch> income;
 
   @override
-  State<CategoryTreeCard> createState() => _CategoryTreeCardState();
+  ConsumerState<CategoryTreeCard> createState() => _CategoryTreeCardState();
 }
 
-class _CategoryTreeCardState extends State<CategoryTreeCard> {
+class _CategoryTreeCardState extends ConsumerState<CategoryTreeCard> {
   var _showIncome = false;
 
   /// The ids of the groups that are open.
   final Set<int> _open = {};
 
+  /// Income is not offered while it is hidden.
+  bool get _income => _showIncome && !ref.read(incomeHiddenProvider);
+
   List<CategoryBranch> get _branches =>
-      _showIncome ? widget.income : widget.expense;
+      _income ? widget.income : widget.expense;
 
   /// The rows to draw: a closed group hides what is inside it. A group that
   /// has money of its own as well as categories inside gets a row for that
@@ -60,6 +65,7 @@ class _CategoryTreeCardState extends State<CategoryTreeCard> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final incomeHidden = ref.watch(incomeHiddenProvider);
     final branches = _branches;
     final grand = branches.fold<int>(0, (sum, b) => sum + b.total);
     final groups = [
@@ -80,7 +86,7 @@ class _CategoryTreeCardState extends State<CategoryTreeCard> {
               children: [
                 Expanded(
                   child: Text(
-                    _showIncome
+                    _income
                         ? tr('Where the money came from')
                         : tr('Where the money went'),
                     style: theme.textTheme.titleMedium,
@@ -101,18 +107,20 @@ class _CategoryTreeCardState extends State<CategoryTreeCard> {
               ],
             ),
             const SizedBox(height: 8),
-            SegmentedButton<bool>(
-              key: const ValueKey('tree-type'),
-              showSelectedIcon: false,
-              segments: [
-                ButtonSegment(value: false, label: Text(tr('Expense'))),
-                ButtonSegment(value: true, label: Text(tr('Income'))),
-              ],
-              selected: {_showIncome},
-              onSelectionChanged: (selection) =>
-                  setState(() => _showIncome = selection.first),
-            ),
-            const SizedBox(height: 8),
+            if (!incomeHidden) ...[
+              SegmentedButton<bool>(
+                key: const ValueKey('tree-type'),
+                showSelectedIcon: false,
+                segments: [
+                  ButtonSegment(value: false, label: Text(tr('Expense'))),
+                  ButtonSegment(value: true, label: Text(tr('Income'))),
+                ],
+                selected: {_showIncome},
+                onSelectionChanged: (selection) =>
+                    setState(() => _showIncome = selection.first),
+              ),
+              const SizedBox(height: 8),
+            ],
             if (branches.isEmpty)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 16),

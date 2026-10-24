@@ -24,8 +24,9 @@ More → Settings, in four cards. A change applies at once and is saved.
   (`TextSize.scale`, in the app root builder).
 - **Budget**: the *Carry over what is left* switch, the same one as on the
   Budget tab (docs/specs/budget/carry-over.md).
-- **Privacy**: *Hide balances on Home* shows `৳ ••••` in place of the total
-  balance and of the balance on each wallet card of Home. The eye on the total
+- **Privacy**: *Hide balances* shows `৳ ••••` in place of the total
+  balance and of the balance on each wallet card of Home and of the Accounts
+  screen. The eye on the total
   balance card switches it too.
   *Hide income* shows dots and a bar (how much of the income is spent) in
   place of the income, until it is tapped (docs/specs/settings/hide-income.md).

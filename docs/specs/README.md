@@ -61,6 +61,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [transactions](transactions/) | [Paste an SMS](transactions/sms-paste.md) | 19b |
 | [settings](settings/) | [Hide income](settings/hide-income.md) | 19b |
 | [core](core/) | [Why Hishab is different](core/why-hishab.md) | 19b |
+| [settings](settings/) | [Search on More](settings/more-search.md) | 19b |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

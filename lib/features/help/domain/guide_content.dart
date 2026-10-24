@@ -37,6 +37,7 @@ const guideTopics = <GuideTopic>[
         'Money is always in takka. Amounts keep their paisa, like ৳1,250.50.',
         'Every screen has a ? button at the top. It opens the guide for that screen.',
         'Hishab is made for how money moves in Bangladesh: bKash and Nagad messages, dhar and baki, Eid funds, zakat in bhori and ana, and a screen in Bangla.',
+        'The More tab has a search box at the top: type zakat, loans or backup to find a place without scrolling.',
         'If you go back from a form with something typed, Hishab asks before it throws the typing away.',
       ]),
     ],
@@ -80,7 +81,7 @@ const guideTopics = <GuideTopic>[
       ]),
       GuideSection('Faster ways', [
         'Quick type: write one line like rickshaw 50 or bazar 450 bkash or +salary 30k, and the form fills itself. Add yesterday, gotokal or 2 days ago to set the day.',
-        'Paste an SMS: copy a bKash, Nagad or bank message, then tap the message button next to the quick line. The amount, fee, account and day fill in, and the note keeps the TrxID, so the same SMS cannot be added twice. A cash out becomes a transfer to Cash with its fee. If the balance in the SMS is not what the app would show, you are told something may be missing.',
+        'Paste an SMS: copy a bKash, Nagad or bank message, then tap the SMS button beside the quick line. The amount, fee, account and day fill in, and the note keeps the TrxID, so the same SMS cannot be added twice. A cash out becomes a transfer to Cash with its fee. If the balance in the SMS is not what the app would show, you are told something may be missing.',
         'Note suggestions: as you type a note, notes from earlier entries appear under it. Tap one to fill the note, and the category and amount of that entry if they are still empty.',
         'Add several: enter a handful of transactions on one screen and save them together. Paste lines turns lines like rickshaw 50 into rows.',
         'Needed, Wanted or Regret on an expense lets Home show how the month felt.',
@@ -477,8 +478,8 @@ const guideTopics = <GuideTopic>[
         'Amount entry chooses a plain number keyboard or the calculator keypad for new transactions.',
         'Default account is the wallet a new transaction starts with. Week starts on decides what "this week" means.',
         'Text size makes the letters bigger or smaller, on top of your phone\'s own setting.',
-        'Hide balances on Home shows dots instead of your balances when someone is looking. The eye on Home does the same.',
-        'Hide income shows dots and a bar instead of your income on Home, Transactions and Reports. The bar says how much of the income is spent, which only you will understand. Tap the dots to see the amount for five seconds. Hide balances too, because a balance can give the income away.',
+        'Hide balances shows dots instead of your balances on Home and on Accounts when someone is looking. The eye on Home does the same.',
+        'Hide income shows dots instead of every income amount: in Transactions, Reports, trips, repeating entries and Month wrapped. Where it can, a bar says how much of the income is spent, which only you will understand. Tap the dots to see the amount for five seconds. Hide balances too, because a balance can give the income away.',
         'Fun mode and the Alerts section are here too.',
       ]),
       GuideSection('Your data', [

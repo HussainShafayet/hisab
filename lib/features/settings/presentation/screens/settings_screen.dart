@@ -316,11 +316,12 @@ class SettingsScreen extends ConsumerWidget {
                 key: const ValueKey('hide-balances'),
                 contentPadding: EdgeInsets.zero,
                 secondary: const Icon(Icons.visibility_off_outlined),
-                title: Text(tr('Hide balances on Home')),
+                title: Text(tr('Hide balances')),
                 subtitle: Text(
                   tr(
-                    'Shows dots instead of your balances, for when someone '
-                    'is looking. The eye on Home switches it too.',
+                    'Shows dots instead of your balances on Home and on '
+                    'Accounts, for when someone is looking. The eye on Home '
+                    'switches it too.',
                   ),
                 ),
                 value: preferences.hideBalances,

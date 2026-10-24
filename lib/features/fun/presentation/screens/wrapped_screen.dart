@@ -19,6 +19,7 @@ import 'package:hishab/features/fun/presentation/providers/wrapped_providers.dar
 import 'package:hishab/features/fun/presentation/widgets/takka.dart';
 import 'package:hishab/features/transactions/domain/feeling_summary.dart';
 import 'package:intl/intl.dart';
+import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
 
 /// One card of the wrapped: a picture (an icon or Takka), a line above, the
 /// big thing, and a line below.
@@ -44,7 +45,9 @@ class WrapPage {
   final bool last;
 }
 
-List<WrapPage> wrappedPages(MonthWrapped w) {
+/// The cards of the wrapped. With [hideIncome] the card of money in and out
+/// speaks of spending only.
+List<WrapPage> wrappedPages(MonthWrapped w, {bool hideIncome = false}) {
   final label = monthLabel(w.month);
   if (w.isEmpty) {
     return [
@@ -69,9 +72,12 @@ List<WrapPage> wrappedPages(MonthWrapped w) {
     WrapPage(
       title: tr('Money in, money out'),
       big: formatPoisha(w.expense),
-      caption:
-          '${tr('You earned {income} and spent {expense}.', {'income': formatPoisha(w.income), 'expense': formatPoisha(w.expense)})}\n'
-          '${w.saved >= 0 ? tr('You kept {amount}. Shabash!', {'amount': formatPoisha(w.saved)}) : tr('You spent {amount} more than you earned.', {'amount': formatPoisha(-w.saved)})}',
+      caption: hideIncome
+          ? tr('You spent {expense} this month.', {
+              'expense': formatPoisha(w.expense),
+            })
+          : '${tr('You earned {income} and spent {expense}.', {'income': formatPoisha(w.income), 'expense': formatPoisha(w.expense)})}\n'
+                '${w.saved >= 0 ? tr('You kept {amount}. Shabash!', {'amount': formatPoisha(w.saved)}) : tr('You spent {amount} more than you earned.', {'amount': formatPoisha(-w.saved)})}',
       icon: Icons.account_balance_wallet_outlined,
     ),
     if (top != null)
@@ -209,7 +215,10 @@ class _WrappedScreenState extends ConsumerState<WrappedScreen> {
         loading: () => const LoadingView(),
         error: (error, _) => ErrorView(message: describeError(error)),
         data: (wrapped) {
-          final pages = wrappedPages(wrapped);
+          final pages = wrappedPages(
+            wrapped,
+            hideIncome: ref.watch(incomeHiddenProvider),
+          );
           return Column(
             children: [
               Expanded(
