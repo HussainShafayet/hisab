@@ -14,6 +14,9 @@ import 'package:hishab/features/backup/presentation/providers/backup_providers.d
 import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
+import 'package:intl/intl.dart';
+import 'package:hishab/features/backup/data/auto_backup_gateway.dart';
+import 'package:hishab/features/backup/data/auto_backup_service.dart';
 
 /// Language, look, and how new transactions and weeks start.
 class SettingsScreen extends ConsumerWidget {
@@ -474,6 +477,18 @@ class SettingsScreen extends ConsumerWidget {
             title: tr('Data'),
             children: [
               SwitchListTile(
+                key: const ValueKey('auto-backup'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.cloud_sync_outlined),
+                title: Text(tr('Automatic backup')),
+                subtitle: _AutoBackupNote(
+                  status: ref.watch(autoBackupStatusProvider).value,
+                ),
+                value: preferences.autoBackup,
+                onChanged: (value) =>
+                    _change(ref, (p) => p.copyWith(autoBackup: value)),
+              ),
+              SwitchListTile(
                 key: const ValueKey('backup-reminder'),
                 contentPadding: EdgeInsets.zero,
                 secondary: const Icon(Icons.backup_outlined),
@@ -673,6 +688,57 @@ class _Choice<T> extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// What the automatic backup does, and how it went last time.
+class _AutoBackupNote extends StatelessWidget {
+  const _AutoBackupNote({required this.status});
+
+  final AutoBackupStatus? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final problem = status?.problem;
+    final saved = status?.lastSaved;
+    final text = problem != null
+        ? tr('Could not save: {reason}', {
+            'reason': switch (problem) {
+              AutoBackupProblem.oldAndroid => tr('Needs Android 10 or newer.'),
+              AutoBackupProblem.failed => tr(
+                'The phone did not let the file be saved.',
+              ),
+            },
+          })
+        : saved != null
+        ? tr('Saved {when}.', {
+            'when': localizeDigits(DateFormat('d MMM, h:mm a').format(saved)),
+          })
+        : tr('Not saved yet. It saves when you leave the app.');
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tr(
+            'Saves a copy of your data in Downloads/Hishab whenever you leave '
+            'the app, so it is still there if the app is removed. The file is '
+            'not locked: anyone who opens Files can read it. To get it back, '
+            'use Backup & export and choose Restore.',
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          text,
+          key: const ValueKey('auto-backup-status'),
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: problem != null
+                ? theme.colorScheme.error
+                : theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
     );
   }
 }

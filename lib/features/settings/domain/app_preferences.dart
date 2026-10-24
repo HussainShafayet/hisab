@@ -57,6 +57,7 @@ abstract final class PreferenceKeys {
   static const hideBalances = 'hide_balances';
   static const hideIncome = 'hide_income';
   static const backupReminder = 'backup_reminder';
+  static const autoBackup = 'auto_backup';
   static const homeMoreOpen = 'home_more_open';
 }
 
@@ -80,6 +81,7 @@ class AppPreferences {
     this.hideBalances = false,
     this.hideIncome = false,
     this.backupReminder = true,
+    this.autoBackup = true,
     this.homeMoreOpen = false,
   });
 
@@ -132,6 +134,10 @@ class AppPreferences {
   /// A card on Home asks for a backup when it has been two weeks.
   final bool backupReminder;
 
+  /// A copy of the data is written to Downloads/Hishab whenever the app is
+  /// left, so it is still there if the app is removed.
+  final bool autoBackup;
+
   /// The part of Home with the streak, tips and the mascot is open. It is
   /// closed until the person opens it.
   final bool homeMoreOpen;
@@ -154,6 +160,7 @@ class AppPreferences {
     bool? hideBalances,
     bool? hideIncome,
     bool? backupReminder,
+    bool? autoBackup,
     bool? homeMoreOpen,
   }) => AppPreferences(
     theme: theme ?? this.theme,
@@ -175,6 +182,7 @@ class AppPreferences {
     hideBalances: hideBalances ?? this.hideBalances,
     hideIncome: hideIncome ?? this.hideIncome,
     backupReminder: backupReminder ?? this.backupReminder,
+    autoBackup: autoBackup ?? this.autoBackup,
     homeMoreOpen: homeMoreOpen ?? this.homeMoreOpen,
   );
 
@@ -233,6 +241,7 @@ class AppPreferences {
       hideIncome: saved[PreferenceKeys.hideIncome] == 'true',
       // Only an explicit "false" turns it off.
       backupReminder: saved[PreferenceKeys.backupReminder] != 'false',
+      autoBackup: saved[PreferenceKeys.autoBackup] != 'false',
       // Closed until the person opens it.
       homeMoreOpen: saved[PreferenceKeys.homeMoreOpen] == 'true',
     );
@@ -258,6 +267,7 @@ class AppPreferences {
     PreferenceKeys.hideBalances: hideBalances.toString(),
     PreferenceKeys.hideIncome: hideIncome.toString(),
     PreferenceKeys.backupReminder: backupReminder.toString(),
+    PreferenceKeys.autoBackup: autoBackup.toString(),
     PreferenceKeys.homeMoreOpen: homeMoreOpen.toString(),
   };
 
@@ -289,6 +299,7 @@ class AppPreferences {
       other.hideBalances == hideBalances &&
       other.hideIncome == hideIncome &&
       other.backupReminder == backupReminder &&
+      other.autoBackup == autoBackup &&
       other.homeMoreOpen == homeMoreOpen;
 
   @override
@@ -310,6 +321,7 @@ class AppPreferences {
     hideBalances,
     hideIncome,
     backupReminder,
+    autoBackup,
     homeMoreOpen,
   );
 }

@@ -11,6 +11,9 @@ import 'package:hishab/features/reminders/alert_watcher.dart';
 import 'package:hishab/features/reminders/reminder_sync.dart';
 import 'package:hishab/features/settings/domain/app_preferences.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+import 'package:hishab/core/database/database_provider.dart';
+import 'package:hishab/core/utils/clock.dart';
+import 'package:hishab/features/backup/presentation/providers/backup_providers.dart';
 
 /// Root widget. A [ConsumerStatefulWidget] is a StatefulWidget that has a
 /// `ref` for reading Riverpod providers, like a component using hooks.
@@ -24,13 +27,40 @@ class HishabApp extends ConsumerStatefulWidget {
 class _HishabAppState extends ConsumerState<HishabApp> {
   /// When the app comes back to the front, a new day may have started, so
   /// what is due is worked out again.
-  late final _lifecycle = AppLifecycleListener(
-    onResume: () => ref.invalidate(reminderSyncProvider),
-  );
+  late final AppLifecycleListener _lifecycle;
+
+  /// Whether something changed since the automatic backup last wrote its file.
+  /// True at the start, so the first time the app is left it writes one.
+  bool _changed = true;
+  bool _backingUp = false;
+
+  /// When the app is left, a copy of the data goes to Downloads/Hishab (see
+  /// docs/specs/backup/auto-backup.md), if it is on and something changed.
+  Future<void> _saveAutoBackup() async {
+    if (!_changed || _backingUp || !mounted) return;
+    if (!ref.read(preferencesProvider).autoBackup) return;
+    _backingUp = true;
+    _changed = false;
+    try {
+      final saved = await ref
+          .read(autoBackupServiceProvider)
+          .run(ref.read(clockProvider)());
+      // A problem, or nothing to save yet: try again the next time.
+      if (!saved) _changed = true;
+    } finally {
+      _backingUp = false;
+    }
+  }
 
   @override
   void initState() {
     super.initState();
+    // Made here, not where it is declared: a `late` field with a value is only
+    // made when it is first used, and nothing uses it until the app ends.
+    _lifecycle = AppLifecycleListener(
+      onResume: () => ref.invalidate(reminderSyncProvider),
+      onPause: _saveAutoBackup,
+    );
     // A tap on a notification on the phone opens the screen it is about.
     pendingNotificationRoute.addListener(_openTappedNotification);
     WidgetsBinding.instance.addPostFrameCallback(
@@ -59,6 +89,8 @@ class _HishabAppState extends ConsumerState<HishabApp> {
     ref.watch(reminderSyncProvider);
     // Funny alerts for the budget and for habits, when an expense is written.
     ref.watch(alertWatcherProvider);
+    // Entries, accounts, categories and budgets changing means a new copy.
+    ref.listen(dataChangesProvider, (_, _) => _changed = true);
     final preferences = ref.watch(preferencesProvider);
     // Set before anything below is built, so every `tr` already answers in
     // the chosen language.
