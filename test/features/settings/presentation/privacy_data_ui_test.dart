@@ -18,6 +18,12 @@ Future<void> openSettings(WidgetTester tester) =>
 
 Future<void> tapKey(WidgetTester tester, String key) async {
   final finder = find.byKey(ValueKey(key));
+  // The list builds only the rows near the screen, so scroll down to it.
+  await tester.scrollUntilVisible(
+    finder,
+    200,
+    scrollable: find.byType(Scrollable).first,
+  );
   await tester.ensureVisible(finder);
   await tester.pumpAndSettle();
   await tester.tap(finder);

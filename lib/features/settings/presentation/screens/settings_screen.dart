@@ -327,6 +327,23 @@ class SettingsScreen extends ConsumerWidget {
                 onChanged: (value) =>
                     _change(ref, (p) => p.copyWith(hideBalances: value)),
               ),
+              SwitchListTile(
+                key: const ValueKey('hide-income'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.lock_outline),
+                title: Text(tr('Hide income')),
+                subtitle: Text(
+                  tr(
+                    'Shows dots and a bar instead of your income. The bar '
+                    'says how much of it is spent, which only you will '
+                    'understand. Tap the dots to see the amount for a few '
+                    'seconds.',
+                  ),
+                ),
+                value: preferences.hideIncome,
+                onChanged: (value) =>
+                    _change(ref, (p) => p.copyWith(hideIncome: value)),
+              ),
             ],
           ),
           _Section(

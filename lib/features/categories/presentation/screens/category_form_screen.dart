@@ -14,6 +14,7 @@ import 'package:hishab/features/categories/presentation/category_style.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
+import 'package:hishab/core/widgets/discard_guard.dart';
 
 /// Creates a category, or edits the one with [categoryId]. When creating,
 /// [initialType] and [initialParentId] pre-fill the form (used by
@@ -224,8 +225,14 @@ class _CategoryFormState extends ConsumerState<_CategoryForm> {
     return parent.isArchived ? tr('{name} (archived)', {'name': path}) : path;
   }
 
+  /// What the text fields held on opening, to tell if anything was typed.
+  late final _snapshot = TextSnapshot([_name]);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      DiscardGuard(snapshot: _snapshot, child: _buildForm(context));
+
+  Widget _buildForm(BuildContext context) {
     final theme = Theme.of(context);
     final typedName = _name.text.trim();
 

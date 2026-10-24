@@ -7,8 +7,8 @@ const bnDaily = <String, String>{
       'মাসের বাজেট ঠিক করুন, হিসাব বলে দেবে প্রতিদিন কত খরচ করতে পারবেন।',
   'Set budget': 'বাজেট ঠিক করুন',
   'You can spend today': 'আজ খরচ করতে পারবেন',
-  '{left} of the budget is left for {days} days, after {bills} of bills still to come.': 'বাজেটের {left} বাকি, আরও {days} দিনের জন্য, আসন্ন বিল {bills} বাদ দিয়ে।',
-  '{left} of the budget is left for {days} days.':
-      'বাজেটের {left} বাকি, আরও {days} দিনের জন্য।',
+  'At the start of today {left} of the budget was left for {days} days, after {bills} of bills still to come.': 'আজ শুরুতে বাজেটের {left} বাকি ছিল, আরও {days} দিনের জন্য, আসন্ন বিল {bills} বাদ দিয়ে।',
+  'At the start of today {left} of the budget was left for {days} days.':
+      'আজ শুরুতে বাজেটের {left} বাকি ছিল, আরও {days} দিনের জন্য।',
   '{share} a day · {spent} spent today': 'দিনে {share} · আজ খরচ হয়েছে {spent}',
 };

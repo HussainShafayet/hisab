@@ -55,6 +55,7 @@ abstract final class PreferenceKeys {
   static const budgetRollover = 'budget_rollover';
   static const textSize = 'text_size';
   static const hideBalances = 'hide_balances';
+  static const hideIncome = 'hide_income';
   static const backupReminder = 'backup_reminder';
   static const homeMoreOpen = 'home_more_open';
 }
@@ -77,6 +78,7 @@ class AppPreferences {
     this.budgetRollover = false,
     this.textSize = TextSize.normal,
     this.hideBalances = false,
+    this.hideIncome = false,
     this.backupReminder = true,
     this.homeMoreOpen = false,
   });
@@ -123,6 +125,10 @@ class AppPreferences {
   /// Home shows dots instead of the balances.
   final bool hideBalances;
 
+  /// Income is shown as dots and a bar (how much of it is spent) instead of
+  /// amounts, until it is tapped.
+  final bool hideIncome;
+
   /// A card on Home asks for a backup when it has been two weeks.
   final bool backupReminder;
 
@@ -146,6 +152,7 @@ class AppPreferences {
     bool? budgetRollover,
     TextSize? textSize,
     bool? hideBalances,
+    bool? hideIncome,
     bool? backupReminder,
     bool? homeMoreOpen,
   }) => AppPreferences(
@@ -166,6 +173,7 @@ class AppPreferences {
     budgetRollover: budgetRollover ?? this.budgetRollover,
     textSize: textSize ?? this.textSize,
     hideBalances: hideBalances ?? this.hideBalances,
+    hideIncome: hideIncome ?? this.hideIncome,
     backupReminder: backupReminder ?? this.backupReminder,
     homeMoreOpen: homeMoreOpen ?? this.homeMoreOpen,
   );
@@ -222,6 +230,7 @@ class AppPreferences {
       ),
       // Off until the person turns it on.
       hideBalances: saved[PreferenceKeys.hideBalances] == 'true',
+      hideIncome: saved[PreferenceKeys.hideIncome] == 'true',
       // Only an explicit "false" turns it off.
       backupReminder: saved[PreferenceKeys.backupReminder] != 'false',
       // Closed until the person opens it.
@@ -247,6 +256,7 @@ class AppPreferences {
     PreferenceKeys.budgetRollover: budgetRollover.toString(),
     PreferenceKeys.textSize: textSize.name,
     PreferenceKeys.hideBalances: hideBalances.toString(),
+    PreferenceKeys.hideIncome: hideIncome.toString(),
     PreferenceKeys.backupReminder: backupReminder.toString(),
     PreferenceKeys.homeMoreOpen: homeMoreOpen.toString(),
   };
@@ -277,6 +287,7 @@ class AppPreferences {
       other.budgetRollover == budgetRollover &&
       other.textSize == textSize &&
       other.hideBalances == hideBalances &&
+      other.hideIncome == hideIncome &&
       other.backupReminder == backupReminder &&
       other.homeMoreOpen == homeMoreOpen;
 
@@ -297,6 +308,7 @@ class AppPreferences {
     budgetRollover,
     textSize,
     hideBalances,
+    hideIncome,
     backupReminder,
     homeMoreOpen,
   );

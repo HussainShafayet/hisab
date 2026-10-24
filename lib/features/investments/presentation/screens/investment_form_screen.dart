@@ -12,6 +12,7 @@ import 'package:hishab/features/debts/presentation/widgets/day_field.dart';
 import 'package:hishab/features/investments/data/investments_repository.dart';
 import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/features/investments/presentation/providers/investments_providers.dart';
+import 'package:hishab/core/widgets/discard_guard.dart';
 
 /// Adds an investment, or changes the name, note and start day of one.
 class InvestmentFormScreen extends ConsumerWidget {
@@ -121,8 +122,14 @@ class _InvestmentFormState extends ConsumerState<_InvestmentForm> {
     }
   }
 
+  /// What the text fields held on opening, to tell if anything was typed.
+  late final _snapshot = TextSnapshot([_name, _note]);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      DiscardGuard(snapshot: _snapshot, child: _buildForm(context));
+
+  Widget _buildForm(BuildContext context) {
     final theme = Theme.of(context);
     return Scaffold(
       appBar: AppBar(

@@ -23,49 +23,57 @@ class BackupReminderCard extends ConsumerWidget {
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
       color: theme.colorScheme.tertiaryContainer,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 12, 8, 8),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(
-                  Icons.backup_outlined,
-                  color: theme.colorScheme.onTertiaryContainer,
+                Padding(
+                  padding: const EdgeInsets.only(top: 2),
+                  child: Icon(
+                    Icons.backup_outlined,
+                    color: theme.colorScheme.onTertiaryContainer,
+                  ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 12),
                 Expanded(
-                  child: Text(
-                    tr('Time to back up'),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      color: theme.colorScheme.onTertiaryContainer,
-                    ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        tr('Time to back up'),
+                        style: theme.textTheme.titleSmall?.copyWith(
+                          color: theme.colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        days == null
+                            ? tr(
+                                'You have not made a backup yet. Your data '
+                                'lives only on this phone.',
+                              )
+                            : tr(
+                                'Your last backup was {n} days ago. Your '
+                                'data lives only on this phone.',
+                                {'n': days},
+                              ),
+                        key: const ValueKey('backup-reminder-text'),
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: theme.colorScheme.onTertiaryContainer,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(
-              days == null
-                  ? tr(
-                      'You have not made a backup yet. Your data lives only '
-                      'on this phone.',
-                    )
-                  : tr(
-                      'Your last backup was {n} days ago. Your data lives '
-                      'only on this phone.',
-                      {'n': days},
-                    ),
-              key: const ValueKey('backup-reminder-text'),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onTertiaryContainer,
-              ),
-            ),
-            const SizedBox(height: 8),
             Align(
               alignment: AlignmentDirectional.centerEnd,
               child: Wrap(
-                spacing: 8,
+                spacing: 4,
                 crossAxisAlignment: WrapCrossAlignment.center,
                 children: [
                   TextButton(
@@ -77,6 +85,9 @@ class BackupReminderCard extends ConsumerWidget {
                   ),
                   FilledButton(
                     key: const ValueKey('backup-now'),
+                    style: FilledButton.styleFrom(
+                      visualDensity: VisualDensity.compact,
+                    ),
                     onPressed: () => context.push(AppRoutes.backup),
                     child: Text(tr('Back up now')),
                   ),

@@ -15,6 +15,7 @@ import 'package:hishab/features/accounts/presentation/providers/accounts_provide
 import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_type_ui.dart';
 import 'package:hishab/features/reminders/reminder_sync.dart';
+import 'package:hishab/core/widgets/discard_guard.dart';
 
 /// Creates an account, or edits the one with [accountId].
 class AccountFormScreen extends ConsumerWidget {
@@ -194,8 +195,19 @@ class _AccountFormState extends ConsumerState<_AccountForm> {
     });
   }
 
+  /// What the text fields held on opening, to tell if anything was typed.
+  late final _snapshot = TextSnapshot([
+    _name,
+    _openingBalance,
+    _creditLimit,
+    _usdLimit,
+  ]);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      DiscardGuard(snapshot: _snapshot, child: _buildForm(context));
+
+  Widget _buildForm(BuildContext context) {
     final theme = Theme.of(context);
     final typedName = _name.text.trim().toLowerCase();
     final suggestions = [

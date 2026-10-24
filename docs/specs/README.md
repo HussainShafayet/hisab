@@ -56,6 +56,11 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [reports](reports/) | [The year view of the reports](reports/year-view.md) | 39 |
 | [data_check](data_check/) | [Data check](data_check/data-check.md) | 40 |
 | [goals](goals/) | [Festival cards: change, hide, and goals you can edit](goals/festival-cards.md) | 41 |
+| [core](core/) | [Leave without saving?](core/leave-without-saving.md) | 19b |
+| [transactions](transactions/) | [Note suggestions](transactions/note-suggestions.md) | 19b |
+| [transactions](transactions/) | [Paste an SMS](transactions/sms-paste.md) | 19b |
+| [settings](settings/) | [Hide income](settings/hide-income.md) | 19b |
+| [core](core/) | [Why Hishab is different](core/why-hishab.md) | 19b |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

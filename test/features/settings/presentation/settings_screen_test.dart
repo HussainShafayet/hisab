@@ -64,6 +64,11 @@ void main() {
         'Calendar',
         'About',
       ]) {
+        await tester.scrollUntilVisible(
+          find.text(title),
+          200,
+          scrollable: find.byType(Scrollable).first,
+        );
         expect(find.text(title), findsOneWidget, reason: title);
       }
     });
@@ -91,6 +96,11 @@ void main() {
       useTallScreen(tester);
       await pumpAppWithDatabase(tester, db);
       await openSettings(tester);
+      await tester.scrollUntilVisible(
+        find.byKey(const ValueKey('app-version')),
+        200,
+        scrollable: find.byType(Scrollable).first,
+      );
 
       expect(
         tester.widget<Text>(find.byKey(const ValueKey('app-version'))).data,

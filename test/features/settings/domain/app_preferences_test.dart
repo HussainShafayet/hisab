@@ -104,6 +104,7 @@ void main() {
         PreferenceKeys.budgetRollover: 'false',
         PreferenceKeys.textSize: 'normal',
         PreferenceKeys.hideBalances: 'false',
+        PreferenceKeys.hideIncome: 'false',
         PreferenceKeys.backupReminder: 'true',
         PreferenceKeys.homeMoreOpen: 'false',
       });
@@ -324,6 +325,7 @@ void main() {
     test('start as normal, shown and on', () {
       expect(AppPreferences.defaults.textSize, TextSize.normal);
       expect(AppPreferences.defaults.hideBalances, isFalse);
+      expect(AppPreferences.defaults.hideIncome, isFalse);
       expect(AppPreferences.defaults.backupReminder, isTrue);
     });
 

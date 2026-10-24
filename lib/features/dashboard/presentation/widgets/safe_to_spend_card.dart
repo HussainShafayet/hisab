@@ -173,7 +173,7 @@ class _Figures extends StatelessWidget {
         Text(
           safe.upcomingBills > 0
               ? tr(
-                  '{left} of the budget is left for {days} days, after '
+                  'At the start of today {left} of the budget was left for {days} days, after '
                   '{bills} of bills still to come.',
                   {
                     'left': formatPoisha(safe.budget - safe.spentBeforeToday),
@@ -181,10 +181,13 @@ class _Figures extends StatelessWidget {
                     'bills': formatPoisha(safe.upcomingBills),
                   },
                 )
-              : tr('{left} of the budget is left for {days} days.', {
-                  'left': formatPoisha(safe.budget - safe.spentBeforeToday),
-                  'days': safe.daysLeft,
-                }),
+              : tr(
+                  'At the start of today {left} of the budget was left for {days} days.',
+                  {
+                    'left': formatPoisha(safe.budget - safe.spentBeforeToday),
+                    'days': safe.daysLeft,
+                  },
+                ),
           key: const ValueKey('safe-note'),
           style: muted,
         ),

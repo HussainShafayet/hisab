@@ -27,6 +27,8 @@ More → Settings, in four cards. A change applies at once and is saved.
 - **Privacy**: *Hide balances on Home* shows `৳ ••••` in place of the total
   balance and of the balance on each wallet card of Home. The eye on the total
   balance card switches it too.
+  *Hide income* shows dots and a bar (how much of the income is spent) in
+  place of the income, until it is tapped (docs/specs/settings/hide-income.md).
 - **Data**: *Remind me to back up* (on by default), *Backup & export* (opens
   the backup screen) and *Delete all data*, which asks (*Delete all data?*,
   with *Cancel* and *Delete everything*) and then deletes every account,
