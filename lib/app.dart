@@ -34,6 +34,11 @@ class _HishabAppState extends ConsumerState<HishabApp> {
   bool _changed = true;
   bool _backingUp = false;
 
+  /// The same for the copy in Google Drive, which also needs the internet, so
+  /// it is tried again the next time the app is left until it works.
+  bool _driveChanged = true;
+  bool _driveBusy = false;
+
   /// When the app is left, a copy of the data goes to Downloads/Hishab (see
   /// docs/specs/backup/auto-backup.md), if it is on and something changed.
   Future<void> _saveAutoBackup() async {
@@ -52,6 +57,21 @@ class _HishabAppState extends ConsumerState<HishabApp> {
     }
   }
 
+  /// When the app is left, the copy in Google Drive is written too, if it is
+  /// on (Settings > Data) and something changed.
+  Future<void> _saveDriveBackup() async {
+    if (!_driveChanged || _driveBusy || !mounted) return;
+    _driveBusy = true;
+    try {
+      final saved = await ref
+          .read(driveBackupServiceProvider)
+          .run(ref.read(clockProvider)());
+      if (saved) _driveChanged = false;
+    } finally {
+      _driveBusy = false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -59,7 +79,10 @@ class _HishabAppState extends ConsumerState<HishabApp> {
     // made when it is first used, and nothing uses it until the app ends.
     _lifecycle = AppLifecycleListener(
       onResume: () => ref.invalidate(reminderSyncProvider),
-      onPause: _saveAutoBackup,
+      onPause: () {
+        _saveAutoBackup();
+        _saveDriveBackup();
+      },
     );
     // A tap on a notification on the phone opens the screen it is about.
     pendingNotificationRoute.addListener(_openTappedNotification);
@@ -90,7 +113,10 @@ class _HishabAppState extends ConsumerState<HishabApp> {
     // Funny alerts for the budget and for habits, when an expense is written.
     ref.watch(alertWatcherProvider);
     // Entries, accounts, categories and budgets changing means a new copy.
-    ref.listen(dataChangesProvider, (_, _) => _changed = true);
+    ref.listen(dataChangesProvider, (_, _) {
+      _changed = true;
+      _driveChanged = true;
+    });
     final preferences = ref.watch(preferencesProvider);
     // Set before anything below is built, so every `tr` already answers in
     // the chosen language.

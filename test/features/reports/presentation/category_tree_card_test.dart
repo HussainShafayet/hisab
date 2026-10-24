@@ -13,6 +13,10 @@ import '../../../helpers/pump_app.dart';
 import '../../../helpers/test_database.dart';
 import 'reports_screen_test.dart' show openReports;
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/features/settings/domain/app_preferences.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+
 Category cat(
   int id,
   String name, {
@@ -49,12 +53,16 @@ Future<void> pump(
   List<CategoryBranch>? expense,
   List<CategoryBranch>? income,
 }) => tester.pumpWidget(
-  MaterialApp(
-    home: Scaffold(
-      body: SingleChildScrollView(
-        child: CategoryTreeCard(
-          expense: expense ?? spent(),
-          income: income ?? earned(),
+  // The card asks whether income is hidden, so it needs the settings.
+  ProviderScope(
+    overrides: [preferencesProvider.overrideWithValue(AppPreferences.defaults)],
+    child: MaterialApp(
+      home: Scaffold(
+        body: SingleChildScrollView(
+          child: CategoryTreeCard(
+            expense: expense ?? spent(),
+            income: income ?? earned(),
+          ),
         ),
       ),
     ),

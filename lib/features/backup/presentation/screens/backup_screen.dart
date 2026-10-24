@@ -15,6 +15,8 @@ import 'package:hishab/features/backup/presentation/providers/backup_providers.d
 import 'package:hishab/features/backup/presentation/widgets/undo_import.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
+import 'package:hishab/features/backup/data/drive_gateway.dart';
+import 'package:hishab/features/backup/presentation/drive_texts.dart';
 
 enum _Delivery { save, share }
 
@@ -258,6 +260,49 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
       await _problem(tr('This backup cannot be restored'), describeError(e));
       return;
     }
+    await _restoreData(data);
+  }
+
+  /// Restore from the copy in Google Drive: signs in when the phone has no
+  /// account yet, then asks before replacing everything.
+  Future<void> _restoreFromDrive() async {
+    setState(() => _busy = true);
+    final BackupData? data;
+    try {
+      data = await ref.read(driveBackupServiceProvider).fetch();
+    } on DriveException catch (error) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      final text = driveProblemText(error.problem, error.detail);
+      if (text != null) {
+        await _problem(tr('Could not get the backup from Google Drive'), text);
+      }
+      return;
+    } on Object catch (error) {
+      if (!mounted) return;
+      setState(() => _busy = false);
+      await _problem(
+        tr('This backup cannot be restored'),
+        error is FormatException
+            ? tr('This file is not a Hishab backup.')
+            : describeError(error),
+      );
+      return;
+    }
+    if (!mounted) return;
+    setState(() => _busy = false);
+    if (data == null) {
+      await _problem(
+        tr('No backup in Google Drive'),
+        tr('Hishab has not saved a backup in this Google account yet.'),
+      );
+      return;
+    }
+    await _restoreData(data);
+  }
+
+  /// Asks, then replaces everything on this phone with [data].
+  Future<void> _restoreData(BackupData data) async {
     if (!mounted || !await _confirmRestore(data)) return;
 
     await _run(tr('Could not restore the backup'), () async {
@@ -323,6 +368,19 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
                 ),
                 enabled: !_busy,
                 onTap: _restore,
+              ),
+              ListTile(
+                key: const ValueKey('restore-drive'),
+                leading: const Icon(Icons.add_to_drive_outlined),
+                title: Text(tr('Restore from Google Drive')),
+                subtitle: Text(
+                  tr(
+                    'Gets the copy kept in your Google Drive and replaces '
+                    'everything on this phone.',
+                  ),
+                ),
+                enabled: !_busy,
+                onTap: _restoreFromDrive,
               ),
               heading(tr('Spreadsheet (CSV)')),
               ListTile(

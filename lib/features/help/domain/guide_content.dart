@@ -442,6 +442,7 @@ const guideTopics = <GuideTopic>[
       GuideSection('What you can do', [
         'Export a backup saves everything to one file, your settings too. Keep it somewhere safe, like your email or a cloud drive.',
         'Automatic backup (Settings > Data, on by default) saves a copy to Downloads/Hishab when you leave the app after something changed. It stays if the app is removed: reinstall, open Backup & export > Restore and choose Hishab-auto-backup.json from Downloads/Hishab. The file is not locked, and a lost phone takes it too, so keep a copy elsewhere as well.',
+        'Back up to Google Drive (Settings > Data) keeps a copy in your own Google Drive whenever you leave the app and something changed, in one file called Hishab-backup.json that Hishab writes over each time. Sign in once with a Google account. It needs the internet, and tries again the next time if there was none. Hishab sees only the file it made. On a new or reset phone, install Hishab, open Backup & export, tap Restore from Google Drive and sign in.',
         'Home asks you to Send a copy every two weeks. One tap opens the share sheet with the backup ready: choose Google Drive, email or a chat. The copy in Downloads goes with the phone if it is lost or reset, and the one in Drive does not.',
         'The screen shows when you last made one, and Home reminds you after two weeks.',
         'Restore from a backup replaces what is on this phone with the file. Do it on a new phone or after a reset.',

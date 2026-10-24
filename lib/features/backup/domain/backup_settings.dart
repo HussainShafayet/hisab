@@ -9,6 +9,15 @@ const backupSnoozedUntilKey = 'backup_snoozed_until';
 const lastAutoBackupKey = 'last_auto_backup_at';
 const autoBackupProblemKey = 'auto_backup_problem';
 
+/// The backup to Google Drive: whether it is on, which account, when it last
+/// saved, and what went wrong. The account and the choice belong to this phone,
+/// so they are not in a backup either.
+const driveEnabledKey = 'drive_backup_on';
+const driveEmailKey = 'drive_backup_email';
+const lastDriveBackupKey = 'last_drive_backup_at';
+const driveProblemKey = 'drive_backup_problem';
+const driveDetailKey = 'drive_backup_detail';
+
 /// Settings that belong to this phone and its history, not to the person's
 /// choices: they stay out of a backup and a restore leaves them alone. These
 /// are the markers of alerts that were already shown, of challenges that were
@@ -18,6 +27,11 @@ bool isDeviceSetting(String key) =>
     key == backupSnoozedUntilKey ||
     key == lastAutoBackupKey ||
     key == autoBackupProblemKey ||
+    key == driveEnabledKey ||
+    key == driveEmailKey ||
+    key == lastDriveBackupKey ||
+    key == driveProblemKey ||
+    key == driveDetailKey ||
     key.startsWith('alert_') ||
     key.startsWith('challenge_cheered_');
 
