@@ -8,8 +8,10 @@ already spent and the bills still to come.
 - A card under the wallet strip on Home.
   - With an overall budget: *You can spend today* and the amount left of
     today's share, a bar of how much of today's share is spent, `share a day -
-    spent today`, and a note: `X of the budget is left for N days, after B of
-    bills still to come.` (the bills part only when there are bills).
+    spent today`, and a note: `At the start of today X of the budget was left for
+    N days, after B of bills still to come.` (it says "at the start of today"
+    because the budget ring below counts today's spending already, so the two
+    numbers differ by what was spent today) (the bills part only when there are bills).
   - Today's share spent: *Over today's share* and by how much, in red.
   - Budget used up (counting the bills): *Over the budget, counting the bills to
     come* and by how much, in red.

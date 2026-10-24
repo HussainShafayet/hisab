@@ -24,6 +24,7 @@ import 'package:hishab/features/recurring/domain/recurring.dart';
 import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_screen.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
+import 'package:hishab/core/widgets/discard_guard.dart';
 
 /// Adds a recurring item, or edits the one with [ruleId].
 class RecurringFormScreen extends ConsumerWidget {
@@ -223,8 +224,14 @@ class _RecurringFormState extends ConsumerState<_RecurringForm> {
     }
   }
 
+  /// What the text fields held on opening, to tell if anything was typed.
+  late final _snapshot = TextSnapshot([_title, _amount]);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      DiscardGuard(snapshot: _snapshot, child: _buildForm(context));
+
+  Widget _buildForm(BuildContext context) {
     final theme = Theme.of(context);
     final accounts =
         ref.watch(accountsProvider(false)).value ??

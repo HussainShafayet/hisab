@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
@@ -6,6 +7,8 @@ import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
+import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
+import 'package:hishab/features/settings/presentation/widgets/hidden_income.dart';
 import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
@@ -13,7 +16,7 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// One row of the transaction list. Income is green with a plus, expense is
 /// red with a minus and a transfer is neutral.
-class TransactionTile extends StatelessWidget {
+class TransactionTile extends ConsumerWidget {
   const TransactionTile({
     required this.item,
     this.onTap,
@@ -35,7 +38,8 @@ class TransactionTile extends StatelessWidget {
   final bool selected;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final incomeHidden = ref.watch(incomeHiddenProvider);
     final theme = Theme.of(context);
     final colors = context.financeColors;
     final isTransfer = item.type == TransactionType.transfer;
@@ -111,15 +115,21 @@ class TransactionTile extends StatelessWidget {
         child: FittedBox(
           fit: BoxFit.scaleDown,
           alignment: Alignment.centerRight,
-          child: Text(
-            amountText,
-            style: theme.textTheme.titleMedium?.tabular.copyWith(
+          child: () {
+            final style = theme.textTheme.titleMedium?.tabular.copyWith(
               color: item.isAdjustment
                   ? theme.colorScheme.onSurface
                   : amountColor,
               fontWeight: FontWeight.w600,
-            ),
-          ),
+            );
+            // Income is a secret while it is hidden; a balance fix is not.
+            if (incomeHidden &&
+                item.type == TransactionType.income &&
+                !item.isAdjustment) {
+              return HiddenIncome(style: style);
+            }
+            return Text(amountText, style: style);
+          }(),
         ),
       ),
     );
@@ -128,14 +138,15 @@ class TransactionTile extends StatelessWidget {
 
 /// The header above the transactions of one day: the date on the left and
 /// the day's income and expense on the right.
-class DayHeader extends StatelessWidget {
+class DayHeader extends ConsumerWidget {
   const DayHeader({required this.group, required this.label, super.key});
 
   final DayGroup group;
   final String label;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final incomeHidden = ref.watch(incomeHiddenProvider);
     final theme = Theme.of(context);
     final colors = context.financeColors;
     final style = theme.textTheme.labelLarge?.tabular;
@@ -166,10 +177,14 @@ class DayHeader extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   if (group.income > 0)
-                    Text(
-                      '+${formatPoisha(group.income)}',
-                      style: style?.copyWith(color: colors.income),
-                    ),
+                    incomeHidden
+                        ? HiddenIncome(
+                            style: style?.copyWith(color: colors.income),
+                          )
+                        : Text(
+                            '+${formatPoisha(group.income)}',
+                            style: style?.copyWith(color: colors.income),
+                          ),
                   if (group.income > 0 && group.expense > 0)
                     const SizedBox(width: 12),
                   if (group.expense > 0)
@@ -188,7 +203,7 @@ class DayHeader extends StatelessWidget {
 }
 
 /// Income, expense and balance of the transactions being listed.
-class TransactionSummary extends StatelessWidget {
+class TransactionSummary extends ConsumerWidget {
   const TransactionSummary({
     required this.income,
     required this.expense,
@@ -199,7 +214,8 @@ class TransactionSummary extends StatelessWidget {
   final int expense;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final incomeHidden = ref.watch(incomeHiddenProvider);
     final colors = context.financeColors;
     final balance = income - expense;
 
@@ -213,16 +229,23 @@ class TransactionSummary extends StatelessWidget {
               label: tr('Income'),
               amount: income,
               color: colors.income,
+              hidden: incomeHidden
+                  ? HiddenIncome(
+                      spent: spentShare(income: income, expense: expense),
+                    )
+                  : null,
             ),
             _SummaryCell(
               label: tr('Expense'),
               amount: expense,
               color: colors.expense,
             ),
+            // The balance of the period would give the income away.
             _SummaryCell(
               label: tr('Balance'),
               amount: balance,
               color: balance < 0 ? colors.expense : null,
+              hidden: incomeHidden ? const HiddenIncome() : null,
             ),
           ],
         ),
@@ -236,11 +259,15 @@ class _SummaryCell extends StatelessWidget {
     required this.label,
     required this.amount,
     required this.color,
+    this.hidden,
   });
 
   final String label;
   final int amount;
   final Color? color;
+
+  /// Shown instead of the amount while income is hidden.
+  final Widget? hidden;
 
   @override
   Widget build(BuildContext context) {
@@ -255,16 +282,17 @@ class _SummaryCell extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              formatPoisha(amount),
-              style: theme.textTheme.titleSmall?.tabular.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
+          hidden ??
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  formatPoisha(amount),
+                  style: theme.textTheme.titleSmall?.tabular.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-          ),
         ],
       ),
     );

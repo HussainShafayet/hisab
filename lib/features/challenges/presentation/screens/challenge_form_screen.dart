@@ -16,6 +16,7 @@ import 'package:hishab/features/categories/presentation/providers/categories_pro
 import 'package:hishab/features/challenges/domain/challenge.dart';
 import 'package:hishab/features/challenges/presentation/providers/challenges_providers.dart';
 import 'package:hishab/features/debts/presentation/widgets/day_field.dart';
+import 'package:hishab/core/widgets/discard_guard.dart';
 
 /// The lengths offered as buttons, in days.
 const _lengths = [3, 7, 14, 30];
@@ -232,8 +233,14 @@ class _ChallengeFormState extends ConsumerState<_ChallengeForm> {
     ];
   }
 
+  /// What the text fields held on opening, to tell if anything was typed.
+  late final _snapshot = TextSnapshot([_title, _limit]);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      DiscardGuard(snapshot: _snapshot, child: _buildForm(context));
+
+  Widget _buildForm(BuildContext context) {
     final theme = Theme.of(context);
     // Archived categories are not offered, except the one the challenge
     // already has.

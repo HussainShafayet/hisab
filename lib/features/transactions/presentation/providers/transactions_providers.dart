@@ -5,9 +5,11 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+import 'package:hishab/features/transactions/data/note_queries.dart';
 import 'package:hishab/features/transactions/data/saved_filters_repository.dart';
 import 'package:hishab/features/transactions/data/transactions_repository.dart';
 import 'package:hishab/features/transactions/domain/add_transaction_options.dart';
+import 'package:hishab/features/transactions/domain/note_suggestion.dart';
 import 'package:hishab/features/transactions/domain/saved_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 
@@ -23,6 +25,12 @@ final transactionsInRangeProvider = StreamProvider.autoDispose
           .watch(transactionsRepositoryProvider)
           .watchBetween(range.start, range.end),
     );
+
+/// The notes written on earlier entries, read when the form opens, so a note
+/// can be offered again while one is typed.
+final pastNotesProvider = FutureProvider.autoDispose<List<PastNote>>(
+  (ref) => ref.watch(appDatabaseProvider).pastNotes(),
+);
 
 /// Everything the add/edit form needs when it opens.
 class TransactionFormData {

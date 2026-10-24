@@ -45,7 +45,7 @@ void main() {
     );
     expect(
       textOf(tester, 'safe-note'),
-      '৳21,000.00 of the budget is left for 21 days.',
+      'At the start of today ৳21,000.00 of the budget was left for 21 days.',
     );
   });
 

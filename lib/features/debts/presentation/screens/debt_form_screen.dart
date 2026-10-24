@@ -18,6 +18,7 @@ import 'package:hishab/features/debts/presentation/providers/debts_providers.dar
 import 'package:hishab/features/debts/presentation/widgets/day_field.dart';
 import 'package:hishab/features/debts/presentation/widgets/loan_account_field.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+import 'package:hishab/core/widgets/discard_guard.dart';
 
 /// Adds a loan, or edits the one with [debtId]. [initialPerson] fills in the
 /// name of a new loan.
@@ -166,8 +167,14 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
     }
   }
 
+  /// What the text fields held on opening, to tell if anything was typed.
+  late final _snapshot = TextSnapshot([_person, _amount, _note]);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      DiscardGuard(snapshot: _snapshot, child: _buildForm(context));
+
+  Widget _buildForm(BuildContext context) {
     final theme = Theme.of(context);
     final all =
         ref.watch(accountsProvider(true)).value ?? const <AccountWithBalance>[];

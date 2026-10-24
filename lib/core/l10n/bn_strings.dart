@@ -20,6 +20,7 @@ import 'package:hishab/core/l10n/bn_errors.dart';
 import 'package:hishab/core/l10n/bn_feelings.dart';
 import 'package:hishab/core/l10n/bn_festivals.dart';
 import 'package:hishab/core/l10n/bn_filters.dart';
+import 'package:hishab/core/l10n/bn_friendly.dart';
 import 'package:hishab/core/l10n/bn_fun.dart';
 import 'package:hishab/core/l10n/bn_goals.dart';
 import 'package:hishab/core/l10n/bn_insights.dart';
@@ -32,6 +33,7 @@ import 'package:hishab/core/l10n/bn_quick.dart';
 import 'package:hishab/core/l10n/bn_recurring.dart';
 import 'package:hishab/core/l10n/bn_rollover.dart';
 import 'package:hishab/core/l10n/bn_tree_totals.dart';
+import 'package:hishab/core/l10n/bn_sms.dart';
 import 'package:hishab/core/l10n/bn_split.dart';
 import 'package:hishab/core/l10n/bn_tags.dart';
 import 'package:hishab/core/l10n/bn_wrapped.dart';
@@ -60,6 +62,7 @@ const bnStrings = <String, String>{
   ...bnFeelings,
   ...bnFestivals,
   ...bnFilters,
+  ...bnFriendly,
   ...bnFun,
   ...bnGoals,
   ...bnInsights,
@@ -72,6 +75,7 @@ const bnStrings = <String, String>{
   ...bnRecurring,
   ...bnRollover,
   ...bnTreeTotals,
+  ...bnSms,
   ...bnSplit,
   ...bnTags,
   ...bnWrapped,

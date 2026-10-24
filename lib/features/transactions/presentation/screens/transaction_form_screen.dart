@@ -37,6 +37,14 @@ import 'package:hishab/features/transactions/presentation/widgets/amount_keypad.
 import 'package:hishab/features/transactions/presentation/widgets/amount_text_formatter.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
+import 'package:hishab/core/widgets/discard_guard.dart';
+import 'package:hishab/features/transactions/domain/note_suggestion.dart';
+import 'package:flutter/services.dart';
+import 'package:hishab/core/database/database_provider.dart';
+import 'package:hishab/features/transactions/data/note_queries.dart';
+import 'package:hishab/features/transactions/domain/sms_entry.dart';
+import 'package:hishab/features/transactions/domain/sms_plan.dart';
+import 'package:hishab/core/utils/date_labels.dart';
 
 /// Adds a transaction, edits the one with [editId], or adds a copy of the one
 /// with [duplicateId] (same details, dated today). With [payCardId] it starts
@@ -270,6 +278,122 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       _notice = tr('Filled in. Check it and save.');
     });
     FocusScope.of(context).unfocus();
+  }
+
+  /// Fills the form from the SMS on the clipboard (bKash, Nagad, a bank...),
+  /// unless its transaction id is already in a note, which means it was added.
+  Future<void> _pasteSms() async {
+    final data = await Clipboard.getData(Clipboard.kTextPlain);
+    final text = (data?.text ?? '').trim();
+    final sms = parseSms(text);
+    if (!mounted) return;
+    if (sms == null) {
+      setState(() {
+        _notice = null;
+        _error = text.isEmpty
+            ? tr('Copy the bKash, Nagad or bank SMS first, then tap here.')
+            : tr(
+                'That does not look like a message about money. Copy the '
+                'whole SMS and try again.',
+              );
+      });
+      return;
+    }
+    final id = sms.trxId;
+    if (id != null) {
+      final found = await ref.read(appDatabaseProvider).entryWithNote(id);
+      if (!mounted) return;
+      if (found != null) {
+        setState(() {
+          _notice = null;
+          _error = tr('Already in your records: {amount} on {day}.', {
+            'amount': formatPoisha(found.amount),
+            'day': dayLabel(found.date.toLocal(), ref.read(clockProvider)()),
+          });
+        });
+        return;
+      }
+    }
+    _applySms(sms);
+  }
+
+  void _applySms(SmsEntry sms) {
+    final options = _data.options;
+    final now = ref.read(clockProvider)();
+    final plan = planSms(sms, options.accounts, currentAccountId: _accountId);
+
+    // What the SMS says is left, against what the app would show after this.
+    final balances = ref.read(accountsProvider(false)).value ?? const [];
+    final balanceOf = {for (final b in balances) b.account.id: b.balance};
+    final account = plan.balanceAccountId;
+    final smsBalance = sms.balance;
+    String? balanceNote;
+    if (account != null && smsBalance != null && balanceOf[account] != null) {
+      final expected = balanceOf[account]! + plan.balanceChange;
+      balanceNote = expected == smsBalance
+          ? tr('The balance matches the SMS.')
+          : tr(
+              'The SMS says {sms} is left, the app would show {app}. '
+              'Something may be missing.',
+              {'sms': formatPoisha(smsBalance), 'app': formatPoisha(expected)},
+            );
+    }
+
+    final hint = switch (sms.kind) {
+      SmsKind.recharge => 'recharge',
+      SmsKind.bill => 'bill',
+      _ => null,
+    };
+    final category = hint == null || plan.type != TransactionType.expense
+        ? null
+        : parseQuickEntry(hint, options, today: dateOnly(now)).category;
+
+    setState(() {
+      _type = plan.type;
+      _categoryId = category?.id;
+      if (plan.accountId != null) _accountId = plan.accountId;
+      _toAccountId = plan.toAccountId;
+      _setAmountText(poishaToInput(plan.amount));
+      _fee.text = plan.transferFee > 0 ? poishaToInput(plan.transferFee) : '';
+      if (plan.transferFee > 0) _moreOpen = true;
+      _note.text = _smsNote(sms);
+      final day = sms.date;
+      if (day != null && !day.isAfter(dateOnly(now))) _day = day;
+      _error = null;
+      _notice = [
+        tr('Filled in from the SMS. Check it and save.'),
+        ?balanceNote,
+      ].join(' ');
+    });
+    FocusScope.of(context).unfocus();
+  }
+
+  /// What is written in the note: what was done, with whom, and the id that
+  /// tells this message from the next one.
+  String _smsNote(SmsEntry sms) {
+    final what = switch (sms.kind) {
+      SmsKind.cashOut => tr('Cash out'),
+      SmsKind.cashIn => tr('Cash in'),
+      SmsKind.received => tr('Received'),
+      SmsKind.sent => tr('Sent'),
+      SmsKind.payment => tr('Payment'),
+      SmsKind.recharge => tr('Mobile recharge'),
+      SmsKind.bill => tr('Bill'),
+      SmsKind.debited => tr('Debited'),
+    };
+    final withFee =
+        sms.fee > 0 &&
+            sms.kind != SmsKind.cashOut &&
+            sms.kind != SmsKind.cashIn &&
+            sms.kind != SmsKind.received
+        ? tr('{fee} fee included', {'fee': formatPoisha(sms.fee)})
+        : null;
+    return [
+      what,
+      ?sms.counterparty,
+      ?withFee,
+      if (sms.trxId != null) 'TrxID ${sms.trxId}',
+    ].join(' · ');
   }
 
   @override
@@ -680,8 +804,14 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     );
   }
 
+  /// What the text fields held on opening, to tell if anything was typed.
+  late final _snapshot = TextSnapshot([_amount, _note, _fee, _usd]);
+
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      DiscardGuard(snapshot: _snapshot, child: _buildForm(context));
+
+  Widget _buildForm(BuildContext context) {
     final options = _data.options;
     final title = Text(
       _isEditing ? tr('Edit transaction') : tr('Add transaction'),
@@ -723,6 +853,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           child: QuickTypeBar(
             options: options,
             onApply: _applyQuick,
+            onPasteSms: _pasteSms,
             today: dateOnly(ref.read(clockProvider)()),
           ),
         ),
@@ -861,11 +992,13 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       _dateChips(context),
       const SizedBox(height: 16),
       TextField(
+        key: const ValueKey('note-field'),
         controller: _note,
         focusNode: _noteFocus,
         textCapitalization: TextCapitalization.sentences,
         decoration: InputDecoration(labelText: tr('Note')),
       ),
+      _noteSuggestions(context),
       // A transfer only has a fee to add, and only when it is new.
       if (_type != TransactionType.transfer ||
           (!_isEditing && _data.options.accounts.length >= 2))
@@ -1381,6 +1514,57 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ),
       ),
     );
+  }
+
+  /// Notes written before, to tap instead of typing them again. Tapping one
+  /// also fills the category and the amount of that earlier entry, but only
+  /// where the form has none yet.
+  Widget _noteSuggestions(BuildContext context) {
+    if (_type == TransactionType.transfer || !_noteFocus.hasFocus) {
+      return const SizedBox.shrink();
+    }
+    final past = ref.watch(pastNotesProvider).value;
+    if (past == null) return const SizedBox.shrink();
+    return ListenableBuilder(
+      listenable: _note,
+      builder: (context, _) {
+        final suggestions = suggestNotes(past, _note.text, type: _type);
+        if (suggestions.isEmpty) return const SizedBox.shrink();
+        return Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Wrap(
+            key: const ValueKey('note-suggestions'),
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final (index, suggestion) in suggestions.indexed)
+                ActionChip(
+                  key: ValueKey('note-suggestion-$index'),
+                  label: Text(suggestion.note),
+                  onPressed: () => _useNote(suggestion),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _useNote(PastNote past) {
+    setState(() {
+      _note.text = past.note;
+      _note.selection = TextSelection.collapsed(offset: past.note.length);
+      final category = past.categoryId;
+      final usable =
+          category != null &&
+          _data.options
+              .categoriesFor(_type)
+              .any((c) => c.id == category && !c.isArchived);
+      if (_categoryId == null && usable) _categoryId = category;
+      if (_amount.text.trim().isEmpty) {
+        _setAmountText(poishaToInput(past.amount));
+      }
+    });
   }
 
   Widget _dateChips(BuildContext context) {

@@ -12,6 +12,7 @@ class QuickTypeBar extends StatefulWidget {
   const QuickTypeBar({
     required this.options,
     required this.onApply,
+    required this.onPasteSms,
     required this.today,
     super.key,
   });
@@ -21,6 +22,9 @@ class QuickTypeBar extends StatefulWidget {
   /// The day today is, so the line can say "yesterday".
   final DateTime today;
   final ValueChanged<QuickEntry> onApply;
+
+  /// The person asks to fill the form from the SMS they copied.
+  final VoidCallback onPasteSms;
 
   @override
   State<QuickTypeBar> createState() => _QuickTypeBarState();
@@ -56,23 +60,35 @@ class _QuickTypeBarState extends State<QuickTypeBar> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        TextField(
-          key: const ValueKey('quick-type-field'),
-          controller: _controller,
-          textInputAction: TextInputAction.done,
-          onChanged: _changed,
-          onSubmitted: (_) => _apply(),
-          decoration: InputDecoration(
-            isDense: true,
-            prefixIcon: const Icon(Icons.bolt),
-            hintText: tr('Type it in one line: rickshaw 50'),
-            suffixIcon: IconButton(
-              key: const ValueKey('quick-type-apply'),
-              tooltip: tr('Fill the form'),
-              icon: const Icon(Icons.check),
-              onPressed: entry == null ? null : _apply,
+        Row(
+          children: [
+            Expanded(
+              child: TextField(
+                key: const ValueKey('quick-type-field'),
+                controller: _controller,
+                textInputAction: TextInputAction.done,
+                onChanged: _changed,
+                onSubmitted: (_) => _apply(),
+                decoration: InputDecoration(
+                  isDense: true,
+                  prefixIcon: const Icon(Icons.bolt),
+                  hintText: tr('Type it in one line: rickshaw 50'),
+                  suffixIcon: IconButton(
+                    key: const ValueKey('quick-type-apply'),
+                    tooltip: tr('Fill the form'),
+                    icon: const Icon(Icons.check),
+                    onPressed: entry == null ? null : _apply,
+                  ),
+                ),
+              ),
             ),
-          ),
+            IconButton(
+              key: const ValueKey('paste-sms'),
+              tooltip: tr('Paste a bKash, Nagad or bank SMS'),
+              icon: const Icon(Icons.sms_outlined),
+              onPressed: widget.onPasteSms,
+            ),
+          ],
         ),
         if (entry != null)
           Padding(

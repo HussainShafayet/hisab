@@ -258,7 +258,7 @@ void main() {
     await tester.tap(find.byTooltip('Filter'));
     await tester.pumpAndSettle();
     await _capture(tester, key, '2_filter');
-    await tester.tapAt(const Offset(180, 40));
+    await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
 
     await tester.tap(find.byType(FloatingActionButton));

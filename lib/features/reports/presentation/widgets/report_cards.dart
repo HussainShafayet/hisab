@@ -1,5 +1,6 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
@@ -11,6 +12,8 @@ import 'package:hishab/features/reports/domain/category_total.dart';
 import 'package:hishab/features/reports/domain/comparison.dart';
 import 'package:hishab/features/reports/domain/period_totals.dart';
 import 'package:hishab/features/reports/domain/pie_slices.dart';
+import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
+import 'package:hishab/features/settings/presentation/widgets/hidden_income.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 import 'package:go_router/go_router.dart';
@@ -29,7 +32,7 @@ class _CardTitle extends StatelessWidget {
 
 /// Income, expense and balance of the period, with how each changed since the
 /// period before.
-class ReportSummaryCard extends StatelessWidget {
+class ReportSummaryCard extends ConsumerWidget {
   const ReportSummaryCard({
     required this.totals,
     required this.previousTotals,
@@ -48,7 +51,8 @@ class ReportSummaryCard extends StatelessWidget {
   final String previousLabel;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final incomeHidden = ref.watch(incomeHiddenProvider);
     final theme = Theme.of(context);
     final colors = context.financeColors;
 
@@ -66,6 +70,14 @@ class ReportSummaryCard extends StatelessWidget {
                   label: tr('Income'),
                   amount: totals.income,
                   color: colors.income,
+                  hidden: incomeHidden
+                      ? HiddenIncome(
+                          spent: spentShare(
+                            income: totals.income,
+                            expense: totals.expense,
+                          ),
+                        )
+                      : null,
                 ),
                 _Figure(
                   label: tr('Expense'),
@@ -76,6 +88,7 @@ class ReportSummaryCard extends StatelessWidget {
                   label: tr('Balance'),
                   amount: totals.net,
                   color: totals.net < 0 ? colors.expense : null,
+                  hidden: incomeHidden ? const HiddenIncome() : null,
                 ),
               ],
             ),
@@ -150,11 +163,15 @@ class _Figure extends StatelessWidget {
     required this.label,
     required this.amount,
     required this.color,
+    this.hidden,
   });
 
   final String label;
   final int amount;
   final Color? color;
+
+  /// Shown instead of the amount while income is hidden.
+  final Widget? hidden;
 
   @override
   Widget build(BuildContext context) {
@@ -169,16 +186,17 @@ class _Figure extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 2),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              formatPoisha(amount),
-              style: theme.textTheme.titleSmall?.tabular.copyWith(
-                color: color,
-                fontWeight: FontWeight.w600,
+          hidden ??
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  formatPoisha(amount),
+                  style: theme.textTheme.titleSmall?.tabular.copyWith(
+                    color: color,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
-          ),
         ],
       ),
     );
@@ -187,7 +205,7 @@ class _Figure extends StatelessWidget {
 
 /// "Expense  ↓ 12% · ৳350.00": whether a figure went up or down, in green
 /// when that is good news and red when it is bad.
-class ComparisonLine extends StatelessWidget {
+class ComparisonLine extends ConsumerWidget {
   const ComparisonLine({
     required this.label,
     required this.comparison,
@@ -202,7 +220,8 @@ class ComparisonLine extends StatelessWidget {
   final bool higherIsBetter;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final incomeHidden = higherIsBetter && ref.watch(incomeHiddenProvider);
     final theme = Theme.of(context);
     final colors = context.financeColors;
     final direction = comparison.direction;
@@ -222,9 +241,10 @@ class ComparisonLine extends StatelessWidget {
     } else if (comparison.previous == 0) {
       text = tr('New, nothing before');
     } else {
-      text =
-          '${localizeDigits('${comparison.percent!.abs()}%')} · '
-          '${formatPoisha(comparison.difference.abs())}';
+      text = incomeHidden
+          ? localizeDigits('${comparison.percent!.abs()}%')
+          : '${localizeDigits('${comparison.percent!.abs()}%')} · '
+                '${formatPoisha(comparison.difference.abs())}';
     }
 
     return Row(

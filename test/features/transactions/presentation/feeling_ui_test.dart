@@ -111,6 +111,8 @@ void main() {
           .then((_) {});
       await spend(90000, Feeling.need, 3);
       await spend(10000, Feeling.regret, 8);
+      // The regret meter sits in the part of Home that starts closed.
+      await showHomeExtras(db);
       await pumpAppWithDatabase(tester, db);
       await tester.scrollUntilVisible(
         find.byKey(const ValueKey('regret-meter')),
