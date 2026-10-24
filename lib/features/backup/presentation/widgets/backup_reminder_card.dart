@@ -6,6 +6,15 @@ import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/features/backup/presentation/providers/backup_providers.dart';
 
+import 'dart:convert';
+import 'dart:typed_data';
+
+import 'package:intl/intl.dart';
+import 'package:hishab/core/files/file_gateway.dart';
+import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+
 /// On Home: asks for a backup when it has been two weeks, or none was ever
 /// made. Not shown otherwise, or when the reminder is off (Settings > Data).
 class BackupReminderCard extends ConsumerWidget {
@@ -18,6 +27,9 @@ class BackupReminderCard extends ConsumerWidget {
 
     final theme = Theme.of(context);
     final days = due.daysSince;
+    // With the automatic backup on, a copy is on the phone already: what is
+    // asked for is one that survives the phone, sent with one tap.
+    final sendAway = ref.watch(preferencesProvider.select((p) => p.autoBackup));
     return Card(
       key: const ValueKey('backup-reminder-card'),
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
@@ -50,7 +62,21 @@ class BackupReminderCard extends ConsumerWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        days == null
+                        sendAway
+                            ? (days == null
+                                  ? tr(
+                                      'A copy is saved on this phone, but it '
+                                      'is lost with the phone. Send one to '
+                                      'Drive or email.',
+                                    )
+                                  : tr(
+                                      'The last copy you sent away was {n} '
+                                      'days ago. The one on this phone is lost '
+                                      'with the phone, so send a new one to '
+                                      'Drive or email.',
+                                      {'n': days},
+                                    ))
+                            : days == null
                             ? tr(
                                 'You have not made a backup yet. Your data '
                                 'lives only on this phone.',
@@ -88,8 +114,12 @@ class BackupReminderCard extends ConsumerWidget {
                     style: FilledButton.styleFrom(
                       visualDensity: VisualDensity.compact,
                     ),
-                    onPressed: () => context.push(AppRoutes.backup),
-                    child: Text(tr('Back up now')),
+                    onPressed: sendAway
+                        ? () => _sendCopy(context, ref)
+                        : () => context.push(AppRoutes.backup),
+                    child: Text(
+                      sendAway ? tr('Send a copy') : tr('Back up now'),
+                    ),
                   ),
                 ],
               ),
@@ -98,5 +128,28 @@ class BackupReminderCard extends ConsumerWidget {
         ),
       ),
     );
+  }
+
+  /// Opens the share sheet with the backup file ready, so one tap and a choice
+  /// of Drive, email or a chat sends a copy away. Then Home stops asking.
+  Future<void> _sendCopy(BuildContext context, WidgetRef ref) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final repository = ref.read(backupRepositoryProvider);
+    final now = ref.read(clockProvider)();
+    try {
+      final backup = await repository.buildBackup(now);
+      await ref
+          .read(fileGatewayProvider)
+          .share(
+            fileName:
+                'hishab-backup-${DateFormat('yyyy-MM-dd', 'en').format(now)}'
+                '.json',
+            bytes: Uint8List.fromList(utf8.encode(backup.encode())),
+            mimeType: 'application/json',
+          );
+      await repository.markBackedUp(now);
+    } on Object catch (error) {
+      messenger.showError(describeError(error));
+    }
   }
 }

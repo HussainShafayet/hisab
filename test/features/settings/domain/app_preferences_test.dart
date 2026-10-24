@@ -106,6 +106,7 @@ void main() {
         PreferenceKeys.hideBalances: 'false',
         PreferenceKeys.hideIncome: 'false',
         PreferenceKeys.backupReminder: 'true',
+        PreferenceKeys.autoBackup: 'true',
         PreferenceKeys.homeMoreOpen: 'false',
       });
     });

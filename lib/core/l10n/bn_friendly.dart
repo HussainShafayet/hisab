@@ -1,5 +1,16 @@
 /// Bangla for the small kindnesses of the forms and the Home screen.
 const bnFriendly = <String, String>{
+  'A copy is saved on this phone, but it is lost with the phone. Send one to Drive or email.': 'একটি কপি এই ফোনে সেভ আছে, কিন্তু ফোন হারালে সেটিও যাবে। একটি কপি Drive বা ইমেইলে পাঠান।',
+  'Send a copy': 'কপি পাঠান',
+  'The last copy you sent away was {n} days ago. The one on this phone is lost with the phone, so send a new one to Drive or email.': 'শেষ যে কপি বাইরে পাঠিয়েছেন তা {n} দিন আগের। ফোনের কপি ফোনের সঙ্গেই যাবে, তাই নতুন একটি Drive বা ইমেইলে পাঠান।',
+  'Automatic backup': 'অটোমেটিক ব্যাকআপ',
+  'Could not save: {reason}': 'সেভ করা যায়নি: {reason}',
+  'Needs Android 10 or newer.': 'অ্যান্ড্রয়েড ১০ বা তার পরের ভার্সন লাগবে।',
+  'Not saved yet. It saves when you leave the app.':
+      'এখনও সেভ হয়নি। অ্যাপ ছেড়ে গেলে সেভ হবে।',
+  'Saved {when}.': 'সেভ হয়েছে {when}।',
+  'Saves a copy of your data in Downloads/Hishab whenever you leave the app, so it is still there if the app is removed. The file is not locked: anyone who opens Files can read it. To get it back, use Backup & export and choose Restore.': 'অ্যাপ ছেড়ে যাওয়ার সময় আপনার তথ্যের একটি কপি Downloads/Hishab-এ রাখে, তাই অ্যাপ মুছে গেলেও থাকবে। ফাইলটি তালাবদ্ধ নয়: ফাইল অ্যাপ খুললে যে কেউ পড়তে পারবেন। ফিরিয়ে আনতে ব্যাকআপ ও এক্সপোর্টে গিয়ে "ফিরিয়ে আনুন" বেছে নিন।',
+  'The phone did not let the file be saved.': 'ফোন ফাইলটি সেভ করতে দেয়নি।',
   'Nothing matches "{query}".': '"{query}" দিয়ে কিছু পাওয়া গেল না।',
   'Search: zakat, loans, backup': 'খুঁজুন: যাকাত, ধার, ব্যাকআপ',
   'Average per month: expense {expense}': 'মাসে গড়ে খরচ {expense}',

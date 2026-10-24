@@ -6,9 +6,28 @@ import 'package:hishab/features/backup/data/csv_import_repository.dart';
 import 'package:hishab/features/backup/domain/backup_reminder.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 import 'package:hishab/features/transactions/data/activity_queries.dart';
+import 'package:hishab/features/backup/data/auto_backup_gateway.dart';
+import 'package:hishab/features/backup/data/auto_backup_service.dart';
 
 final backupRepositoryProvider = Provider<BackupRepository>(
   (ref) => BackupRepository(ref.watch(appDatabaseProvider)),
+);
+
+final autoBackupServiceProvider = Provider<AutoBackupService>(
+  (ref) => AutoBackupService(
+    db: ref.watch(appDatabaseProvider),
+    repository: ref.watch(backupRepositoryProvider),
+    gateway: ref.watch(autoBackupGatewayProvider),
+  ),
+);
+
+/// What the automatic backup did last: when it saved, or what went wrong.
+final autoBackupStatusProvider = StreamProvider.autoDispose<AutoBackupStatus>(
+  (ref) => ref
+      .watch(appDatabaseProvider)
+      .settingsDao
+      .watchAll()
+      .map(AutoBackupStatus.fromSettings),
 );
 
 final csvImportRepositoryProvider = Provider<CsvImportRepository>(

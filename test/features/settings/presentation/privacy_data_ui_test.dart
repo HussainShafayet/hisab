@@ -225,8 +225,8 @@ void main() {
       expect(card(), findsOneWidget);
       expect(
         find.text(
-          'You have not made a backup yet. Your data lives only on this '
-          'phone.',
+          'A copy is saved on this phone, but it is lost with the phone. '
+          'Send one to Drive or email.',
         ),
         findsOneWidget,
       );
@@ -247,8 +247,9 @@ void main() {
 
       expect(
         find.text(
-          'Your last backup was 21 days ago. Your data lives only on this '
-          'phone.',
+          'The last copy you sent away was 21 days ago. The one on this '
+          'phone is lost with the phone, so send a new one to Drive or '
+          'email.',
         ),
         findsOneWidget,
       );
@@ -295,6 +296,8 @@ void main() {
     testWithDatabase('Back up now opens the backup screen', (tester, db) async {
       final b = await seedBasics(db);
       await tenEntries(db, b);
+      // With the automatic backup on, the card sends a copy instead.
+      await SettingsRepository(db).update((p) => p.copyWith(autoBackup: false));
       await pumpAppWithDatabase(tester, db);
 
       await tester.tap(find.byKey(const ValueKey('backup-now')));
