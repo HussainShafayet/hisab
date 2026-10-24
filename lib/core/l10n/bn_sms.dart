@@ -11,11 +11,10 @@ const bnSms = <String, String>{
   'Filled in from the SMS. Check it and save.':
       'এসএমএস থেকে পূরণ হয়েছে। দেখে নিয়ে সেভ করুন।',
   'Mobile recharge': 'মোবাইল রিচার্জ',
-  'Paste a bKash, Nagad or bank SMS':
-      'বিকাশ, নগদ বা ব্যাংকের এসএমএস পেস্ট করুন',
   'Payment': 'পেমেন্ট',
   'Received': 'পেয়েছেন',
   'Sent': 'পাঠিয়েছেন',
+  'SMS': 'এসএমএস',
   'That does not look like a message about money. Copy the whole SMS and try again.': 'এটা টাকার লেনদেনের মেসেজ বলে মনে হচ্ছে না। পুরো এসএমএসটি কপি করে আবার চেষ্টা করুন।',
   'The SMS says {sms} is left, the app would show {app}. Something may be missing.':
       'এসএমএস বলছে {sms} বাকি, অ্যাপে দেখাত {app}। কিছু বাদ পড়তে পারে।',

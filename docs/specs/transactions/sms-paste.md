@@ -7,8 +7,8 @@ account, day, and the transaction id. No SMS permission, no package, nothing
 leaves the phone: the person decides which message to copy.
 
 ## Behaviour
-- On the add form (not when editing), a message button sits next to the quick
-  line (*Paste a bKash, Nagad or bank SMS*). It reads the clipboard.
+- On the add form (not when editing), an **SMS** button (message icon and the
+  word) sits beside the quick line. It reads the clipboard.
 - A message about money fills the form and a notice says *Filled in from the
   SMS. Check it and save.* The entry is never saved without the Save button.
   - **Received / Cash in / Add money / credited**: income (a cash in with a Cash

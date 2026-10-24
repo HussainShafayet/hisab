@@ -10,6 +10,8 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/recurring/presentation/providers/recurring_providers.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:intl/intl.dart';
+import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
+import 'package:hishab/features/settings/presentation/widgets/hidden_income.dart';
 
 /// The recurring items that are due and waiting: each can be added as a
 /// transaction or skipped. Shows nothing when none is waiting.
@@ -93,15 +95,19 @@ class DueRecurringCard extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  Text(
-                    formatPoisha(item.rule.amount),
-                    style: theme.textTheme.titleMedium?.tabular.copyWith(
+                  () {
+                    final style = theme.textTheme.titleMedium?.tabular.copyWith(
                       color: item.rule.type == TransactionType.income
                           ? colors.income
                           : colors.expense,
                       fontWeight: FontWeight.w600,
-                    ),
-                  ),
+                    );
+                    if (item.rule.type == TransactionType.income &&
+                        ref.watch(incomeHiddenProvider)) {
+                      return HiddenIncome(style: style);
+                    }
+                    return Text(formatPoisha(item.rule.amount), style: style);
+                  }(),
                 ],
               ),
               const SizedBox(height: 8),

@@ -20,6 +20,7 @@ import 'package:hishab/features/accounts/presentation/widgets/adjust_balance_dia
 import 'package:hishab/features/accounts/presentation/widgets/credit_card_tile.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
+import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
 
 /// Every wallet as a card, with the total on top.
 class AccountsScreen extends ConsumerStatefulWidget {
@@ -91,7 +92,7 @@ class _AccountsScreenState extends ConsumerState<AccountsScreen> {
 }
 
 /// The total balance, big, with how much of it is in each kind of account.
-class _TotalCard extends StatelessWidget {
+class _TotalCard extends ConsumerWidget {
   const _TotalCard({required this.accounts});
 
   final List<AccountWithBalance> accounts;
@@ -100,7 +101,8 @@ class _TotalCard extends StatelessWidget {
   static const _whiteSoft = Color(0xCCFFFFFF);
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final hidden = ref.watch(preferencesProvider.select((p) => p.hideBalances));
     final theme = Theme.of(context);
     final total = calculateTotalBalance(accounts);
     final byType = totalByAccountType(accounts);
@@ -132,14 +134,23 @@ class _TotalCard extends StatelessWidget {
           FittedBox(
             fit: BoxFit.scaleDown,
             alignment: Alignment.centerLeft,
-            child: AnimatedAmount(
-              poisha: total,
-              textKey: const ValueKey('total-balance'),
-              style: theme.textTheme.displaySmall?.tabular.copyWith(
-                fontWeight: FontWeight.w700,
-                color: total < 0 ? const Color(0xFFFFE082) : _white,
-              ),
-            ),
+            child: hidden
+                ? Text(
+                    hiddenAmountText,
+                    key: const ValueKey('balance-hidden'),
+                    style: theme.textTheme.displaySmall?.tabular.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: _white,
+                    ),
+                  )
+                : AnimatedAmount(
+                    poisha: total,
+                    textKey: const ValueKey('total-balance'),
+                    style: theme.textTheme.displaySmall?.tabular.copyWith(
+                      fontWeight: FontWeight.w700,
+                      color: total < 0 ? const Color(0xFFFFE082) : _white,
+                    ),
+                  ),
           ),
           const SizedBox(height: 4),
           Text(
@@ -162,6 +173,7 @@ class _TotalCard extends StatelessWidget {
                     icon: entry.key.icon,
                     label: entry.key.label,
                     amount: entry.value,
+                    hidden: hidden,
                   ),
               ],
             ),
@@ -177,12 +189,14 @@ class _TypeStat extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.amount,
+    this.hidden = false,
     super.key,
   });
 
   final IconData icon;
   final String label;
   final int amount;
+  final bool hidden;
 
   @override
   Widget build(BuildContext context) {
@@ -209,7 +223,7 @@ class _TypeStat extends StatelessWidget {
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
                 child: Text(
-                  formatPoisha(amount),
+                  hidden ? hiddenAmountText : formatPoisha(amount),
                   style: theme.textTheme.titleSmall?.tabular.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
@@ -244,6 +258,7 @@ class _AccountCardTile extends ConsumerWidget {
       key: ValueKey('account-card-${_account.id}'),
       account: _account,
       balance: item.balance,
+      hideBalance: ref.watch(preferencesProvider.select((p) => p.hideBalances)),
       onTap: () => context.push(AppRoutes.editAccount(_account.id)),
       trailing: PopupMenuButton<_AccountAction>(
         icon: const Icon(Icons.more_vert, color: Colors.white),

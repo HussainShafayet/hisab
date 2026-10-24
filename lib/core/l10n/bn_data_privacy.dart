@@ -11,7 +11,6 @@ const bnDataPrivacy = <String, String>{
   'Delete everything': 'সব মুছে দিন',
   'Extra large': 'অনেক বড়',
   'Hide balances': 'ব্যালেন্স লুকান',
-  'Hide balances on Home': 'হোমে ব্যালেন্স লুকান',
   'How big the letters are': 'অক্ষর কত বড় হবে',
   'Large': 'বড়',
   'Later': 'পরে',
@@ -23,7 +22,7 @@ const bnDataPrivacy = <String, String>{
   'Privacy': 'গোপনীয়তা',
   'Remind me to back up': 'ব্যাকআপের কথা মনে করান',
   'Show balances': 'ব্যালেন্স দেখান',
-  'Shows dots instead of your balances, for when someone is looking. The eye on Home switches it too.': 'কেউ দেখলে ব্যালেন্সের জায়গায় বিন্দু দেখায়। হোমের চোখের চিহ্নও এটি বদলায়।',
+  'Shows dots instead of your balances on Home and on Accounts, for when someone is looking. The eye on Home switches it too.': 'কেউ দেখলে হোম আর অ্যাকাউন্টে ব্যালেন্সের জায়গায় বিন্দু দেখায়। হোমের চোখের চিহ্নও এটি বদলায়।',
   'Small': 'ছোট',
   'Start again, empty, like a new install.':
       'একদম নতুন করে, খালি অবস্থা থেকে শুরু।',

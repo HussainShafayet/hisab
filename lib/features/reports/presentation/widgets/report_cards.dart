@@ -114,7 +114,9 @@ class ReportSummaryCard extends ConsumerWidget {
               ),
               higherIsBetter: false,
             ),
-            if (totals.income > 0) ...[
+            // "Kept 40% of income" and the expense above it would give the
+            // income away.
+            if (totals.income > 0 && !incomeHidden) ...[
               const SizedBox(height: 8),
               Text(
                 (totals.income - totals.expense) >= 0
@@ -283,7 +285,7 @@ class ComparisonLine extends ConsumerWidget {
 }
 
 /// A donut chart of spending by category, with a legend.
-class CategoryPieCard extends StatefulWidget {
+class CategoryPieCard extends ConsumerStatefulWidget {
   const CategoryPieCard({
     required this.categories,
     this.incomeCategories = const [],
@@ -297,17 +299,19 @@ class CategoryPieCard extends StatefulWidget {
   final List<CategoryTotal> incomeCategories;
 
   @override
-  State<CategoryPieCard> createState() => _CategoryPieCardState();
+  ConsumerState<CategoryPieCard> createState() => _CategoryPieCardState();
 }
 
-class _CategoryPieCardState extends State<CategoryPieCard> {
+class _CategoryPieCardState extends ConsumerState<CategoryPieCard> {
   bool _income = false;
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final incomeHidden = ref.watch(incomeHiddenProvider);
+    final showIncome = _income && !incomeHidden;
     final slices = buildPieSlices(
-      _income ? widget.incomeCategories : widget.categories,
+      showIncome ? widget.incomeCategories : widget.categories,
     );
     final total = slices.fold(0, (sum, s) => sum + s.amount);
 
@@ -320,7 +324,9 @@ class _CategoryPieCardState extends State<CategoryPieCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _CardTitle(
-              _income ? tr('Income by category') : tr('Spending by category'),
+              showIncome
+                  ? tr('Income by category')
+                  : tr('Spending by category'),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -330,22 +336,23 @@ class _CategoryPieCardState extends State<CategoryPieCard> {
                   key: const ValueKey('pie-expense'),
                   showCheckmark: false,
                   label: Text(tr('Expense')),
-                  selected: !_income,
+                  selected: !showIncome,
                   onSelected: (_) => setState(() => _income = false),
                 ),
-                ChoiceChip(
-                  key: const ValueKey('pie-income'),
-                  showCheckmark: false,
-                  label: Text(tr('Income')),
-                  selected: _income,
-                  onSelected: (_) => setState(() => _income = true),
-                ),
+                if (!incomeHidden)
+                  ChoiceChip(
+                    key: const ValueKey('pie-income'),
+                    showCheckmark: false,
+                    label: Text(tr('Income')),
+                    selected: showIncome,
+                    onSelected: (_) => setState(() => _income = true),
+                  ),
               ],
             ),
             const SizedBox(height: 12),
             if (slices.isEmpty)
               Text(
-                _income
+                showIncome
                     ? tr('No income in this period.')
                     : tr('No expenses in this period.'),
                 style: theme.textTheme.bodyMedium?.copyWith(
@@ -380,7 +387,7 @@ class _CategoryPieCardState extends State<CategoryPieCard> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Text(
-                            _income ? tr('Earned') : tr('Spent'),
+                            showIncome ? tr('Earned') : tr('Spent'),
                             style: theme.textTheme.labelSmall,
                           ),
                           FittedBox(
@@ -462,18 +469,19 @@ class _LegendRow extends StatelessWidget {
 }
 
 /// Bars of income and expense for the last months.
-class IncomeExpenseBarCard extends StatelessWidget {
+class IncomeExpenseBarCard extends ConsumerWidget {
   const IncomeExpenseBarCard({required this.months, super.key});
 
   /// Oldest first.
   final List<MonthTotals> months;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final incomeHidden = ref.watch(incomeHiddenProvider);
     final theme = Theme.of(context);
     final colors = context.financeColors;
     final hasData = months.any(
-      (m) => m.totals.income > 0 || m.totals.expense > 0,
+      (m) => (!incomeHidden && m.totals.income > 0) || m.totals.expense > 0,
     );
 
     // The chart axis uses plain numbers, in taka. Exact amounts are shown from
@@ -493,7 +501,9 @@ class IncomeExpenseBarCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _CardTitle(tr('Income vs expense')),
+            _CardTitle(
+              incomeHidden ? tr('Spending by month') : tr('Income vs expense'),
+            ),
             const SizedBox(height: 12),
             if (!hasData)
               Text(
@@ -532,7 +542,7 @@ class IncomeExpenseBarCard extends StatelessWidget {
                       touchTooltipData: BarTouchTooltipData(
                         getTooltipItem: (group, groupIndex, rodData, rodIndex) {
                           final totals = months[groupIndex].totals;
-                          final isIncome = rodIndex == 0;
+                          final isIncome = !incomeHidden && rodIndex == 0;
                           return BarTooltipItem(
                             '${isIncome ? tr('Income') : tr('Expense')}\n'
                             '${formatPoisha(isIncome ? totals.income : totals.expense)}',
@@ -550,7 +560,8 @@ class IncomeExpenseBarCard extends StatelessWidget {
                           x: i,
                           barsSpace: 4,
                           barRods: [
-                            rod(months[i].totals.income, colors.income),
+                            if (!incomeHidden)
+                              rod(months[i].totals.income, colors.income),
                             rod(months[i].totals.expense, colors.expense),
                           ],
                         ),
@@ -562,8 +573,10 @@ class IncomeExpenseBarCard extends StatelessWidget {
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  _LegendDot(color: colors.income, label: tr('Income')),
-                  const SizedBox(width: 16),
+                  if (!incomeHidden) ...[
+                    _LegendDot(color: colors.income, label: tr('Income')),
+                    const SizedBox(width: 16),
+                  ],
                   _LegendDot(color: colors.expense, label: tr('Expense')),
                 ],
               ),
@@ -645,14 +658,15 @@ class TopExpensesCard extends StatelessWidget {
 }
 
 /// Income and expense of each account in the period.
-class AccountBreakdownCard extends StatelessWidget {
+class AccountBreakdownCard extends ConsumerWidget {
   const AccountBreakdownCard({required this.accounts, super.key});
 
   /// The busiest first.
   final List<AccountTotal> accounts;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final incomeHidden = ref.watch(incomeHiddenProvider);
     final theme = Theme.of(context);
     final colors = context.financeColors;
 
@@ -693,14 +707,19 @@ class AccountBreakdownCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.end,
                         children: [
                           if (account.income > 0)
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                '+${formatPoisha(account.income)}',
-                                style: theme.textTheme.bodySmall?.tabular
-                                    .copyWith(color: colors.income),
-                              ),
-                            ),
+                            incomeHidden
+                                ? HiddenIncome(
+                                    style: theme.textTheme.bodySmall?.tabular
+                                        .copyWith(color: colors.income),
+                                  )
+                                : FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    child: Text(
+                                      '+${formatPoisha(account.income)}',
+                                      style: theme.textTheme.bodySmall?.tabular
+                                          .copyWith(color: colors.income),
+                                    ),
+                                  ),
                           if (account.expense > 0)
                             FittedBox(
                               fit: BoxFit.scaleDown,

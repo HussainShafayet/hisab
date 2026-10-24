@@ -70,7 +70,7 @@ void main() {
       );
     });
 
-    testWithDatabase('cannot be applied while it understands nothing', (
+    testWithDatabase('has nothing to apply while it understands nothing', (
       tester,
       db,
     ) async {
@@ -79,8 +79,13 @@ void main() {
       await pumpAppWithDatabase(tester, db);
       await openAddForm(tester);
 
-      expect(tester.widget<IconButton>(quickApply).onPressed, isNull);
+      expect(quickApply, findsNothing);
       expect(find.byKey(const ValueKey('quick-type-preview')), findsNothing);
+
+      // It is there as soon as the line says something.
+      await tester.enterText(quickField, 'transport 50');
+      await tester.pump();
+      expect(tester.widget<IconButton>(quickApply).onPressed, isNotNull);
     });
   });
 

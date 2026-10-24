@@ -96,7 +96,17 @@ Future<void> openFromMore(WidgetTester tester, String title) async {
 /// that are not built yet, and all the way into view (not half under the
 /// bottom bar).
 Future<void> tapMoreRow(WidgetTester tester, String title) async {
-  await tester.scrollUntilVisible(listRow(title), 200);
+  // The search box has a Scrollable of its own, so name the list's.
+  await tester.scrollUntilVisible(
+    listRow(title),
+    200,
+    scrollable: find
+        .descendant(
+          of: find.byType(ListView),
+          matching: find.byType(Scrollable),
+        )
+        .first,
+  );
   await tester.ensureVisible(listRow(title));
   await tester.pumpAndSettle();
   await tester.tap(listRow(title));

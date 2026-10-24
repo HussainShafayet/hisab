@@ -14,6 +14,8 @@ import 'package:hishab/features/recurring/presentation/widgets/due_recurring_car
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
+import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
+import 'package:hishab/features/settings/presentation/widgets/hidden_income.dart';
 
 /// "Every month" and so on.
 String frequencyText(RecurrenceFrequency frequency) => switch (frequency) {
@@ -134,14 +136,23 @@ class RecurringScreen extends ConsumerWidget {
                         ),
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text(
-                            formatPoisha(rule.amount),
-                            style: theme.textTheme.titleSmall?.tabular.copyWith(
-                              color: rule.type == TransactionType.income
-                                  ? colors.income
-                                  : colors.expense,
-                            ),
-                          ),
+                          child:
+                              rule.type == TransactionType.income &&
+                                  ref.watch(incomeHiddenProvider)
+                              ? HiddenIncome(
+                                  style: theme.textTheme.titleSmall?.tabular
+                                      .copyWith(color: colors.income),
+                                )
+                              : Text(
+                                  formatPoisha(rule.amount),
+                                  style: theme.textTheme.titleSmall?.tabular
+                                      .copyWith(
+                                        color:
+                                            rule.type == TransactionType.income
+                                            ? colors.income
+                                            : colors.expense,
+                                      ),
+                                ),
                         ),
                       ),
                       PopupMenuButton<_RuleAction>(

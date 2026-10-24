@@ -7,11 +7,14 @@ import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/reports/domain/period_totals.dart';
 import 'package:hishab/features/reports/domain/year_facts.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
+import 'package:hishab/features/settings/presentation/widgets/hidden_income.dart';
 
 /// A year, month by month: for each month the income and the expense as two
 /// thin bars, and what was left, with what the year says under them. A tap on
 /// a month opens that month.
-class MonthByMonthCard extends StatelessWidget {
+class MonthByMonthCard extends ConsumerWidget {
   const MonthByMonthCard({
     required this.months,
     required this.now,
@@ -28,7 +31,8 @@ class MonthByMonthCard extends StatelessWidget {
   final ValueChanged<DateTime> onOpen;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final incomeHidden = ref.watch(incomeHiddenProvider);
     final theme = Theme.of(context);
     final colors = context.financeColors;
     final shown = [
@@ -37,7 +41,9 @@ class MonthByMonthCard extends StatelessWidget {
     ];
     var peak = 1;
     for (final month in shown) {
-      if (month.totals.income > peak) peak = month.totals.income;
+      if (!incomeHidden && month.totals.income > peak) {
+        peak = month.totals.income;
+      }
       if (month.totals.expense > peak) peak = month.totals.expense;
     }
     final facts = yearFacts(months, now: now);
@@ -86,8 +92,10 @@ class MonthByMonthCard extends StatelessWidget {
                       Expanded(
                         child: Column(
                           children: [
-                            bar(month.totals.income, colors.income),
-                            const SizedBox(height: 3),
+                            if (!incomeHidden) ...[
+                              bar(month.totals.income, colors.income),
+                              const SizedBox(height: 3),
+                            ],
                             bar(month.totals.expense, colors.expense),
                           ],
                         ),
@@ -98,7 +106,9 @@ class MonthByMonthCard extends StatelessWidget {
                         child: FittedBox(
                           fit: BoxFit.scaleDown,
                           alignment: AlignmentDirectional.centerEnd,
-                          child: _Net(totals: month.totals),
+                          child: incomeHidden
+                              ? const HiddenIncome()
+                              : _Net(totals: month.totals),
                         ),
                       ),
                     ],
@@ -108,10 +118,17 @@ class MonthByMonthCard extends StatelessWidget {
             if (facts.activeMonths > 0) ...[
               const Divider(height: 24),
               Text(
-                tr('Average per month: income {income}, expense {expense}', {
-                  'income': formatPoisha(facts.averageIncome),
-                  'expense': formatPoisha(facts.averageExpense),
-                }),
+                incomeHidden
+                    ? tr('Average per month: expense {expense}', {
+                        'expense': formatPoisha(facts.averageExpense),
+                      })
+                    : tr(
+                        'Average per month: income {income}, expense {expense}',
+                        {
+                          'income': formatPoisha(facts.averageIncome),
+                          'expense': formatPoisha(facts.averageExpense),
+                        },
+                      ),
                 key: const ValueKey('year-average'),
                 style: theme.textTheme.bodyMedium,
               ),
@@ -126,7 +143,7 @@ class MonthByMonthCard extends StatelessWidget {
                   style: theme.textTheme.bodyMedium,
                 ),
               ],
-              if (facts.mostKept != null) ...[
+              if (!incomeHidden && facts.mostKept != null) ...[
                 const SizedBox(height: 4),
                 Text(
                   tr('Most kept: {month}, {amount}', {
