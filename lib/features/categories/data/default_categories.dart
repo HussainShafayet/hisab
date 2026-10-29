@@ -135,7 +135,42 @@ const defaultExpenseCategories = [
         children: [
           DefaultCategory('Bus & rickshaw'),
           DefaultCategory('CNG & auto', icon: 'local_taxi'),
-          DefaultCategory('Ride sharing', icon: 'local_taxi'),
+          DefaultCategory(
+            'Ride sharing',
+            icon: 'local_taxi',
+            children: [
+              DefaultCategory(
+                'Pathao',
+                children: [
+                  DefaultCategory('Pathao Bike', icon: 'two_wheeler'),
+                  DefaultCategory('Pathao Car', icon: 'directions_car'),
+                  DefaultCategory('Pathao CNG'),
+                ],
+              ),
+              DefaultCategory(
+                'Uber',
+                children: [
+                  DefaultCategory('Uber Moto', icon: 'two_wheeler'),
+                  DefaultCategory('Uber Car', icon: 'directions_car'),
+                ],
+              ),
+              DefaultCategory(
+                'Obhai',
+                children: [
+                  DefaultCategory('Obhai Bike', icon: 'two_wheeler'),
+                  DefaultCategory('Obhai Car', icon: 'directions_car'),
+                ],
+              ),
+              DefaultCategory(
+                'inDrive',
+                children: [
+                  DefaultCategory('inDrive Bike', icon: 'two_wheeler'),
+                  DefaultCategory('inDrive Car', icon: 'directions_car'),
+                  DefaultCategory('inDrive CNG'),
+                ],
+              ),
+            ],
+          ),
           DefaultCategory('Metro rail'),
         ],
       ),

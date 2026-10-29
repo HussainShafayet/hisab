@@ -21,17 +21,29 @@ import 'package:hishab/features/settings/presentation/providers/settings_provide
 import 'package:hishab/core/widgets/discard_guard.dart';
 
 /// Adds a loan, or edits the one with [debtId]. [initialPerson] fills in the
-/// name of a new loan.
+/// name of a new loan, and [initialDirection] says which way it starts (the tab
+/// of the list the add button was on).
 class DebtFormScreen extends ConsumerWidget {
-  const DebtFormScreen({this.debtId, this.initialPerson, super.key});
+  const DebtFormScreen({
+    this.debtId,
+    this.initialPerson,
+    this.initialDirection,
+    super.key,
+  });
 
   final int? debtId;
   final String? initialPerson;
+  final DebtDirection? initialDirection;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final id = debtId;
-    if (id == null) return _DebtForm(initialPerson: initialPerson);
+    if (id == null) {
+      return _DebtForm(
+        initialPerson: initialPerson,
+        initialDirection: initialDirection,
+      );
+    }
     return ref
         .watch(debtProvider(id))
         .when(
@@ -54,13 +66,19 @@ class DebtFormScreen extends ConsumerWidget {
 }
 
 class _DebtForm extends ConsumerStatefulWidget {
-  const _DebtForm({this.initial, this.paid = 0, this.initialPerson});
+  const _DebtForm({
+    this.initial,
+    this.paid = 0,
+    this.initialPerson,
+    this.initialDirection,
+  });
 
   final Debt? initial;
 
   /// How much of the loan is paid already (editing only).
   final int paid;
   final String? initialPerson;
+  final DebtDirection? initialDirection;
 
   @override
   ConsumerState<_DebtForm> createState() => _DebtFormState();
@@ -76,7 +94,9 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
   );
   late final _note = TextEditingController(text: widget.initial?.note);
   late DebtDirection _direction =
-      widget.initial?.direction ?? DebtDirection.lent;
+      widget.initial?.direction ??
+      widget.initialDirection ??
+      DebtDirection.lent;
   late DateTime _openedOn = dateOnly(
     widget.initial?.openedOn ?? ref.read(clockProvider)(),
   );

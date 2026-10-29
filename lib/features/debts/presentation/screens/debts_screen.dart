@@ -29,6 +29,18 @@ class DebtsScreen extends ConsumerStatefulWidget {
 class _DebtsScreenState extends ConsumerState<DebtsScreen> {
   bool _showSettled = false;
 
+  /// Opens a new loan that starts the way of the tab that is open: "I'll give"
+  /// is a loan taken (borrowed), the others are a loan given. [context] must be
+  /// below the tab controller.
+  void _addLoan(BuildContext context) {
+    final tab = DefaultTabController.maybeOf(context)?.index ?? 0;
+    context.push(
+      tab == 1
+          ? AppRoutes.newDebtGoing(DebtDirection.borrowed.name)
+          : AppRoutes.newDebt,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final debts = ref.watch(debtsProvider);
@@ -57,10 +69,13 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
             ],
           ),
         ),
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () => context.push(AppRoutes.newDebt),
-          icon: const Icon(Icons.add),
-          label: Text(tr('Add loan')),
+        // Below the tab controller, so it can tell which tab is open.
+        floatingActionButton: Builder(
+          builder: (context) => FloatingActionButton.extended(
+            onPressed: () => _addLoan(context),
+            icon: const Icon(Icons.add),
+            label: Text(tr('Add loan')),
+          ),
         ),
         body: debts.when(
           loading: () => const LoadingView(),
@@ -77,9 +92,11 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                   'Note down money you gave or took, and tick it off when it '
                   'comes back. Credit card bills show up here too.',
                 ),
-                action: FilledButton(
-                  onPressed: () => context.push(AppRoutes.newDebt),
-                  child: Text(tr('Add loan')),
+                action: Builder(
+                  builder: (context) => FilledButton(
+                    onPressed: () => _addLoan(context),
+                    child: Text(tr('Add loan')),
+                  ),
                 ),
               );
             }

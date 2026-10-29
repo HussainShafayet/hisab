@@ -22,6 +22,7 @@ import 'package:hishab/features/transactions/presentation/providers/transactions
 import 'package:hishab/features/transactions/presentation/widgets/amount_text_formatter.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
+import 'package:hishab/features/transactions/presentation/widgets/amount_calculator_sheet.dart';
 
 const TransactionFormArgs _args = (editId: null, duplicateId: null);
 
@@ -232,6 +233,21 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
       // Categories differ between income and expense.
       row.categoryId = null;
     });
+  }
+
+  /// Opens the calculator on what is in the row's amount, and puts the result
+  /// back as a plain amount.
+  Future<void> _calculate(_Row row) async {
+    final result = await showAmountCalculator(
+      context,
+      initial: row.amount.text.trim(),
+    );
+    if (result == null || !mounted) return;
+    setState(() {
+      row.amount.text = result;
+      row.amount.selection = TextSelection.collapsed(offset: result.length);
+    });
+    _edited(row);
   }
 
   void _edited(_Row row) => setState(() => row.error = null);
@@ -688,6 +704,12 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
                 hintText: '0',
                 prefixText: '৳ ',
                 isDense: true,
+                suffixIcon: IconButton(
+                  key: ValueKey('row-calculator-$index'),
+                  tooltip: tr('Calculator'),
+                  icon: const Icon(Icons.calculate_outlined),
+                  onPressed: _saving ? null : () => _calculate(row),
+                ),
               ),
             ),
             const SizedBox(height: 8),

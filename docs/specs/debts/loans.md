@@ -56,6 +56,13 @@ More → **Loans** (বাংলা: ধার ও বাকি).
 - **Home** shows a Loans card (what I'll get and give, a red line for late loans
   and for a card bill within 5 days). It is left out when there is nothing.
 
+- **The add button follows the tab.** *Add loan* (the button, and the one of an
+  empty screen) starts a new loan the way of the tab that is open: on *I'll give*
+  it starts as *I borrowed* (a liability), on *I'll get* and *People* as *I lent*.
+  The form can still be switched. Route: `/more/debts/new?direction=borrowed`
+  (`AppRoutes.newDebtGoing`). Test:
+  `test/features/debts/presentation/loan_tab_direction_test.dart`.
+
 ## Rules
 - An amount is above zero. A due day is not before the day it was given. A name
   is required (at most 60 characters), a note at most 500.

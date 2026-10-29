@@ -83,6 +83,7 @@ const guideTopics = <GuideTopic>[
         'Quick type: write one line like rickshaw 50 or bazar 450 bkash or +salary 30k, and the form fills itself. Add yesterday, gotokal or 2 days ago to set the day.',
         'Paste an SMS: copy a bKash, Nagad or bank message, then tap the SMS button beside the quick line. The amount, fee, account and day fill in, and the note keeps the TrxID, so the same SMS cannot be added twice. A cash out becomes a transfer to Cash with its fee. If the balance in the SMS is not what the app would show, you are told something may be missing.',
         'Note suggestions: as you type a note, notes from earlier entries appear under it. Tap one to fill the note, and the category and amount of that entry if they are still empty.',
+        'In Add several, the calculator button in an amount adds up a sum like 1200+350 or 450×3 and puts the result in the amount.',
         'Add several: enter a handful of transactions on one screen and save them together. Paste lines turns lines like rickshaw 50 into rows.',
         'Needed, Wanted or Regret on an expense lets Home show how the month felt.',
         'A tag (Trips & events) groups the expenses of a trip or an occasion.',
@@ -193,6 +194,7 @@ const guideTopics = <GuideTopic>[
     sections: [
       GuideSection('Using it', steps: true, [
         'Tap add and choose I lent (they will pay you) or I borrowed (you will pay them). Enter the person, the amount and, if you like, a pay back day.',
+        'The add button starts a loan the way of the tab that is open: on I\'ll give it starts as I borrowed, on the other tabs as I lent. You can still change it in the form.',
         'Open a loan to record a payment. A progress bar shows how much is paid. All paid closes it in one tap.',
         'Choose an account if the money really moved a wallet, and its balance changes with the loan.',
       ]),
@@ -307,6 +309,13 @@ const guideTopics = <GuideTopic>[
       GuideSection('Finishing', [
         'Done shopping opens the add form with the ticked total and a note listing the items. Save it and the ticked items leave the list.',
         'The menu at the top has Share the list, which sends what is still to buy as a message, Remembered prices to see, add, edit or remove prices, Remove bought items and Clear the list.',
+      ]),
+      GuideSection('Adding from a Google Form', steps: true, [
+        'Make a Google Form (forms.google.com) with one question called Item, paragraph (long answer), required. Add a second one called Quantity if you like. Leave Collect email addresses and Limit to 1 response off, so nobody has to sign in. One answer can hold many things: one on each line, or with commas between.',
+        'In the form, open Responses and tap Link to Sheets. In that sheet choose File > Share > Publish to web, pick the form responses sheet and Comma-separated values (.csv), and Publish. Copy the link.',
+        'In Hishab, open the Bazar menu, tap Add from a Google Form and paste that link. The second box is for the link of the form itself (Send > link): paste it too and Send the form link in the menu sends it to the people who should add to the list.',
+        'From then on whatever is answered in the form comes onto the list when you open it, and with Sync now. Each answer comes in once, even after you bought it and took it off the list. Prices, ticking and Done shopping stay in Hishab.',
+        'Google takes a few minutes to show a new answer, and the list only gets answers, it does not send anything back. Stop adding from the Google Form in the menu turns it off. Anyone with the link of the sheet can read it, so keep to shopping words.',
       ]),
     ],
   ),

@@ -18,6 +18,17 @@ const lastDriveBackupKey = 'last_drive_backup_at';
 const driveProblemKey = 'drive_backup_problem';
 const driveDetailKey = 'drive_backup_detail';
 
+/// The bazar list taking new items from a Google Form: the link of its
+/// published responses sheet, the link of the form (to send to others), how
+/// many rows were taken, when it last worked and what went wrong. They belong
+/// to this phone.
+const formCsvKey = 'bazar_form_csv';
+const formLinkKey = 'bazar_form_link';
+const formImportedKey = 'bazar_form_imported';
+const lastFormSyncKey = 'last_form_sync_at';
+const formProblemKey = 'bazar_form_problem';
+const formDetailKey = 'bazar_form_detail';
+
 /// Settings that belong to this phone and its history, not to the person's
 /// choices: they stay out of a backup and a restore leaves them alone. These
 /// are the markers of alerts that were already shown, of challenges that were
@@ -32,6 +43,12 @@ bool isDeviceSetting(String key) =>
     key == lastDriveBackupKey ||
     key == driveProblemKey ||
     key == driveDetailKey ||
+    key == formCsvKey ||
+    key == formLinkKey ||
+    key == formImportedKey ||
+    key == lastFormSyncKey ||
+    key == formProblemKey ||
+    key == formDetailKey ||
     key.startsWith('alert_') ||
     key.startsWith('challenge_cheered_');
 

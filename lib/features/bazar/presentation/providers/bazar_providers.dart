@@ -2,6 +2,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/features/bazar/data/bazar_repository.dart';
+import 'package:hishab/features/bazar/data/form_inbox_service.dart';
+import 'package:hishab/features/bazar/data/form_inbox_gateway.dart';
 import 'package:hishab/features/bazar/domain/shopping.dart';
 
 final bazarRepositoryProvider = Provider<BazarRepository>(
@@ -29,3 +31,21 @@ final priceSuggestionsProvider = FutureProvider.autoDispose
       ref.watch(rememberedPricesProvider);
       return ref.watch(bazarRepositoryProvider).suggestions(query);
     });
+
+final formInboxServiceProvider = Provider<FormInboxService>(
+  (ref) => FormInboxService(
+    db: ref.watch(appDatabaseProvider),
+    repository: ref.watch(bazarRepositoryProvider),
+    gateway: ref.watch(formInboxGatewayProvider),
+  ),
+);
+
+/// What the form inbox did last: whether a sheet is linked, when it worked, or
+/// what went wrong.
+final formInboxStatusProvider = StreamProvider.autoDispose<FormInboxStatus>(
+  (ref) => ref
+      .watch(appDatabaseProvider)
+      .settingsDao
+      .watchAll()
+      .map(FormInboxStatus.fromSettings),
+);

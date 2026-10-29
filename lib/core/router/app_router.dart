@@ -48,6 +48,7 @@ import 'package:hishab/features/settings/presentation/screens/settings_screen.da
 import 'package:hishab/features/transactions/presentation/screens/add_several_screen.dart';
 import 'package:hishab/features/transactions/presentation/screens/transaction_form_screen.dart';
 import 'package:hishab/features/transactions/presentation/screens/transactions_screen.dart';
+import 'package:hishab/features/debts/domain/debt.dart';
 
 final _rootNavigatorKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -351,6 +352,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                         parentNavigatorKey: _rootNavigatorKey,
                         builder: (context, state) => DebtFormScreen(
                           initialPerson: state.uri.queryParameters['person'],
+                          initialDirection: DebtDirection.values
+                              .where(
+                                (d) =>
+                                    d.name ==
+                                    state.uri.queryParameters['direction'],
+                              )
+                              .firstOrNull,
                         ),
                       ),
                       // Before ':id', which would take "split" for an id.
