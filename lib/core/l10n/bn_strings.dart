@@ -15,12 +15,14 @@ import 'package:hishab/core/l10n/bn_data_check.dart';
 import 'package:hishab/core/l10n/bn_data_privacy.dart';
 import 'package:hishab/core/l10n/bn_debts.dart';
 import 'package:hishab/core/l10n/bn_dollars.dart';
+import 'package:hishab/core/l10n/bn_drive.dart';
 import 'package:hishab/core/l10n/bn_entry_form.dart';
 import 'package:hishab/core/l10n/bn_errors.dart';
 import 'package:hishab/core/l10n/bn_feelings.dart';
 import 'package:hishab/core/l10n/bn_festivals.dart';
 import 'package:hishab/core/l10n/bn_filters.dart';
 import 'package:hishab/core/l10n/bn_friendly.dart';
+import 'package:hishab/core/l10n/bn_form.dart';
 import 'package:hishab/core/l10n/bn_fun.dart';
 import 'package:hishab/core/l10n/bn_goals.dart';
 import 'package:hishab/core/l10n/bn_insights.dart';
@@ -57,12 +59,14 @@ const bnStrings = <String, String>{
   ...bnDataPrivacy,
   ...bnDebts,
   ...bnDollars,
+  ...bnDrive,
   ...bnEntryForm,
   ...bnErrors,
   ...bnFeelings,
   ...bnFestivals,
   ...bnFilters,
   ...bnFriendly,
+  ...bnForm,
   ...bnFun,
   ...bnGoals,
   ...bnInsights,

@@ -49,6 +49,15 @@ and save them with one tap, instead of walking through the form once for each.
   closes the single form that opened it) and a message says how many were
   saved.
 
+- **Calculator.** The amount of each row has a calculator button
+  (`row-calculator-N`) that opens a sheet with the keypad of the add form: a sum
+  like `1200+350` or `450×3` is built with the result under it (`= ৳1,550.00`),
+  the amount already in the row is where it starts, *Clear* empties it and *Use
+  this amount* puts the result back in the row as a plain number (`1550`). It is
+  off until the sum is a number above zero. Closing the sheet changes nothing.
+  `showAmountCalculator` in `amount_calculator_sheet.dart`; test:
+  `test/features/transactions/presentation/add_several_calculator_test.dart`.
+
 ## Rules
 - Pure checks: `parseBatchDraft` in `transactions/domain/batch_rows.dart`
   (reuses the texts of the single form).

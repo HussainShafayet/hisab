@@ -56,6 +56,11 @@ abstract final class AppRoutes {
   static String editRecurring(int id) => '/more/recurring/$id';
 
   static const newDebt = '/more/debts/new';
+
+  /// A new loan that starts as [direction], a `DebtDirection` name (`lent` or
+  /// `borrowed`): the add button of the tab that is open.
+  static String newDebtGoing(String direction) =>
+      '/more/debts/new?direction=$direction';
   static const splitBill = '/more/debts/split';
   static String debt(int id) => '/more/debts/$id';
   static String editDebt(int id) => '/more/debts/$id/edit';

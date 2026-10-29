@@ -1,5 +1,6 @@
 /// Bangla for the small kindnesses of the forms and the Home screen.
 const bnFriendly = <String, String>{
+  'Use this amount': 'এই অঙ্ক নিন',
   'A copy is saved on this phone, but it is lost with the phone. Send one to Drive or email.': 'একটি কপি এই ফোনে সেভ আছে, কিন্তু ফোন হারালে সেটিও যাবে। একটি কপি Drive বা ইমেইলে পাঠান।',
   'Send a copy': 'কপি পাঠান',
   'The last copy you sent away was {n} days ago. The one on this phone is lost with the phone, so send a new one to Drive or email.': 'শেষ যে কপি বাইরে পাঠিয়েছেন তা {n} দিন আগের। ফোনের কপি ফোনের সঙ্গেই যাবে, তাই নতুন একটি Drive বা ইমেইলে পাঠান।',

@@ -17,6 +17,11 @@ class BazarRepository {
     (rows) => [for (final row in rows) _toItem(row)],
   );
 
+  /// The list as it is now, in the order things were added.
+  Future<List<ShoppingItem>> items() async => [
+    for (final row in await _db.bazarDao.getAllItems()) _toItem(row),
+  ];
+
   /// Remembered prices whose name has [query] in it (the latest ones when it
   /// is empty), the newest first.
   Future<List<PriceSuggestion>> suggestions(String query) async {

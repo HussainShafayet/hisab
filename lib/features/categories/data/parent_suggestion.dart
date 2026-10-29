@@ -88,7 +88,7 @@ const _expenseWords = <(String, List<String>)>[
   ('Transport > City travel > CNG & auto', ['cng', 'auto']),
   (
     'Transport > City travel > Ride sharing',
-    ['uber', 'pathao', 'obhai', 'ride'],
+    ['uber', 'pathao', 'obhai', 'indrive', 'ride'],
   ),
   ('Transport > City travel', ['rickshaw', 'bus', 'metro', 'taxi']),
   ('Transport > Long distance > Train', ['train', 'rail']),

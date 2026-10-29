@@ -8,6 +8,8 @@ import 'package:hishab/features/settings/presentation/providers/settings_provide
 import 'package:hishab/features/transactions/data/activity_queries.dart';
 import 'package:hishab/features/backup/data/auto_backup_gateway.dart';
 import 'package:hishab/features/backup/data/auto_backup_service.dart';
+import 'package:hishab/features/backup/data/drive_backup_service.dart';
+import 'package:hishab/features/backup/data/drive_gateway.dart';
 
 final backupRepositoryProvider = Provider<BackupRepository>(
   (ref) => BackupRepository(ref.watch(appDatabaseProvider)),
@@ -19,6 +21,24 @@ final autoBackupServiceProvider = Provider<AutoBackupService>(
     repository: ref.watch(backupRepositoryProvider),
     gateway: ref.watch(autoBackupGatewayProvider),
   ),
+);
+
+final driveBackupServiceProvider = Provider<DriveBackupService>(
+  (ref) => DriveBackupService(
+    db: ref.watch(appDatabaseProvider),
+    repository: ref.watch(backupRepositoryProvider),
+    gateway: ref.watch(driveGatewayProvider),
+  ),
+);
+
+/// What the backup to Google Drive did last: the account, when it saved, or
+/// what went wrong.
+final driveBackupStatusProvider = StreamProvider.autoDispose<DriveBackupStatus>(
+  (ref) => ref
+      .watch(appDatabaseProvider)
+      .settingsDao
+      .watchAll()
+      .map(DriveBackupStatus.fromSettings),
 );
 
 /// What the automatic backup did last: when it saved, or what went wrong.

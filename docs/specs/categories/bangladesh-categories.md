@@ -43,6 +43,14 @@ helps place a new category so no one has to guess which goes inside which.
   *Medicine & doctor* is under more than one member, on purpose: the member is
   the parent.
 
+- **Ride sharing** (*Transport > City travel*) is split by app, and each app by the
+  kind of vehicle: *Pathao* (Pathao Bike, Pathao Car, Pathao CNG), *Uber* (Uber
+  Moto, Uber Car), *Obhai* (Obhai Bike, Obhai Car) and *inDrive* (inDrive Bike,
+  inDrive Car, inDrive CNG). That is five levels, the deepest allowed. A new
+  install has them; an install that already has *Ride sharing* gets them from
+  *Add them*, inside it (what it has stays, and the money already in *Ride
+  sharing* stays there). Typing `pathao 120` in the quick line finds *Pathao*.
+
 ## Rules
 - `DefaultCategory` is recursive; `flattenDefaults` lists every default with its
   path, icon and color, parents first. The depth stays within `maxCategoryDepth`.
@@ -53,6 +61,8 @@ helps place a new category so no one has to guess which goes inside which.
   the deepest category on the path that exists and is not archived, else the
   nearest one above it; nothing when the name is already used, too short or fits
   nowhere. Words match whole, or start with a keyword of 4 letters or more.
+
+- Tests: `test/features/categories/data/ride_sharing_defaults_test.dart` (the apps, the vehicles, the depth).
 
 ## Tests
 - `test/features/categories/data/category_pack_test.dart`

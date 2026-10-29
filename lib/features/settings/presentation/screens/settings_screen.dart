@@ -17,6 +17,10 @@ import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 import 'package:hishab/features/backup/data/auto_backup_gateway.dart';
 import 'package:hishab/features/backup/data/auto_backup_service.dart';
+import 'package:hishab/features/backup/data/drive_backup_service.dart';
+import 'package:hishab/features/backup/data/drive_gateway.dart';
+import 'package:hishab/features/backup/presentation/drive_texts.dart';
+import 'package:hishab/core/utils/clock.dart';
 
 /// Language, look, and how new transactions and weeks start.
 class SettingsScreen extends ConsumerWidget {
@@ -489,6 +493,19 @@ class SettingsScreen extends ConsumerWidget {
                     _change(ref, (p) => p.copyWith(autoBackup: value)),
               ),
               SwitchListTile(
+                key: const ValueKey('drive-backup'),
+                contentPadding: EdgeInsets.zero,
+                secondary: const Icon(Icons.add_to_drive_outlined),
+                title: Text(tr('Back up to Google Drive')),
+                subtitle: _DriveBackupNote(
+                  status: ref.watch(driveBackupStatusProvider).value,
+                ),
+                value:
+                    ref.watch(driveBackupStatusProvider).value?.enabled ??
+                    false,
+                onChanged: (value) => _toggleDrive(context, ref, value),
+              ),
+              SwitchListTile(
                 key: const ValueKey('backup-reminder'),
                 contentPadding: EdgeInsets.zero,
                 secondary: const Icon(Icons.backup_outlined),
@@ -738,6 +755,79 @@ class _AutoBackupNote extends StatelessWidget {
                 : theme.colorScheme.onSurfaceVariant,
           ),
         ),
+      ],
+    );
+  }
+}
+
+/// Turns the backup to Google Drive on (asking the person to sign in) or off.
+Future<void> _toggleDrive(BuildContext context, WidgetRef ref, bool on) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final service = ref.read(driveBackupServiceProvider);
+  try {
+    if (on) {
+      await service.turnOn(ref.read(clockProvider)());
+    } else {
+      await service.turnOff();
+    }
+  } on DriveException catch (error) {
+    final text = driveProblemText(error.problem, error.detail);
+    if (text != null) messenger.showError(text);
+  }
+}
+
+/// What the backup to Google Drive does, and how it went last time.
+class _DriveBackupNote extends StatelessWidget {
+  const _DriveBackupNote({required this.status});
+
+  final DriveBackupStatus? status;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final problem = status?.problem;
+    final saved = status?.lastSaved;
+    final email = status?.email;
+    final enabled = status?.enabled ?? false;
+    String? line;
+    if (enabled) {
+      line = problem != null
+          ? driveProblemText(problem, status?.detail)
+          : [
+              if (email != null) tr('Signed in as {email}.', {'email': email}),
+              if (saved != null)
+                tr('Saved {when}.', {
+                  'when': localizeDigits(
+                    DateFormat('d MMM, h:mm a').format(saved),
+                  ),
+                })
+              else
+                tr('Not saved yet. It saves when you leave the app.'),
+            ].join(' ');
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          tr(
+            'Keeps a copy of your data in your own Google Drive whenever you '
+            'leave the app, so it is still there if the phone is lost or '
+            'reset. Hishab sees only the file it makes. To get it back, use '
+            'Backup & export and choose Restore from Google Drive.',
+          ),
+        ),
+        if (line != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            line,
+            key: const ValueKey('drive-backup-status'),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: problem != null
+                  ? theme.colorScheme.error
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ],
     );
   }

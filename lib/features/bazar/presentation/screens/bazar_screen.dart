@@ -17,6 +17,14 @@ import 'package:hishab/features/bazar/presentation/providers/bazar_providers.dar
 import 'package:hishab/features/bazar/presentation/widgets/bazar_item_dialog.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
+import 'dart:async';
+
+import 'package:intl/intl.dart';
+import 'package:hishab/features/bazar/data/form_inbox_gateway.dart';
+import 'package:hishab/features/bazar/data/form_inbox_service.dart';
+import 'package:hishab/features/bazar/presentation/form_texts.dart';
+import 'package:hishab/features/bazar/presentation/widgets/form_link_dialog.dart';
+
 /// The bazar (shopping) list: add what is needed, tick what is bought, and
 /// turn the ticked items into one expense. Prices are remembered, so the next
 /// list starts with what things cost last time.
@@ -30,11 +38,102 @@ class BazarScreen extends ConsumerStatefulWidget {
 class _BazarScreenState extends ConsumerState<BazarScreen> {
   final _name = TextEditingController();
   String? _error;
+  bool _syncing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // What other people wrote in the Google Form comes in when the screen opens.
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncWhenLinked());
+  }
 
   @override
   void dispose() {
     _name.dispose();
     super.dispose();
+  }
+
+  Future<void> _syncWhenLinked() async {
+    final status = await ref.read(formInboxStatusProvider.future);
+    if (status.linked && mounted) await _syncForm();
+  }
+
+  /// Takes the new answers of the Google Form. With [message] the person is
+  /// told what came.
+  Future<void> _syncForm({bool message = false}) async {
+    if (_syncing) return;
+    final messenger = ScaffoldMessenger.of(context);
+    _syncing = true;
+    try {
+      final result = await ref
+          .read(formInboxServiceProvider)
+          .sync(ref.read(clockProvider)());
+      if (message && mounted) messenger.showMessage(formResultText(result));
+    } finally {
+      _syncing = false;
+    }
+  }
+
+  /// Links a Google Form: asks for the links, reads the sheet to see it works,
+  /// asks about the answers that are already there, and takes them.
+  Future<void> _setUpForm() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final service = ref.read(formInboxServiceProvider);
+    final links = await showFormLinkDialog(context);
+    if (links == null || !mounted) return;
+    try {
+      final count = await service.check(links.sheet);
+      var takeExisting = false;
+      if (count > 0 && mounted) {
+        final choice = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: Text(
+              plural(
+                count,
+                'The sheet already has 1 answer. Add it to the list?',
+                'The sheet already has {n} answers. Add them to the list?',
+              ),
+            ),
+            actions: [
+              TextButton(
+                key: const ValueKey('form-only-new'),
+                onPressed: () => Navigator.of(context).pop(false),
+                child: Text(tr('Only new ones')),
+              ),
+              FilledButton(
+                key: const ValueKey('form-take-all'),
+                onPressed: () => Navigator.of(context).pop(true),
+                child: Text(tr('Yes, add them')),
+              ),
+            ],
+          ),
+        );
+        if (choice == null) return;
+        takeExisting = choice;
+      }
+      final result = await service.link(
+        links.sheet,
+        formLink: links.form,
+        takeExisting: takeExisting,
+        now: ref.read(clockProvider)(),
+      );
+      messenger.showMessage(formResultText(result));
+    } on ValidationException catch (error) {
+      messenger.showError(error.message);
+    } on FormInboxException catch (error) {
+      messenger.showError(formProblemText(error.problem, error.detail));
+    }
+  }
+
+  /// Sends the link of the form to whoever should add to the list.
+  Future<void> _shareFormLink(String link) async {
+    final messenger = ScaffoldMessenger.of(context);
+    try {
+      await ref.read(fileGatewayProvider).shareText(link);
+    } on Object {
+      messenger.showError(tr('Could not open the share sheet.'));
+    }
   }
 
   Future<void> _add(String name, {int? price}) async {
@@ -192,6 +291,7 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
   @override
   Widget build(BuildContext context) {
     final items = ref.watch(bazarItemsProvider);
+    final formStatus = ref.watch(formInboxStatusProvider).value;
     final theme = Theme.of(context);
     final query = _name.text.trim();
     final suggestions =
@@ -215,6 +315,14 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
                   _removeBought(list);
                 case 'clear':
                   _clear(list);
+                case 'form-setup':
+                  _setUpForm();
+                case 'form-sync':
+                  _syncForm(message: true);
+                case 'form-share':
+                  _shareFormLink(formStatus?.formLink ?? '');
+                case 'form-off':
+                  ref.read(formInboxServiceProvider).unlink();
               }
             },
             itemBuilder: (context) {
@@ -243,6 +351,29 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
                   enabled: list.isNotEmpty,
                   child: Text(tr('Clear the list')),
                 ),
+                if (formStatus?.linked ?? false) ...[
+                  PopupMenuItem(
+                    key: const ValueKey('bazar-menu-form-sync'),
+                    value: 'form-sync',
+                    child: Text(tr('Sync now')),
+                  ),
+                  if ((formStatus?.formLink ?? '').isNotEmpty)
+                    PopupMenuItem(
+                      key: const ValueKey('bazar-menu-form-share'),
+                      value: 'form-share',
+                      child: Text(tr('Send the form link')),
+                    ),
+                  PopupMenuItem(
+                    key: const ValueKey('bazar-menu-form-off'),
+                    value: 'form-off',
+                    child: Text(tr('Stop adding from the Google Form')),
+                  ),
+                ] else
+                  PopupMenuItem(
+                    key: const ValueKey('bazar-menu-form-setup'),
+                    value: 'form-setup',
+                    child: Text(tr('Add from a Google Form')),
+                  ),
               ];
             },
           ),
@@ -250,6 +381,8 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
       ),
       body: Column(
         children: [
+          if (formStatus != null && formStatus.linked)
+            _FormNote(status: formStatus),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
             child: Row(
@@ -509,6 +642,47 @@ class _TotalsBar extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// A line under the app bar: the list takes what is written in a Google Form,
+/// and how the last sync went.
+class _FormNote extends StatelessWidget {
+  const _FormNote({required this.status});
+
+  final FormInboxStatus status;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final problem = status.problem;
+    final synced = status.lastSynced;
+    final text = problem != null
+        ? formProblemText(problem, status.detail)
+        : synced != null
+        ? tr('Synced {when}.', {
+            'when': localizeDigits(DateFormat('d MMM, h:mm a').format(synced)),
+          })
+        : tr('Not synced yet.');
+    final color = problem != null
+        ? theme.colorScheme.error
+        : theme.colorScheme.onSurfaceVariant;
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+      child: Row(
+        children: [
+          Icon(Icons.sync, size: 16, color: color),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              '${tr('Google Form')} · $text',
+              key: const ValueKey('form-status'),
+              style: theme.textTheme.bodySmall?.copyWith(color: color),
+            ),
+          ),
+        ],
       ),
     );
   }
