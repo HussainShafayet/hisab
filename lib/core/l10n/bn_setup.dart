@@ -1,6 +1,7 @@
 /// Bangla for the setup checklist and for choosing what Home shows.
 const bnSetup = <String, String>{
   'Quick buttons': 'দ্রুত বোতাম',
+  'Safe to spend today': 'আজ নিরাপদে খরচ',
   'Takka, streak and insights': 'টাক্কা, ধারা ও পর্যবেক্ষণ',
   'Choose what Home shows': 'হোমে কী দেখাবে বেছে নিন',
   'Write your first entry': 'প্রথম লেনদেন লিখুন',
