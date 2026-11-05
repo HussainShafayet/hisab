@@ -71,6 +71,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [accounts](accounts/) | [Account page and the month on each card](accounts/account-page.md) | 27 |
 | [budget](budget/) | [Plan, projection and spending with no budget](budget/plan-and-unbudgeted.md) | 28 |
 | [reports](reports/) | [Every number opens its entries, and highlights](reports/drill-down-and-highlights.md) | 29 |
+| [debts](debts/) | [Loans: net, coming up, search, sort, pay in parts](debts/net-upcoming-payoff.md) | 30 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

@@ -11,6 +11,7 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
+import 'package:hishab/features/debts/presentation/widgets/payoff_card.dart';
 import 'package:hishab/features/debts/presentation/widgets/debt_tile.dart';
 import 'package:hishab/features/debts/presentation/widgets/debt_actions.dart';
 import 'package:hishab/features/debts/presentation/widgets/loan_share.dart';
@@ -209,6 +210,8 @@ class DebtDetailScreen extends ConsumerWidget {
                   ),
                 ],
               ],
+              if (!debt.isSettled)
+                PayoffCard(remaining: debt.remaining, lent: lent, today: today),
               if (sameName > 1)
                 TextButton.icon(
                   key: const ValueKey('see-person'),

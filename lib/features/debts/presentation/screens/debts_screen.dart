@@ -13,6 +13,7 @@ import 'package:hishab/features/accounts/domain/credit_card.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
 import 'package:hishab/features/accounts/presentation/widgets/credit_card_tile.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/debts/domain/loan_insights.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/debts/presentation/widgets/loan_list_item.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
@@ -28,6 +29,9 @@ class DebtsScreen extends ConsumerStatefulWidget {
 
 class _DebtsScreenState extends ConsumerState<DebtsScreen> {
   bool _showSettled = false;
+  bool _searching = false;
+  String _query = '';
+  LoanSort _sort = LoanSort.due;
 
   /// Opens a new loan that starts the way of the tab that is open: "I'll give"
   /// is a loan taken (borrowed), the others are a loan given. [context] must be
@@ -51,9 +55,50 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
       length: 3,
       child: Scaffold(
         appBar: AppBar(
-          title: Text(tr('Loans')),
+          title: _searching
+              ? TextField(
+                  key: const ValueKey('loan-search'),
+                  autofocus: true,
+                  textInputAction: TextInputAction.search,
+                  decoration: InputDecoration(
+                    hintText: tr('Search a name or note'),
+                    border: InputBorder.none,
+                  ),
+                  onChanged: (text) => setState(() => _query = text),
+                )
+              : Text(tr('Loans')),
           actions: [
             const HelpButton('loans'),
+            IconButton(
+              key: const ValueKey('loan-search-toggle'),
+              tooltip: _searching ? tr('Close search') : tr('Search'),
+              icon: Icon(_searching ? Icons.close : Icons.search),
+              onPressed: () => setState(() {
+                _searching = !_searching;
+                if (!_searching) _query = '';
+              }),
+            ),
+            PopupMenuButton<LoanSort>(
+              key: const ValueKey('loan-sort'),
+              tooltip: tr('Sort'),
+              icon: const Icon(Icons.sort),
+              initialValue: _sort,
+              onSelected: (sort) => setState(() => _sort = sort),
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  value: LoanSort.due,
+                  child: Text(tr('Late and due first')),
+                ),
+                PopupMenuItem(
+                  value: LoanSort.biggest,
+                  child: Text(tr('Biggest left first')),
+                ),
+                PopupMenuItem(
+                  value: LoanSort.newest,
+                  child: Text(tr('Newest first')),
+                ),
+              ],
+            ),
             IconButton(
               key: const ValueKey('split-bill'),
               tooltip: tr('Split a bill'),
@@ -103,7 +148,12 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
             final totals = debtTotals(items, today);
             return Column(
               children: [
-                _Summary(totals: totals, cardsOwed: totalOwed(cards)),
+                _Summary(
+                  totals: totals,
+                  cardsOwed: totalOwed(cards),
+                  net: netPosition(totals, cardsOwed: totalOwed(cards)),
+                ),
+                _UpcomingCard(dues: upcomingDues(items, today)),
                 Expanded(
                   child: TabBarView(
                     children: [
@@ -114,6 +164,8 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                         today: today,
                         showSettled: _showSettled,
                         onShowSettled: (v) => setState(() => _showSettled = v),
+                        query: _query,
+                        sort: _sort,
                       ),
                       _LoanList(
                         items: items,
@@ -122,8 +174,18 @@ class _DebtsScreenState extends ConsumerState<DebtsScreen> {
                         today: today,
                         showSettled: _showSettled,
                         onShowSettled: (v) => setState(() => _showSettled = v),
+                        query: _query,
+                        sort: _sort,
                       ),
-                      _PeopleList(items: items, today: today),
+                      _PeopleList(
+                        items: searchAndSort(
+                          items,
+                          query: _query,
+                          sort: LoanSort.due,
+                          today: today,
+                        ),
+                        today: today,
+                      ),
                     ],
                   ),
                 ),
@@ -145,7 +207,12 @@ class _LoanList extends ConsumerWidget {
     required this.today,
     required this.showSettled,
     required this.onShowSettled,
+    this.query = '',
+    this.sort = LoanSort.due,
   });
+
+  final String query;
+  final LoanSort sort;
 
   final List<DebtItem> items;
   final DebtDirection direction;
@@ -157,7 +224,12 @@ class _LoanList extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final mine = debtsGoing(items, direction, today);
+    final mine = searchAndSort(
+      debtsGoing(items, direction, today),
+      query: query,
+      sort: sort,
+      today: today,
+    );
     final shown = mine.where((i) => showSettled || !i.isSettled).toList();
     final hasSettled = mine.any((i) => i.isSettled);
     final lent = direction == DebtDirection.lent;
@@ -362,10 +434,17 @@ class _PersonTile extends StatelessWidget {
 }
 
 class _Summary extends StatelessWidget {
-  const _Summary({required this.totals, required this.cardsOwed});
+  const _Summary({
+    required this.totals,
+    required this.cardsOwed,
+    required this.net,
+  });
 
   final DebtTotals totals;
   final int cardsOwed;
+
+  /// What I will get less what I will give, in poisha.
+  final int net;
 
   @override
   Widget build(BuildContext context) {
@@ -418,6 +497,24 @@ class _Summary extends StatelessWidget {
                 ),
               ],
             ),
+            if (net != 0 || totals.toReceive > 0 || totals.toPay > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                net == 0
+                    ? tr('You are even.')
+                    : net > 0
+                    ? tr('You will get {amount} more than you give.', {
+                        'amount': formatPoisha(net),
+                      })
+                    : tr('You will give {amount} more than you get.', {
+                        'amount': formatPoisha(-net),
+                      }),
+                key: const ValueKey('loan-net'),
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
             if (cardsOwed > 0 && totals.toPay > 0) ...[
               const SizedBox(height: 8),
               Text(
@@ -453,6 +550,73 @@ class _Summary extends StatelessWidget {
                 ],
               ),
             ],
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// The next loans to fall due, soonest first, a tap away.
+class _UpcomingCard extends StatelessWidget {
+  const _UpcomingCard({required this.dues});
+
+  final List<UpcomingDue> dues;
+
+  @override
+  Widget build(BuildContext context) {
+    if (dues.isEmpty) return const SizedBox.shrink();
+    final theme = Theme.of(context);
+    final colors = context.financeColors;
+    return Card(
+      key: const ValueKey('loan-upcoming'),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 8, 8),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(tr('Coming up'), style: theme.textTheme.labelLarge),
+            for (final due in dues)
+              InkWell(
+                key: ValueKey('upcoming-${due.item.debt.id}'),
+                borderRadius: BorderRadius.circular(8),
+                onTap: () => context.push(AppRoutes.debt(due.item.debt.id)),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Icon(
+                        due.item.debt.direction == DebtDirection.lent
+                            ? Icons.south_west
+                            : Icons.north_east,
+                        size: 18,
+                        color: due.item.debt.direction == DebtDirection.lent
+                            ? colors.income
+                            : colors.expense,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${due.item.debt.person} · '
+                          '${formatPoisha(due.item.remaining)}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Text(
+                        due.daysLeft == 0
+                            ? tr('Today')
+                            : due.daysLeft == 1
+                            ? tr('Tomorrow')
+                            : tr('in {n} days', {'n': due.daysLeft}),
+                        style: theme.textTheme.bodySmall,
+                      ),
+                      const Icon(Icons.chevron_right, size: 18),
+                    ],
+                  ),
+                ),
+              ),
           ],
         ),
       ),
