@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Hishab</string>
+    <string name="shortcut_add_expense">Add expense</string>
+    <string name="shortcut_add_expense_long">Add an expense</string>
+    <string name="shortcut_add_income">Add income</string>
+    <string name="shortcut_add_income_long">Add income</string>
+    <string name="shortcut_search">Search</string>
+    <string name="shortcut_search_long">Search everything</string>
 </resources>
