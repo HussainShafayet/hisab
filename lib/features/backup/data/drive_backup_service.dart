@@ -50,10 +50,16 @@ class DriveBackupService {
   /// Saves a copy at [now] when it is on. Nothing is written while there is no
   /// entry. Returns whether the file was written. A problem is kept (see
   /// [DriveBackupStatus]) and not thrown.
-  Future<bool> run(DateTime now) async {
+  Future<bool> run(DateTime now) async =>
+      await attempt(now) == DriveRunResult.saved;
+
+  /// Like [run], but says what happened, for the "Back up now" button.
+  Future<DriveRunResult> attempt(DateTime now) async {
     final saved = await db.settingsDao.getAll();
-    if (saved[driveEnabledKey] != 'true') return false;
-    if (await db.entryCount(DateTime(2000), DateTime(2100)) == 0) return false;
+    if (saved[driveEnabledKey] != 'true') return DriveRunResult.off;
+    if (await db.entryCount(DateTime(2000), DateTime(2100)) == 0) {
+      return DriveRunResult.nothingToSave;
+    }
     try {
       final backup = await repository.buildBackup(now);
       await gateway.upload(
@@ -65,34 +71,147 @@ class DriveBackupService {
       await repository.markBackedUp(now);
       await db.settingsDao.put(driveProblemKey, null);
       await db.settingsDao.put(driveDetailKey, null);
-      return true;
+      await _log(saved[driveLogKey], DriveLogEntry(at: now, ok: true));
+      return DriveRunResult.saved;
     } on DriveException catch (error) {
       await db.settingsDao.put(driveProblemKey, error.problem.name);
       await db.settingsDao.put(driveDetailKey, error.detail);
+      await _log(
+        saved[driveLogKey],
+        DriveLogEntry(at: now, ok: false, problem: error.problem.name),
+      );
     } on Object catch (error) {
       await db.settingsDao.put(driveProblemKey, DriveProblem.failed.name);
       await db.settingsDao.put(driveDetailKey, '$error');
+      await _log(
+        saved[driveLogKey],
+        DriveLogEntry(at: now, ok: false, problem: DriveProblem.failed.name),
+      );
     }
-    return false;
+    return DriveRunResult.failed;
+  }
+
+  Future<void> _log(String? before, DriveLogEntry entry) => db.settingsDao.put(
+    driveLogKey,
+    DriveLogEntry.encodeAll([entry, ...DriveLogEntry.decodeAll(before)]),
+  );
+
+  /// Looks in Drive for the backup and says what is there, to settle "did it
+  /// really save?". Asks the person to sign in when no account is signed in on
+  /// this phone. Throws [DriveException], and [FormatException] when the file
+  /// is not a backup.
+  Future<DriveCheck> check() async {
+    final file = await _download();
+    if (file == null) return const DriveCheck(found: false);
+    final data = BackupData.decode(utf8.decode(file.bytes));
+    return DriveCheck(
+      found: true,
+      modified: file.modified,
+      bytes: file.bytes.length,
+      transactions: data.transactions.length,
+      accounts: data.accounts.length,
+      categories: data.categories.length,
+    );
+  }
+
+  Future<DriveFile?> _download() async {
+    try {
+      return await gateway.download(driveBackupFileName);
+    } on DriveException catch (error) {
+      if (error.problem != DriveProblem.needsSignIn) rethrow;
+      final email = await gateway.signIn();
+      await db.settingsDao.put(driveEmailKey, email);
+      return gateway.download(driveBackupFileName);
+    }
   }
 
   /// The backup kept in Drive, or null when there is none. Asks the person to
   /// sign in when no account is signed in on this phone. Throws
   /// [DriveException], and [FormatException] when the file is not a backup.
   Future<BackupData?> fetch() async {
-    DriveFile? file;
-    try {
-      file = await gateway.download(driveBackupFileName);
-    } on DriveException catch (error) {
-      if (error.problem != DriveProblem.needsSignIn) rethrow;
-      final email = await gateway.signIn();
-      await db.settingsDao.put(driveEmailKey, email);
-      file = await gateway.download(driveBackupFileName);
-    }
+    final file = await _download();
     if (file == null) return null;
     return BackupData.decode(utf8.decode(file.bytes));
   }
 }
+
+/// What a try of the Drive backup came to.
+enum DriveRunResult {
+  /// The file was written.
+  saved,
+
+  /// The backup is switched off.
+  off,
+
+  /// There is no entry yet, so nothing was written.
+  nothingToSave,
+
+  /// Something went wrong; the problem is kept.
+  failed,
+}
+
+/// What is in Drive, as [DriveBackupService.check] found it.
+class DriveCheck {
+  const DriveCheck({
+    required this.found,
+    this.modified,
+    this.bytes = 0,
+    this.transactions = 0,
+    this.accounts = 0,
+    this.categories = 0,
+  });
+
+  final bool found;
+
+  /// When Drive says the file was last changed.
+  final DateTime? modified;
+  final int bytes;
+  final int transactions;
+  final int accounts;
+  final int categories;
+}
+
+/// One try of the Drive backup, kept so the person can see that it ran.
+class DriveLogEntry {
+  const DriveLogEntry({required this.at, required this.ok, this.problem});
+
+  final DateTime at;
+  final bool ok;
+
+  /// A [DriveProblem] name when it did not work.
+  final String? problem;
+
+  static String encodeAll(List<DriveLogEntry> entries) => jsonEncode([
+    for (final entry in entries.take(maxDriveLog))
+      {
+        'at': entry.at.toIso8601String(),
+        'ok': entry.ok,
+        'problem': entry.problem,
+      },
+  ]);
+
+  static List<DriveLogEntry> decodeAll(String? text) {
+    if (text == null || text.isEmpty) return const [];
+    try {
+      final list = jsonDecode(text);
+      if (list is! List) return const [];
+      return [
+        for (final item in list)
+          if (item is Map && DateTime.tryParse('${item['at']}') != null)
+            DriveLogEntry(
+              at: DateTime.parse('${item['at']}'),
+              ok: item['ok'] == true,
+              problem: item['problem'] as String?,
+            ),
+      ];
+    } on FormatException {
+      return const [];
+    }
+  }
+}
+
+/// How many tries are kept.
+const maxDriveLog = 10;
 
 /// What the backup to Google Drive did last.
 class DriveBackupStatus {
@@ -102,6 +221,7 @@ class DriveBackupStatus {
     this.lastSaved,
     this.problem,
     this.detail,
+    this.log = const [],
   });
 
   final bool enabled;
@@ -109,6 +229,9 @@ class DriveBackupStatus {
   final DateTime? lastSaved;
   final DriveProblem? problem;
   final String? detail;
+
+  /// The last tries, newest first.
+  final List<DriveLogEntry> log;
 
   factory DriveBackupStatus.fromSettings(Map<String, String> saved) {
     final name = saved[driveProblemKey];
@@ -120,6 +243,7 @@ class DriveBackupStatus {
           .where((problem) => problem.name == name)
           .firstOrNull,
       detail: saved[driveDetailKey],
+      log: DriveLogEntry.decodeAll(saved[driveLogKey]),
     );
   }
 }

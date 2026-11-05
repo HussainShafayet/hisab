@@ -18,6 +18,10 @@ const lastDriveBackupKey = 'last_drive_backup_at';
 const driveProblemKey = 'drive_backup_problem';
 const driveDetailKey = 'drive_backup_detail';
 
+/// The last few tries of the Drive backup (a JSON list), so the person can see
+/// that it ran and when.
+const driveLogKey = 'drive_backup_log';
+
 /// The bazar list taking new items from a Google Form: the link of its
 /// published responses sheet, the link of the form (to send to others), how
 /// many rows were taken, when it last worked and what went wrong. They belong
@@ -43,6 +47,7 @@ bool isDeviceSetting(String key) =>
     key == lastDriveBackupKey ||
     key == driveProblemKey ||
     key == driveDetailKey ||
+    key == driveLogKey ||
     key == formCsvKey ||
     key == formLinkKey ||
     key == formImportedKey ||

@@ -84,6 +84,7 @@ const guideTopics = <GuideTopic>[
         'Paste an SMS: copy a bKash, Nagad or bank message, then tap the SMS button beside the quick line. The amount, fee, account and day fill in, and the note keeps the TrxID, so the same SMS cannot be added twice. A cash out becomes a transfer to Cash with its fee. If the balance in the SMS is not what the app would show, you are told something may be missing.',
         'After you paste an SMS, the notice tells you the type it read and which account it chose, and how sure it is. If it could not tell the account, choose it yourself: the app remembers your choice for the next SMS of the same kind. Bangla SMS work too.',
         'If an SMS is already in your records, or an entry with the same amount, day and account is there, you are told and can open that entry instead of adding it again.',
+        'Is my data backed up? Open Backup & export: the card at the top says when Google Drive and this phone last saved a copy. Back up now saves one this second, and Check Drive looks in Drive and tells you what is there and whether it matches this phone.',
         'Note suggestions: as you type a note, notes from earlier entries appear under it. Tap one to fill the note, and the category and amount of that entry if they are still empty.',
         'In Add several, the calculator button in an amount adds up a sum like 1200+350 or 450×3 and puts the result in the amount.',
         'Add several: enter a handful of transactions on one screen and save them together. Paste lines turns lines like rickshaw 50 into rows.',
