@@ -18,6 +18,10 @@ import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/presentation/widgets/overdrawn_card.dart';
 import 'package:hishab/features/budget/domain/safe_to_spend.dart';
 import 'package:hishab/features/dashboard/domain/dashboard_data.dart';
+import 'package:hishab/features/dashboard/domain/home_layout.dart';
+import 'package:hishab/features/dashboard/presentation/providers/home_layout_providers.dart';
+import 'package:hishab/features/dashboard/presentation/widgets/customize_home_sheet.dart';
+import 'package:hishab/features/dashboard/presentation/widgets/setup_checklist_card.dart';
 import 'package:hishab/features/dashboard/presentation/providers/dashboard_providers.dart';
 import 'package:hishab/features/dashboard/presentation/widgets/dashboard_cards.dart';
 import 'package:hishab/features/dashboard/presentation/widgets/safe_to_spend_card.dart';
@@ -48,7 +52,16 @@ class DashboardScreen extends ConsumerWidget {
     return Scaffold(
       appBar: AppBar(
         title: Text(tr('Home')),
-        actions: const [NotificationBell(), HelpButton('home')],
+        actions: [
+          const NotificationBell(),
+          const HelpButton('home'),
+          IconButton(
+            key: const ValueKey('home-customize'),
+            tooltip: tr('Choose what Home shows'),
+            icon: const Icon(Icons.tune),
+            onPressed: () => showCustomizeHome(context),
+          ),
+        ],
       ),
       body: dashboard.when(
         loading: () => const LoadingView(),
@@ -90,6 +103,9 @@ class _DashboardContent extends ConsumerWidget {
       spentToday: data.todayExpense,
     );
 
+    final hidden = ref.watch(homeHiddenProvider).value ?? const <HomeSection>{};
+    bool shows(HomeSection section) => !hidden.contains(section);
+
     return ListView(
       // Room below the last row so the add button never covers it.
       padding: const EdgeInsets.only(bottom: 96),
@@ -101,9 +117,14 @@ class _DashboardContent extends ConsumerWidget {
         const DueRecurringCard(),
         const BackupReminderCard(),
         const WelcomeCard(),
+        const SetupChecklistCard(),
         const WrappedHomeCard(),
-        const HomeShortcuts(),
-        SafeToSpendCard(figures: safeToSpend, totalBalance: data.totalBalance),
+        if (shows(HomeSection.shortcuts)) const HomeShortcuts(),
+        if (shows(HomeSection.safeToSpend))
+          SafeToSpendCard(
+            figures: safeToSpend,
+            totalBalance: data.totalBalance,
+          ),
         DashboardHeading(
           tr('This month · {month}', {'month': monthLabel(data.month)}),
         ),
@@ -114,33 +135,40 @@ class _DashboardContent extends ConsumerWidget {
           today: now,
         ),
         SpendingTiles(today: data.todayExpense, week: data.weekExpense),
-        DashboardHeading(tr('Plans and loans')),
-        const LoansHomeCard(),
-        const ChallengeHomeCard(),
-        const InvestmentsHomeCard(),
-        const FestivalHomeCard(),
-        DashboardHeading(tr('Top spending')),
-        TopCategoriesCard(
-          categories: data.topCategories,
-          monthExpense: totals.expense,
-        ),
-        DashboardHeading(
-          tr('Recent'),
-          trailing: TextButton(
-            onPressed: () => context.go(AppRoutes.transactions),
-            child: Text(tr('See all')),
+        if (shows(HomeSection.plans)) ...[
+          DashboardHeading(tr('Plans and loans')),
+          const LoansHomeCard(),
+          const ChallengeHomeCard(),
+          const InvestmentsHomeCard(),
+          const FestivalHomeCard(),
+        ],
+        if (shows(HomeSection.topSpending)) ...[
+          DashboardHeading(tr('Top spending')),
+          TopCategoriesCard(
+            categories: data.topCategories,
+            monthExpense: totals.expense,
           ),
-        ),
-        RecentTransactionsCard(items: data.recent),
+        ],
+        if (shows(HomeSection.recent)) ...[
+          DashboardHeading(
+            tr('Recent'),
+            trailing: TextButton(
+              onPressed: () => context.go(AppRoutes.transactions),
+              child: Text(tr('See all')),
+            ),
+          ),
+          RecentTransactionsCard(items: data.recent),
+        ],
         // Closed until opened: nice to have, not needed every day.
-        HomeMoreSection(
-          children: [
-            TakkaCard(inputs: quipInputs),
-            const StreakCard(),
-            const RegretMeterCard(),
-            const InsightsCard(),
-          ],
-        ),
+        if (shows(HomeSection.extras))
+          HomeMoreSection(
+            children: [
+              TakkaCard(inputs: quipInputs),
+              const StreakCard(),
+              const RegretMeterCard(),
+              const InsightsCard(),
+            ],
+          ),
       ]),
     );
   }

@@ -8,6 +8,12 @@ const backupSnoozedUntilKey = 'backup_snoozed_until';
 /// It belongs to this phone, so it stays out of a backup.
 const moreRecentKey = 'more_recent';
 
+/// The Home setup checklist was put away. It belongs to this phone.
+const setupDismissedKey = 'setup_dismissed';
+
+/// The parts of Home the person put away (names, comma separated).
+const homeHiddenKey = 'home_hidden';
+
 /// When the automatic backup last wrote its file, and why it could not (an
 /// [AutoBackupProblem] name). They belong to this phone too.
 const lastAutoBackupKey = 'last_auto_backup_at';
@@ -45,6 +51,7 @@ bool isDeviceSetting(String key) =>
     key == lastBackupKey ||
     key == backupSnoozedUntilKey ||
     key == moreRecentKey ||
+    key == setupDismissedKey ||
     key == lastAutoBackupKey ||
     key == autoBackupProblemKey ||
     key == driveEnabledKey ||

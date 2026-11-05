@@ -76,6 +76,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [investments](investments/) | [How long, how fast, and the list](investments/how-it-is-going.md) | 32 |
 | [settings](settings/) | [The More list](settings/more-list.md) | 33 |
 | [settings](settings/) | [Alert sounds: choose, hear, find out why](settings/alert-sounds.md) | 35 |
+| [dashboard](dashboard/) | [Setup checklist and choosing what Home shows](dashboard/setup-and-layout.md) | 36 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.
