@@ -120,6 +120,12 @@ class _MoreScreenState extends State<MoreScreen> {
       tr('For fun'),
       [
         _Entry(
+          Icons.lightbulb_outline,
+          tr('Insights & habits'),
+          tr('What your spending says'),
+          AppRoutes.insights,
+        ),
+        _Entry(
           Icons.auto_awesome_outlined,
           tr('Month wrapped'),
           tr('Your month as a short story'),

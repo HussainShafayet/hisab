@@ -378,6 +378,7 @@ const guideTopics = <GuideTopic>[
       GuideSection('The fun parts', [
         'Takka is a small coin who comments on your day. Fun mode in Settings turns Takka, jokes, confetti and the gentle motion on or off.',
         'Writing something every day grows your streak. Days with no spending count too. Badges reward milestones.',
+        'Insights & habits (More > For fun) shows everything Hishab has noticed this month, the things you spend on again and again with what they come to in a month, and a money tip for the day. Tap an insight to go to what it is about.',
         'Month wrapped is a short swipeable story of the month. Near the month\'s end it appears on Home. Share a card as a picture with the share button.',
       ]),
     ],

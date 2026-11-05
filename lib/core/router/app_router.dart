@@ -40,6 +40,7 @@ import 'package:hishab/features/notifications/presentation/screens/notifications
 import 'package:hishab/features/recurring/presentation/screens/recurring_form_screen.dart';
 import 'package:hishab/features/tags/presentation/screens/tag_detail_screen.dart';
 import 'package:hishab/features/fun/presentation/screens/badges_screen.dart';
+import 'package:hishab/features/insights/presentation/screens/insights_screen.dart';
 import 'package:hishab/features/fun/presentation/screens/wrapped_screen.dart';
 import 'package:hishab/features/metals/presentation/screens/metals_screen.dart';
 import 'package:hishab/features/zakat/presentation/screens/zakat_screen.dart';
@@ -175,6 +176,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                         '${state.uri.queryParameters['month'] ?? ''}-01',
                       ),
                     ),
+                  ),
+                  GoRoute(
+                    path: 'insights',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const InsightsScreen(),
                   ),
                   GoRoute(
                     path: 'badges',

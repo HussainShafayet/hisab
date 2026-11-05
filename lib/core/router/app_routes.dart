@@ -122,6 +122,7 @@ abstract final class AppRoutes {
   static const zakat = '/more/zakat';
   static const metals = '/more/metals';
   static const badges = '/more/badges';
+  static const insights = '/more/insights';
 
   /// The wrapped of the month that holds [month]; this month's (or the one
   /// just over) when null.
