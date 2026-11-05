@@ -433,6 +433,7 @@ const guideTopics = <GuideTopic>[
       GuideSection('Controlling them', steps: true, [
         'Open Settings > Alerts. Each alert has its own switch.',
         'Funny alert sounds off means your phone\'s usual notification sound.',
+        'In Settings > Alerts > Alert sounds you can choose Funny, Phone\'s or Silent for each alert and tap Hear it to try it now. The screen also says if the phone has turned Hishab\'s notifications off. If you hear nothing, check that the phone is not on silent or Do not disturb.',
         'If a notification never shows up, check that notifications are allowed for Hishab in your phone\'s settings.',
       ]),
     ],

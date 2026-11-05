@@ -48,6 +48,7 @@ import 'package:hishab/features/tags/presentation/screens/tags_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_screen.dart';
 import 'package:hishab/features/reports/presentation/screens/reports_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/more_screen.dart';
+import 'package:hishab/features/settings/presentation/screens/alert_sounds_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/settings_screen.dart';
 import 'package:hishab/features/transactions/presentation/screens/add_several_screen.dart';
 import 'package:hishab/features/transactions/presentation/screens/transaction_form_screen.dart';
@@ -469,6 +470,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'settings',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const SettingsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'alerts',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => const AlertSoundsScreen(),
+                      ),
+                    ],
                   ),
                 ],
               ),
