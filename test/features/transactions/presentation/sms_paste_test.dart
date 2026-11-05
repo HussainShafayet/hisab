@@ -150,8 +150,104 @@ void main() {
       await tester.tap(pasteSms);
       await tester.pumpAndSettle();
 
-      expect(find.textContaining('Already in your records'), findsOneWidget);
+      expect(find.byKey(const ValueKey('sms-already-added')), findsOneWidget);
+      expect(find.text('Already added'), findsOneWidget);
+      // It was the same SMS, so there is no way to add it again.
+      expect(find.byKey(const ValueKey('sms-add-anyway')), findsNothing);
+      expect(find.byKey(const ValueKey('sms-open-entry')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('sms-cancel')));
+      await tester.pumpAndSettle();
       expect(amountText(tester), isEmpty);
+    });
+
+    testWithDatabase(
+      'asks before adding what looks like an entry already there',
+      (tester, db) async {
+        useTallScreen(tester);
+        final basics = await seedBasics(db);
+        // The same payment, entered by hand without the id.
+        await addTransaction(
+          db,
+          type: TransactionType.expense,
+          amount: 12000,
+          accountId: basics.bkash,
+          categoryId: basics.food,
+          date: DateTime(2026, 10, 10),
+        );
+        await pumpAppWithDatabase(tester, db);
+        await openAddForm(tester);
+        copied(
+          tester,
+          'bKash Payment Tk 120.00 to Shwapno successful. Fee Tk 0.00. '
+          'Balance Tk 700.00. TrxID 5AB7K2L9 at 10/10/2026 15:01',
+        );
+
+        await tester.tap(pasteSms);
+        await tester.pumpAndSettle();
+
+        expect(find.text('Maybe already added'), findsOneWidget);
+        expect(amountText(tester), isEmpty);
+
+        await tester.tap(find.byKey(const ValueKey('sms-add-anyway')));
+        await tester.pumpAndSettle();
+        expect(amountText(tester), '120');
+      },
+    );
+
+    testWithDatabase('says the type and the account it read', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await insertTestAccount(db, name: 'Cash');
+      await insertTestAccount(
+        db,
+        name: 'bKash',
+        type: AccountType.mobileBanking,
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+      copied(tester, cashOutSms);
+
+      await tester.tap(pasteSms);
+      await tester.pumpAndSettle();
+
+      final notice = tester.widget<Text>(
+        find.byKey(const ValueKey('form-notice')),
+      );
+      expect(notice.data, contains('Transfer of ৳500.00'));
+      expect(notice.data, contains('your only one of this kind'));
+    });
+
+    testWithDatabase('says when the SMS does not tell the account', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await insertTestAccount(db, name: 'Cash');
+      await insertTestAccount(
+        db,
+        name: 'bKash',
+        type: AccountType.mobileBanking,
+      );
+      await insertTestAccount(
+        db,
+        name: 'Nagad',
+        type: AccountType.mobileBanking,
+      );
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+      copied(
+        tester,
+        'You have received Tk 500.00 from 01712345678. TrxID 9GH7K2L2',
+      );
+
+      await tester.tap(pasteSms);
+      await tester.pumpAndSettle();
+
+      expect(find.textContaining('does not say which account'), findsOneWidget);
+      expect(find.textContaining('Income of ৳500.00'), findsOneWidget);
     });
 
     testWithDatabase('asks to copy the SMS when nothing is copied', (

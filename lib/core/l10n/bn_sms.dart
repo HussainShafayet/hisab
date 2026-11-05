@@ -1,15 +1,25 @@
 /// Bangla for filling the add form from a pasted bKash, Nagad or bank SMS.
 const bnSms = <String, String>{
-  'Already in your records: {amount} on {day}.':
-      'এটা আপনার হিসাবে আগেই আছে: {day}, {amount}।',
+  'Add anyway': 'তবুও যোগ করুন',
+  'Already added': 'আগেই যোগ করা আছে',
+  'An entry like this is already there:': 'এরকম একটি লেনদেন আগেই আছে:',
   'Bill': 'বিল',
   'Cash in': 'ক্যাশ ইন',
   'Cash out': 'ক্যাশ আউট',
   'Copy the bKash, Nagad or bank SMS first, then tap here.':
       'আগে বিকাশ, নগদ বা ব্যাংকের এসএমএসটি কপি করুন, তারপর এখানে ট্যাপ করুন।',
   'Debited': 'কাটা হয়েছে',
-  'Filled in from the SMS. Check it and save.':
-      'এসএমএস থেকে পূরণ হয়েছে। দেখে নিয়ে সেভ করুন।',
+  'Account: {name}.': 'অ্যাকাউন্ট: {name}।',
+  'Account: {name}, your only one of this kind. Check it.':
+      'অ্যাকাউন্ট: {name}, এই ধরনের আপনার একটিই আছে। দেখে নিন।',
+  'Check it and save.': 'দেখে নিয়ে সেভ করুন।',
+  'Maybe already added': 'হয়তো আগেই যোগ করা আছে',
+  'Open it': 'খুলে দেখুন',
+  'Read from the SMS: {type} of {amount}.':
+      'এসএমএস থেকে পড়া হয়েছে: {type}, {amount}।',
+  'The SMS does not say which account. Choose the account below.':
+      'এসএমএসে কোন অ্যাকাউন্ট তা লেখা নেই। নিচে অ্যাকাউন্টটি বেছে নিন।',
+  'This SMS is already in your records:': 'এই এসএমএস আপনার হিসাবে আগেই আছে:',
   'Mobile recharge': 'মোবাইল রিচার্জ',
   'Payment': 'পেমেন্ট',
   'Received': 'পেয়েছেন',

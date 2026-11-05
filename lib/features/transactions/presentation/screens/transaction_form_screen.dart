@@ -43,6 +43,8 @@ import 'package:hishab/features/transactions/domain/note_suggestion.dart';
 import 'package:flutter/services.dart';
 import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/features/transactions/data/note_queries.dart';
+import 'package:hishab/features/transactions/data/sms_memory.dart';
+import 'package:hishab/features/transactions/domain/sms_duplicate.dart';
 import 'package:hishab/features/transactions/domain/sms_entry.dart';
 import 'package:hishab/features/transactions/domain/sms_plan.dart';
 import 'package:hishab/core/utils/date_labels.dart';
@@ -185,6 +187,12 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   /// snack bar would cover the Save buttons.
   String? _notice;
 
+  /// What kind of SMS filled the form (`SmsEntry.source`), and whether the
+  /// service's account is the transfer's second one. When the entry is saved,
+  /// the account the person ended with is remembered for that kind.
+  String? _smsSource;
+  bool _smsWalletIsTo = false;
+
   bool get _isEditing => widget.args.editId != null;
   bool get _isAdding => widget.data.source == null;
   TransactionFormData get _data => widget.data;
@@ -285,8 +293,9 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     FocusScope.of(context).unfocus();
   }
 
-  /// Fills the form from the SMS on the clipboard (bKash, Nagad, a bank...),
-  /// unless its transaction id is already in a note, which means it was added.
+  /// Fills the form from the SMS on the clipboard (bKash, Nagad, a bank...).
+  /// An SMS that is already in the records (its transaction id is in a note)
+  /// is not filled; one that looks like an entry already there is asked about.
   Future<void> _pasteSms() async {
     final data = await Clipboard.getData(Clipboard.kTextPlain);
     final text = (data?.text ?? '').trim();
@@ -304,28 +313,132 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       });
       return;
     }
+    final db = ref.read(appDatabaseProvider);
+    final repository = ref.read(transactionsRepositoryProvider);
+    final remembered = await readSmsAccounts(db);
+    if (!mounted) return;
+    final plan = planSms(
+      sms,
+      _data.options.accounts,
+      currentAccountId: _accountId,
+      remembered: remembered,
+    );
+
     final id = sms.trxId;
     if (id != null) {
-      final found = await ref.read(appDatabaseProvider).entryWithNote(id);
+      final found = await db.entryWithNote(id);
       if (!mounted) return;
       if (found != null) {
-        setState(() {
-          _notice = null;
-          _error = tr('Already in your records: {amount} on {day}.', {
-            'amount': formatPoisha(found.amount),
-            'day': dayLabel(found.date.toLocal(), ref.read(clockProvider)()),
-          });
-        });
+        await _showAlreadyAdded(
+          id: found.id,
+          amount: found.amount,
+          date: found.date.toLocal(),
+          accountId: found.accountId,
+          note: found.note,
+          exact: true,
+        );
         return;
       }
     }
-    _applySms(sms);
+
+    final today = dateOnly(ref.read(clockProvider)());
+    final day = sms.date != null && !sms.date!.isAfter(today)
+        ? sms.date!
+        : today;
+    final sameDay = await repository.getBetween(
+      day,
+      DateTime(day.year, day.month, day.day + 1),
+    );
+    if (!mounted) return;
+    final twin = sameEntryAs(
+      sameDay,
+      type: plan.type,
+      amount: plan.amount,
+      accountId: plan.accountId ?? _accountId,
+    );
+    if (twin != null) {
+      final addAnyway = await _showAlreadyAdded(
+        id: twin.id,
+        amount: twin.amount,
+        date: twin.date,
+        accountId: twin.accountId,
+        note: twin.note,
+        exact: false,
+      );
+      if (addAnyway != true || !mounted) return;
+    }
+    _applySms(sms, plan);
   }
 
-  void _applySms(SmsEntry sms) {
+  String _accountName(int? id) =>
+      _data.options.accounts.where((a) => a.id == id).firstOrNull?.name ?? '?';
+
+  /// Says an SMS is (or looks) already added and offers to open that entry.
+  /// For a look-alike (not [exact]) the person may add it anyway; true when
+  /// they chose that.
+  Future<bool?> _showAlreadyAdded({
+    required int id,
+    required int amount,
+    required DateTime date,
+    required int accountId,
+    required String note,
+    required bool exact,
+  }) async {
+    final now = ref.read(clockProvider)();
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        key: const ValueKey('sms-already-added'),
+        title: Text(exact ? tr('Already added') : tr('Maybe already added')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              exact
+                  ? tr('This SMS is already in your records:')
+                  : tr('An entry like this is already there:'),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${formatPoisha(amount)} · ${dayLabel(date, now)} · '
+              '${_accountName(accountId)}',
+              style: Theme.of(context).textTheme.titleSmall,
+            ),
+            if (note.trim().isNotEmpty) Text(note),
+          ],
+        ),
+        actions: [
+          TextButton(
+            key: const ValueKey('sms-cancel'),
+            onPressed: () => Navigator.pop(context, 'cancel'),
+            child: Text(tr('Cancel')),
+          ),
+          if (!exact)
+            TextButton(
+              key: const ValueKey('sms-add-anyway'),
+              onPressed: () => Navigator.pop(context, 'add'),
+              child: Text(tr('Add anyway')),
+            ),
+          FilledButton(
+            key: const ValueKey('sms-open-entry'),
+            onPressed: () => Navigator.pop(context, 'open'),
+            child: Text(tr('Open it')),
+          ),
+        ],
+      ),
+    );
+    if (!mounted) return null;
+    if (choice == 'open') {
+      await context.push(AppRoutes.editTransaction(id));
+      return false;
+    }
+    return choice == 'add';
+  }
+
+  void _applySms(SmsEntry sms, SmsPlan plan) {
     final options = _data.options;
     final now = ref.read(clockProvider)();
-    final plan = planSms(sms, options.accounts, currentAccountId: _accountId);
 
     // What the SMS says is left, against what the app would show after this.
     final balances = ref.read(accountsProvider(false)).value ?? const [];
@@ -353,6 +466,25 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ? null
         : parseQuickEntry(hint, options, today: dateOnly(now)).category;
 
+    final typeName = switch (plan.type) {
+      TransactionType.expense => tr('Expense'),
+      TransactionType.income => tr('Income'),
+      TransactionType.transfer => tr('Transfer'),
+    };
+    final name = _accountName(plan.walletId);
+    final accountNote = switch (plan.accountSource) {
+      SmsAccountSource.named ||
+      SmsAccountSource.remembered ||
+      SmsAccountSource.matched => tr('Account: {name}.', {'name': name}),
+      SmsAccountSource.onlyOne => tr(
+        'Account: {name}, your only one of this kind. Check it.',
+        {'name': name},
+      ),
+      SmsAccountSource.unknown => tr(
+        'The SMS does not say which account. Choose the account below.',
+      ),
+    };
+
     setState(() {
       _type = plan.type;
       _categoryId = category?.id;
@@ -364,10 +496,17 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       _note.text = _smsNote(sms);
       final day = sms.date;
       if (day != null && !day.isAfter(dateOnly(now))) _day = day;
+      _smsSource = sms.source;
+      _smsWalletIsTo = plan.walletIsTo;
       _error = null;
       _notice = [
-        tr('Filled in from the SMS. Check it and save.'),
+        tr('Read from the SMS: {type} of {amount}.', {
+          'type': typeName,
+          'amount': formatPoisha(plan.amount),
+        }),
+        accountNote,
         ?balanceNote,
+        tr('Check it and save.'),
       ].join(' ');
     });
     FocusScope.of(context).unfocus();
@@ -566,6 +705,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         await repository.updateTransaction(widget.args.editId!, input);
       } else {
         await repository.addTransaction(input, fee: fee);
+        await _rememberSmsAccount();
       }
       return true;
     } on Object catch (e) {
@@ -576,6 +716,19 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         });
       }
       return false;
+    }
+  }
+
+  /// After an entry made from an SMS is saved, remembers the account the
+  /// person ended with for that kind of SMS, so the next one goes there.
+  Future<void> _rememberSmsAccount() async {
+    final source = _smsSource;
+    final wallet = _smsWalletIsTo ? _toAccountId : _accountId;
+    if (source == null || wallet == null) return;
+    try {
+      await rememberSmsAccount(ref.read(appDatabaseProvider), source, wallet);
+    } on Object {
+      // Remembering is a convenience; the entry is saved either way.
     }
   }
 
@@ -601,6 +754,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       _setAmountText('');
       _categoryId = null;
       _saving = false;
+      _smsSource = null;
       _notice = tr('Saved {amount}. Add the next one.', {'amount': saved});
       _note.clear();
       _fee.clear();
