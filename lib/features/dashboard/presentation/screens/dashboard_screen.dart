@@ -53,6 +53,12 @@ class DashboardScreen extends ConsumerWidget {
       appBar: AppBar(
         title: Text(tr('Home')),
         actions: [
+          IconButton(
+            key: const ValueKey('home-search'),
+            tooltip: tr('Search everything'),
+            icon: const Icon(Icons.search),
+            onPressed: () => context.push(AppRoutes.search),
+          ),
           const NotificationBell(),
           const HelpButton('home'),
           IconButton(

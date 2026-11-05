@@ -96,6 +96,9 @@ abstract final class AppRoutes {
   // Full-screen, opened above the bottom navigation.
   static const addTransaction = '/add';
 
+  /// One box that searches transactions, accounts, categories and loans.
+  static const search = '/search';
+
   /// The transactions that match a filter given with the route (opened from a
   /// report or a budget), on a screen of their own.
   static const entries = '/entries';

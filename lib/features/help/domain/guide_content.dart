@@ -37,6 +37,7 @@ const guideTopics = <GuideTopic>[
         'Money is always in takka. Amounts keep their paisa, like ৳1,250.50.',
         'Every screen has a ? button at the top. It opens the guide for that screen.',
         'Hishab is made for how money moves in Bangladesh: bKash and Nagad messages, dhar and baki, Eid funds, zakat in bhori and ana, and a screen in Bangla.',
+        'The search button at the top of Home looks through all your transactions, accounts, categories and loans at once. Tap a result to open it.',
         'The More tab has a search box at the top: type zakat, loans or backup to find a place without scrolling.',
         'More also lists the places you opened lately, and shows a short note on a tile when something needs a look, like loans that are late or no backup yet.',
         'If you go back from a form with something typed, Hishab asks before it throws the typing away.',

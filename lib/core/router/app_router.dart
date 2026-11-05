@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/features/search/presentation/screens/global_search_screen.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/open_entries.dart';
 import 'package:hishab/core/l10n/translator.dart';
@@ -505,6 +506,11 @@ final routerProvider = Provider<GoRouter>((ref) {
           startType: TransactionType.values
               .asNameMap()[state.uri.queryParameters['type']],
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.search,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const GlobalSearchScreen(),
       ),
       GoRoute(
         path: AppRoutes.entries,
