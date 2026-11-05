@@ -2,6 +2,9 @@ import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/features/reports/presentation/report_links.dart';
+import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/date_labels.dart';
@@ -38,8 +41,12 @@ class ReportSummaryCard extends ConsumerWidget {
     required this.previousTotals,
     required this.previousLabel,
     this.days = 0,
+    this.range,
     super.key,
   });
+
+  /// The period, so a tap on Income or Expense can list its entries.
+  final DateRange? range;
 
   /// How many days the period has, for the daily average. 0 leaves it out.
   final int days;
@@ -67,6 +74,14 @@ class ReportSummaryCard extends ConsumerWidget {
             Row(
               children: [
                 _Figure(
+                  onTap: range == null || incomeHidden
+                      ? null
+                      : () => ReportLinks.type(
+                          context,
+                          title: tr('Income'),
+                          type: TransactionType.income,
+                          range: range!,
+                        ),
                   label: tr('Income'),
                   amount: totals.income,
                   color: colors.income,
@@ -80,6 +95,14 @@ class ReportSummaryCard extends ConsumerWidget {
                       : null,
                 ),
                 _Figure(
+                  onTap: range == null
+                      ? null
+                      : () => ReportLinks.type(
+                          context,
+                          title: tr('Expense'),
+                          type: TransactionType.expense,
+                          range: range!,
+                        ),
                   label: tr('Expense'),
                   amount: totals.expense,
                   color: colors.expense,
@@ -166,7 +189,11 @@ class _Figure extends StatelessWidget {
     required this.amount,
     required this.color,
     this.hidden,
+    this.onTap,
   });
+
+  /// Lists the entries behind the figure.
+  final VoidCallback? onTap;
 
   final String label;
   final int amount;
@@ -179,27 +206,35 @@ class _Figure extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Expanded(
-      child: Column(
-        children: [
-          Text(
-            label,
-            style: theme.textTheme.labelMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 2),
-          hidden ??
-              FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  formatPoisha(amount),
-                  style: theme.textTheme.titleSmall?.tabular.copyWith(
-                    color: color,
-                    fontWeight: FontWeight.w600,
-                  ),
+      child: InkWell(
+        key: ValueKey('figure-$label'),
+        borderRadius: BorderRadius.circular(8),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            children: [
+              Text(
+                label,
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
                 ),
               ),
-        ],
+              const SizedBox(height: 2),
+              hidden ??
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      formatPoisha(amount),
+                      style: theme.textTheme.titleSmall?.tabular.copyWith(
+                        color: color,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -289,8 +324,12 @@ class CategoryPieCard extends ConsumerStatefulWidget {
   const CategoryPieCard({
     required this.categories,
     this.incomeCategories = const [],
+    this.range,
     super.key,
   });
+
+  /// The period, so a tap on a category can list its entries.
+  final DateRange? range;
 
   /// Spending by category, biggest first.
   final List<CategoryTotal> categories;
@@ -406,7 +445,22 @@ class _CategoryPieCardState extends ConsumerState<CategoryPieCard> {
               ),
               const SizedBox(height: 12),
               for (final slice in slices)
-                _LegendRow(slice: slice, total: total),
+                _LegendRow(
+                  slice: slice,
+                  total: total,
+                  onTap: widget.range == null || slice.categoryId == null
+                      ? null
+                      : () => ReportLinks.category(
+                          context,
+                          ref,
+                          categoryId: slice.categoryId!,
+                          name: slice.label,
+                          range: widget.range!,
+                          type: showIncome
+                              ? TransactionType.income
+                              : TransactionType.expense,
+                        ),
+                ),
             ],
           ],
         ),
@@ -416,53 +470,65 @@ class _CategoryPieCardState extends ConsumerState<CategoryPieCard> {
 }
 
 class _LegendRow extends StatelessWidget {
-  const _LegendRow({required this.slice, required this.total});
+  const _LegendRow({required this.slice, required this.total, this.onTap});
 
   final PieSlice slice;
   final int total;
 
+  /// Lists the entries of the category.
+  final VoidCallback? onTap;
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return Padding(
+    return InkWell(
       key: ValueKey('legend-${slice.categoryId ?? 'others'}'),
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(
-            width: 12,
-            height: 12,
-            decoration: BoxDecoration(
-              color: Color(slice.color),
-              shape: BoxShape.circle,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              slice.label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: theme.textTheme.bodyMedium,
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 40,
-            child: Text(
-              formatPercent(slice.amount, total),
-              textAlign: TextAlign.end,
-              style: theme.textTheme.bodySmall?.tabular.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        child: Row(
+          children: [
+            Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: Color(slice.color),
+                shape: BoxShape.circle,
               ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            formatPoisha(slice.amount),
-            style: theme.textTheme.bodyMedium?.tabular,
-          ),
-        ],
+            const SizedBox(width: 8),
+            Expanded(
+              child: Text(
+                slice.label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodyMedium,
+              ),
+            ),
+            const SizedBox(width: 8),
+            SizedBox(
+              width: 40,
+              child: Text(
+                formatPercent(slice.amount, total),
+                textAlign: TextAlign.end,
+                style: theme.textTheme.bodySmall?.tabular.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(
+              formatPoisha(slice.amount),
+              style: theme.textTheme.bodyMedium?.tabular,
+            ),
+            if (onTap != null)
+              Icon(
+                Icons.chevron_right,
+                size: 18,
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -659,7 +725,10 @@ class TopExpensesCard extends StatelessWidget {
 
 /// Income and expense of each account in the period.
 class AccountBreakdownCard extends ConsumerWidget {
-  const AccountBreakdownCard({required this.accounts, super.key});
+  const AccountBreakdownCard({required this.accounts, this.range, super.key});
+
+  /// The period, so a tap on an account can list its entries.
+  final DateRange? range;
 
   /// The busiest first.
   final List<AccountTotal> accounts;
@@ -688,51 +757,70 @@ class AccountBreakdownCard extends ConsumerWidget {
                 ),
               ),
             for (final account in accounts)
-              Padding(
+              InkWell(
                 key: ValueKey('account-total-${account.accountId}'),
-                padding: const EdgeInsets.symmetric(vertical: 6),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        account.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.bodyMedium,
+                onTap: range == null
+                    ? null
+                    : () => ReportLinks.account(
+                        context,
+                        accountId: account.accountId,
+                        name: account.name,
+                        range: range!,
                       ),
-                    ),
-                    const SizedBox(width: 8),
-                    Flexible(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          if (account.income > 0)
-                            incomeHidden
-                                ? HiddenIncome(
-                                    style: theme.textTheme.bodySmall?.tabular
-                                        .copyWith(color: colors.income),
-                                  )
-                                : FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    child: Text(
-                                      '+${formatPoisha(account.income)}',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 6),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          account.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.bodyMedium,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            if (account.income > 0)
+                              incomeHidden
+                                  ? HiddenIncome(
                                       style: theme.textTheme.bodySmall?.tabular
                                           .copyWith(color: colors.income),
+                                    )
+                                  : FittedBox(
+                                      fit: BoxFit.scaleDown,
+                                      child: Text(
+                                        '+${formatPoisha(account.income)}',
+                                        style: theme
+                                            .textTheme
+                                            .bodySmall
+                                            ?.tabular
+                                            .copyWith(color: colors.income),
+                                      ),
                                     ),
-                                  ),
-                          if (account.expense > 0)
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              child: Text(
-                                formatPoisha(-account.expense),
-                                style: theme.textTheme.bodySmall?.tabular
-                                    .copyWith(color: colors.expense),
+                            if (account.expense > 0)
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  formatPoisha(-account.expense),
+                                  style: theme.textTheme.bodySmall?.tabular
+                                      .copyWith(color: colors.expense),
+                                ),
                               ),
-                            ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                  ],
+                      if (range != null)
+                        Icon(
+                          Icons.chevron_right,
+                          size: 18,
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                    ],
+                  ),
                 ),
               ),
           ],

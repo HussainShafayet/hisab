@@ -111,6 +111,8 @@ class AppDatabase extends _$AppDatabase {
   /// 4: the `debts` and `debt_payments` tables (dhar / baki).
   /// 5: the `recurring_rules` table.
   /// 6: `accounts.credit_limit` and `accounts.bill_due_day` (credit cards).
+  /// 19: no new columns; the default categories were split and de-duplicated
+  /// (see `refreshDefaultCategories`).
   /// 18: no new columns; moves the default "Kids pocket money" category
   /// into "Children" (see `moveKidsPocketMoney`).
   /// 17: the `import_batches` table and `transactions.import_batch_id` (undo a
@@ -129,7 +131,7 @@ class AppDatabase extends _$AppDatabase {
   /// 7: `transactions.usd_amount` and `accounts.usd_limit` (dollar spending
   /// on credit cards).
   @override
-  int get schemaVersion => 18;
+  int get schemaVersion => 19;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -220,6 +222,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 18) {
         await moveKidsPocketMoney(this);
+      }
+      if (from < 19) {
+        await refreshDefaultCategories(this);
       }
     },
     beforeOpen: (details) async {

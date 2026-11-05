@@ -279,7 +279,10 @@ void main() {
       await makeCard(db, owed: 50000, limit: 200000, day: 15);
       await pumpAppWithDatabase(tester, db);
       await openFromMore(tester, 'Accounts');
-      await tester.tap(find.text('Visa'));
+      // A tap on the card opens its page; Edit is in the card's menu.
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit'));
       await tester.pumpAndSettle();
 
       expect(
@@ -311,7 +314,10 @@ void main() {
       final id = await makeCard(db);
       await pumpAppWithDatabase(tester, db);
       await openFromMore(tester, 'Accounts');
-      await tester.tap(find.text('Visa'));
+      // A tap on the card opens its page; Edit is in the card's menu.
+      await tester.tap(find.byIcon(Icons.more_vert));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Edit'));
       await tester.pumpAndSettle();
 
       await tester.tap(find.byKey(const ValueKey('type-bank')));

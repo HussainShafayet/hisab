@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
@@ -13,6 +14,7 @@ import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/features/investments/presentation/providers/investments_providers.dart';
 import 'package:hishab/features/investments/presentation/widgets/investment_entry_dialog.dart';
 import 'package:hishab/features/investments/presentation/widgets/investment_format.dart';
+import 'package:hishab/features/investments/presentation/widgets/investment_facts_card.dart';
 import 'package:hishab/features/investments/presentation/widgets/investment_summary.dart';
 import 'package:intl/intl.dart';
 
@@ -192,6 +194,11 @@ class _Detail extends ConsumerWidget {
                 key: 'investment-value',
               ),
             ],
+          ),
+          InvestmentFactsCard(
+            item: item,
+            entries: entries,
+            today: ref.watch(clockProvider)(),
           ),
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),

@@ -103,5 +103,89 @@ void main() {
 
       expect(sms.date, isNull);
     });
+
+    test('reads a Bangla message with Bangla digits', () {
+      final sms = parseSms(
+        'আপনি 500.00 টাকা পেয়েছেন 01712345678 থেকে। ফি 0.00 টাকা। '
+        'ব্যালেন্স 1,২00.00 টাকা। TrxID 9GH7K2L2 তারিখ ১০/১০/২০২৬',
+      )!;
+
+      expect(sms.kind, SmsKind.received);
+      expect(sms.amount, 50000);
+      expect(sms.fee, 0);
+      expect(sms.balance, 120000);
+      expect(sms.trxId, '9GH7K2L2');
+      expect(sms.date, DateTime(2026, 10, 10));
+    });
+
+    test('reads Cash-Out with a hyphen', () {
+      final sms = parseSms(
+        'Cash-Out Tk 300.00 to 01712345678. Fee Tk 5.50. Balance Tk 100.00. '
+        'TrxID ABC12345',
+      )!;
+
+      expect(sms.kind, SmsKind.cashOut);
+      expect(sms.amount, 30000);
+      expect(sms.fee, 550);
+    });
+
+    test('reads deducted as a debit, and the A/C digits', () {
+      final sms = parseSms(
+        'Your A/C XXXX1234 has been deducted BDT 800.00 at SHWAPNO',
+      )!;
+
+      expect(sms.kind, SmsKind.debited);
+      expect(sms.amount, 80000);
+      expect(sms.accountHint, '1234');
+      expect(sms.bankLike, isTrue);
+      expect(sms.source, 'ac1234');
+    });
+
+    test('reads figures that only carry a label', () {
+      final sms = parseSms(
+        'Money Received. Amount: 300.00 Fee: 5.00 Balance: 900.00 '
+        'TrxID: 7XYZ99AA',
+      )!;
+
+      expect(sms.kind, SmsKind.received);
+      expect(sms.amount, 30000);
+      expect(sms.fee, 500);
+      expect(sms.balance, 90000);
+    });
+
+    test('an ATM withdrawal is a cash out from a bank', () {
+      final sms = parseSms(
+        'Tk 5,000.00 withdrawn from ATM using card ending 4321',
+      )!;
+
+      expect(sms.kind, SmsKind.cashOut);
+      expect(sms.amount, 500000);
+      expect(sms.bankLike, isTrue);
+      expect(sms.accountHint, '4321');
+    });
+
+    test('a credit card purchase is spending, not income', () {
+      final sms = parseSms(
+        'Your credit card was used for purchase of BDT 2,500.00 at DARAZ',
+      )!;
+
+      expect(sms.kind, SmsKind.payment);
+      expect(sms.amount, 250000);
+    });
+
+    test('tells the kind of sender when the service is not named', () {
+      final named = parseSms(
+        'bKash: You have received Tk 500.00 from 01712345678. '
+        'TrxID 9GH7K2L2',
+      )!;
+      final unnamed = parseSms(
+        'You have received Tk 500.00 from 01712345678. TrxID 9GH7K2L2',
+      )!;
+
+      expect(named.source, 'bkash');
+      expect(unnamed.provider, isNull);
+      expect(unnamed.source, 'id-trxid');
+      expect(unnamed.bankLike, isFalse);
+    });
   });
 }

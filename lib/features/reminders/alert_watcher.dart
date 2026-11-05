@@ -1,5 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/database/database_provider.dart';
+import 'package:hishab/core/notifications/alert_sound_mode.dart';
 import 'package:hishab/core/notifications/reminder_scheduler.dart';
 import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/dates.dart';
@@ -33,6 +34,7 @@ final alertWatcherProvider = FutureProvider<void>((ref) async {
   final now = ref.read(clockProvider)();
   final seen = ref.read(_seenProvider);
 
+  final overrides = alertSoundOverrides(await db.settingsDao.getAll());
   final latest = await db.latestEntry();
   final isNew = seen.started && latest != null && latest.id > (seen.id ?? 0);
   seen.started = true;
@@ -66,7 +68,11 @@ final alertWatcherProvider = FutureProvider<void>((ref) async {
           now: now,
         );
         if (alert != null) {
-          await scheduler.showNow(alert, funSounds: preferences.funSounds);
+          await scheduler.showNow(
+            alert,
+            funSounds: preferences.funSounds,
+            overrides: overrides,
+          );
           await log.recordShown(alert, now);
         }
       }
@@ -89,7 +95,11 @@ final alertWatcherProvider = FutureProvider<void>((ref) async {
         total: stats.total,
         now: now,
       );
-      await scheduler.showNow(alert, funSounds: preferences.funSounds);
+      await scheduler.showNow(
+        alert,
+        funSounds: preferences.funSounds,
+        overrides: overrides,
+      );
       await log.recordShown(alert, now);
     }
   }

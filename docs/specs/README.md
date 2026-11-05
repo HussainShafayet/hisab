@@ -66,6 +66,19 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [backup](backup/) | [Backup to Google Drive](backup/google-drive-backup.md) | 19b |
 | [bazar](bazar/) | [Bazar list from a Google Form](bazar/google-form-inbox.md) | 19b |
 | [budget](budget/) | [Where a category budget sits](budget/category-placement.md) | 24 |
+| [categories](categories/) | [Split categories, one place for each thing](categories/split-and-deduplicate.md) | 34 |
+| [transactions](transactions/) | [List overview and balance by kind](transactions/list-overview.md) | 26 |
+| [accounts](accounts/) | [Account page and the month on each card](accounts/account-page.md) | 27 |
+| [budget](budget/) | [Plan, projection and spending with no budget](budget/plan-and-unbudgeted.md) | 28 |
+| [reports](reports/) | [Every number opens its entries, and highlights](reports/drill-down-and-highlights.md) | 29 |
+| [debts](debts/) | [Loans: net, coming up, search, sort, pay in parts](debts/net-upcoming-payoff.md) | 30 |
+| [insights](insights/) | [More insights, habits and a tip of the day](insights/insights-habits-tips.md) | 31 |
+| [investments](investments/) | [How long, how fast, and the list](investments/how-it-is-going.md) | 32 |
+| [settings](settings/) | [The More list](settings/more-list.md) | 33 |
+| [settings](settings/) | [Alert sounds: choose, hear, find out why](settings/alert-sounds.md) | 35 |
+| [dashboard](dashboard/) | [Setup checklist and choosing what Home shows](dashboard/setup-and-layout.md) | 36 |
+| [search](search/) | [Search everything](search/global-search.md) | 38 |
+| [core](core/) | [Launcher shortcuts and the empty report](core/launcher-shortcuts.md) | 38 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

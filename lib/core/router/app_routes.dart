@@ -15,6 +15,7 @@ abstract final class AppRoutes {
   static const backup = '/more/backup';
   static const importCsv = '/more/backup/import-csv';
   static const settings = '/more/settings';
+  static const alertSounds = '/more/settings/alerts';
   static const dataCheck = '/more/data-check';
   static const debts = '/more/debts';
   static const tags = '/more/tags';
@@ -76,6 +77,14 @@ abstract final class AppRoutes {
   static const newAccount = '/more/accounts/new';
   static String editAccount(int id) => '/more/accounts/$id';
 
+  /// An account's month: what came in and went out, and its entries.
+  static String accountDetails(int id) => '/more/accounts/$id/details';
+
+  /// A new transaction that starts on [accountId], as an expense, income or
+  /// transfer ([type] is the name of a transaction type).
+  static String addOnAccount(int accountId, {String? type}) =>
+      '/add?account=$accountId${type == null ? '' : '&type=$type'}';
+
   /// [type] is a `CategoryType` name (`expense` or `income`). Pass [parentId]
   /// to add a sub-category.
   static String newCategory({String? type, int? parentId}) => Uri(
@@ -86,6 +95,13 @@ abstract final class AppRoutes {
 
   // Full-screen, opened above the bottom navigation.
   static const addTransaction = '/add';
+
+  /// One box that searches transactions, accounts, categories and loans.
+  static const search = '/search';
+
+  /// The transactions that match a filter given with the route (opened from a
+  /// report or a budget), on a screen of their own.
+  static const entries = '/entries';
 
   /// Several transactions on one screen, saved with one tap.
   static const addSeveral = '/add/several';
@@ -110,6 +126,7 @@ abstract final class AppRoutes {
   static const zakat = '/more/zakat';
   static const metals = '/more/metals';
   static const badges = '/more/badges';
+  static const insights = '/more/insights';
 
   /// The wrapped of the month that holds [month]; this month's (or the one
   /// just over) when null.

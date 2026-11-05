@@ -424,5 +424,38 @@ void main() {
         },
       );
     });
+
+    test('a combined name next to the things it names is listed', () {
+      final result = check(
+        [],
+        categories: [
+          category(1, 'Transport'),
+          category(2, 'Bus & rickshaw', parentId: 1),
+          category(3, 'Bus', parentId: 1),
+          category(4, 'Rickshaw', parentId: 1),
+          category(5, 'Gifts & more', parentId: 1),
+        ],
+      );
+      expect(
+        [
+          for (final p in result.similarCategories) {p.first.id, p.second.id},
+        ],
+        [
+          {2, 3},
+          {2, 4},
+        ],
+      );
+    });
+
+    test('a combined name alone is not listed', () {
+      final result = check(
+        [],
+        categories: [
+          category(1, 'Transport'),
+          category(2, 'Bus & rickshaw', parentId: 1),
+        ],
+      );
+      expect(result.similarCategories, isEmpty);
+    });
   });
 }

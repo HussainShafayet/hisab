@@ -392,6 +392,17 @@ class SettingsScreen extends ConsumerWidget {
                 onChanged: (value) =>
                     _change(ref, (p) => p.copyWith(funSounds: value)),
               ),
+              ListTile(
+                key: const ValueKey('alert-sounds'),
+                contentPadding: EdgeInsets.zero,
+                leading: const Icon(Icons.tune),
+                title: Text(tr('Alert sounds')),
+                subtitle: Text(
+                  tr('Choose the sound of each alert, and hear it.'),
+                ),
+                trailing: const Icon(Icons.chevron_right),
+                onTap: () => context.push(AppRoutes.alertSounds),
+              ),
               SwitchListTile(
                 key: const ValueKey('budget-alerts'),
                 contentPadding: EdgeInsets.zero,

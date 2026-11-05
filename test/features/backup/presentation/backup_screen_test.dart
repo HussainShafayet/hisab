@@ -84,6 +84,7 @@ void main() {
   setUp(() => gateway = FakeFileGateway());
 
   testWithDatabase('lists what can be done', (tester, db) async {
+    useTallScreen(tester);
     await pumpAppWithDatabase(
       tester,
       db,

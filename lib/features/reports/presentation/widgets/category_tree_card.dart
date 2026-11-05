@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/features/reports/presentation/report_links.dart';
+import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/percent.dart';
@@ -16,8 +19,12 @@ class CategoryTreeCard extends ConsumerStatefulWidget {
   const CategoryTreeCard({
     required this.expense,
     required this.income,
+    this.range,
     super.key,
   });
+
+  /// The period, so a row can list its entries.
+  final DateRange? range;
 
   final List<CategoryBranch> expense;
   final List<CategoryBranch> income;
@@ -139,6 +146,19 @@ class _CategoryTreeCardState extends ConsumerState<CategoryTreeCard> {
                   grand: grand,
                   isOpen: _open.contains(row.branch.category.id),
                   onToggle: () => _toggle(row.branch.category.id),
+                  onOpen: widget.range == null
+                      ? null
+                      : () => ReportLinks.category(
+                          context,
+                          ref,
+                          categoryId: row.branch.category.id,
+                          name: row.branch.category.name,
+                          range: widget.range!,
+                          type: _income
+                              ? TransactionType.income
+                              : TransactionType.expense,
+                          ownOnly: row.isOwn,
+                        ),
                 ),
           ],
         ),
@@ -163,7 +183,11 @@ class _TreeRow extends StatelessWidget {
     required this.grand,
     required this.isOpen,
     required this.onToggle,
+    this.onOpen,
   });
+
+  /// Lists the entries behind the row.
+  final VoidCallback? onOpen;
 
   final _Row row;
   final int grand;
@@ -183,7 +207,7 @@ class _TreeRow extends StatelessWidget {
 
     return InkWell(
       key: ValueKey('tree-row-$id$suffix'),
-      onTap: hasChildren ? onToggle : null,
+      onTap: hasChildren ? onToggle : onOpen,
       borderRadius: BorderRadius.circular(8),
       child: Padding(
         padding: EdgeInsets.fromLTRB(row.depth * 16.0, 6, 0, 6),
@@ -236,6 +260,21 @@ class _TreeRow extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (onOpen != null && hasChildren)
+                  IconButton(
+                    key: ValueKey('tree-open-$id'),
+                    tooltip: tr('See the entries'),
+                    visualDensity: VisualDensity.compact,
+                    iconSize: 20,
+                    icon: const Icon(Icons.list_alt_outlined),
+                    onPressed: onOpen,
+                  )
+                else if (onOpen != null)
+                  Icon(
+                    Icons.chevron_right,
+                    size: 18,
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
               ],
             ),
             Padding(

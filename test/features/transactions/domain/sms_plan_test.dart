@@ -114,5 +114,71 @@ void main() {
       expect(plan.accountId, bank.id);
       expect(plan.balanceChange, -120000);
     });
+
+    test('uses the account remembered for this kind of message', () {
+      const sms = SmsEntry(
+        kind: SmsKind.received,
+        amount: 50000,
+        source: 'id-trxid',
+      );
+
+      final unknown = planSms(sms, [cash, bkash, nagad]);
+      expect(unknown.accountId, isNull);
+      expect(unknown.accountSource, SmsAccountSource.unknown);
+
+      final plan = planSms(
+        sms,
+        [cash, bkash, nagad],
+        remembered: {'id-trxid': nagad.id},
+      );
+      expect(plan.accountId, nagad.id);
+      expect(plan.accountSource, SmsAccountSource.remembered);
+    });
+
+    test('a named service wins over what was remembered', () {
+      const sms = SmsEntry(
+        kind: SmsKind.received,
+        amount: 50000,
+        provider: 'bkash',
+        source: 'bkash',
+      );
+
+      final plan = planSms(
+        sms,
+        [cash, bkash, nagad],
+        remembered: {'bkash': nagad.id},
+      );
+      expect(plan.accountId, bkash.id);
+      expect(plan.accountSource, SmsAccountSource.named);
+    });
+
+    test('finds the bank account by the digits of the A/C', () {
+      final city = account(5, 'City Bank 1234', AccountType.bank);
+      final brac = account(6, 'Brac 9999', AccountType.bank);
+      const sms = SmsEntry(
+        kind: SmsKind.debited,
+        amount: 80000,
+        accountHint: '1234',
+        bankLike: true,
+      );
+
+      final plan = planSms(sms, [cash, city, brac]);
+      expect(plan.accountId, city.id);
+      expect(plan.accountSource, SmsAccountSource.matched);
+    });
+
+    test('an ATM withdrawal moves money from the only bank to cash', () {
+      const sms = SmsEntry(
+        kind: SmsKind.cashOut,
+        amount: 500000,
+        bankLike: true,
+      );
+
+      final plan = planSms(sms, [cash, bkash, bank]);
+      expect(plan.type, TransactionType.transfer);
+      expect(plan.accountId, bank.id);
+      expect(plan.toAccountId, cash.id);
+      expect(plan.accountSource, SmsAccountSource.onlyOne);
+    });
   });
 }

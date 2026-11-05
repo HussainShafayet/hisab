@@ -33,7 +33,7 @@ void main() {
         funSounds: true,
       );
 
-      expect(fun.channelId, 'budget_over_fun');
+      expect(fun.channelId, 'budget_over_fun2');
       expect(fun.sound?.sound, 'alert_wah');
       expect(fun.channelName, 'Budget crossed (funny sound)');
     });

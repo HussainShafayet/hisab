@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">হিসাব</string>
+    <string name="shortcut_add_expense">খরচ যোগ</string>
+    <string name="shortcut_add_expense_long">খরচ যোগ করুন</string>
+    <string name="shortcut_add_income">আয় যোগ</string>
+    <string name="shortcut_add_income_long">আয় যোগ করুন</string>
+    <string name="shortcut_search">খুঁজুন</string>
+    <string name="shortcut_search_long">সবকিছুতে খুঁজুন</string>
 </resources>

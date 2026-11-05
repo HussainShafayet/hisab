@@ -31,6 +31,7 @@ class BudgetLimitDialog extends StatefulWidget {
   const BudgetLimitDialog({
     required this.title,
     this.initialAmount,
+    this.initialCategoryId,
     this.categoryChoices,
     this.canRemove = false,
     this.showNoCarry = false,
@@ -40,6 +41,9 @@ class BudgetLimitDialog extends StatefulWidget {
 
   final String title;
   final int? initialAmount;
+
+  /// The category the choice starts on, when [categoryChoices] has it.
+  final int? initialCategoryId;
   final List<BudgetCategoryChoice>? categoryChoices;
   final bool canRemove;
 
@@ -58,7 +62,10 @@ class _BudgetLimitDialogState extends State<BudgetLimitDialog> {
         ? ''
         : poishaToInput(widget.initialAmount!),
   );
-  int? _categoryId;
+  late int? _categoryId = widget.categoryChoices
+      ?.where((choice) => choice.id == widget.initialCategoryId)
+      .firstOrNull
+      ?.id;
   late bool _noCarry = widget.initialNoCarry;
   String? _error;
 

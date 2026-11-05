@@ -37,7 +37,10 @@ const guideTopics = <GuideTopic>[
         'Money is always in takka. Amounts keep their paisa, like ৳1,250.50.',
         'Every screen has a ? button at the top. It opens the guide for that screen.',
         'Hishab is made for how money moves in Bangladesh: bKash and Nagad messages, dhar and baki, Eid funds, zakat in bhori and ana, and a screen in Bangla.',
+        'The search button at the top of Home looks through all your transactions, accounts, categories and loans at once. Tap a result to open it.',
+        'Press and hold the Hishab icon on your phone to add an expense, add income or search without opening the app first.',
         'The More tab has a search box at the top: type zakat, loans or backup to find a place without scrolling.',
+        'More also lists the places you opened lately, and shows a short note on a tile when something needs a look, like loans that are late or no backup yet.',
         'If you go back from a form with something typed, Hishab asks before it throws the typing away.',
       ]),
     ],
@@ -82,6 +85,15 @@ const guideTopics = <GuideTopic>[
       GuideSection('Faster ways', [
         'Quick type: write one line like rickshaw 50 or bazar 450 bkash or +salary 30k, and the form fills itself. Add yesterday, gotokal or 2 days ago to set the day.',
         'Paste an SMS: copy a bKash, Nagad or bank message, then tap the SMS button beside the quick line. The amount, fee, account and day fill in, and the note keeps the TrxID, so the same SMS cannot be added twice. A cash out becomes a transfer to Cash with its fee. If the balance in the SMS is not what the app would show, you are told something may be missing.',
+        'After you paste an SMS, the notice tells you the type it read and which account it chose, and how sure it is. If it could not tell the account, choose it yourself: the app remembers your choice for the next SMS of the same kind. Bangla SMS work too.',
+        'If an SMS is already in your records, or an entry with the same amount, day and account is there, you are told and can open that entry instead of adding it again.',
+        'Is my data backed up? Open Backup & export: the card at the top says when Google Drive and this phone last saved a copy. Back up now saves one this second, and Check Drive looks in Drive and tells you what is there and whether it matches this phone.',
+        'On the Transactions tab, tap All, Expense, Income or Transfer to narrow the list; each shows how many there are. Under the summary you see how many entries, what you spend a day, your biggest expense and where most went. A category inside another shows its place, like Food › Kacha bazar.',
+        'On the add form, the strip under the account shows what each kind of account holds now (Cash, Mobile banking, Bank...), and marks the ones this transaction uses.',
+        'On Accounts, each card says what came in and went out this month. Tap a card to open that account: add an expense, income or transfer on it, and see every entry of any month with its In, Out and Net. The menu on the card still has Edit, Adjust balance and Archive.',
+        'On Reports, tap a number to see the entries behind it: Income or Expense at the top, a category in the pie or the tree, or an account. The Highlights card shows your biggest spending day, days with no spending, the average expense and which weekday takes most. Tap the biggest day to see what you spent that day.',
+        'On Loans, the top says how you stand (you will get more than you give, or the other way round), and Coming up lists the next loans to fall due. Use the search and sort buttons to find a person or put the biggest amount first. Open a loan and Pay it off in parts shows what to pay each month to finish in 3, 6 or 12 months.',
+        'Home has a Get started list until the first steps are done (an entry, a budget, a backup, Google Drive). The slider button at the top of Home chooses which parts Home shows.',
         'Note suggestions: as you type a note, notes from earlier entries appear under it. Tap one to fill the note, and the category and amount of that entry if they are still empty.',
         'In Add several, the calculator button in an amount adds up a sum like 1200+350 or 450×3 and puts the result in the amount.',
         'Add several: enter a handful of transactions on one screen and save them together. Paste lines turns lines like rickshaw 50 into rows.',
@@ -139,6 +151,7 @@ const guideTopics = <GuideTopic>[
         'Archive a category you no longer use. Old transactions keep it.',
       ]),
       GuideSection('Tidying up', [
+        'The categories are split so each thing has its own place: Bus and Rickshaw, not Bus & rickshaw. Medicine is in Health and clothes are in Shopping for everyone. To see who the money was for, use a tag. An older category that already has entries stays as it is; Data check shows it next to the new ones so you can merge them.',
         'Two names for the same thing? Open the menu of a category with no sub-categories and choose Merge into. Pick the category to keep. Its transactions, budgets, repeating entries and challenges move there, and the old one is archived. This cannot be undone here, so make a backup first if you are unsure.',
         'Move a category to another place from its Edit screen, under Inside. What is inside it goes with it.',
       ]),
@@ -156,6 +169,7 @@ const guideTopics = <GuideTopic>[
         'Open the Budget tab and set the overall limit for the month.',
         'Optionally set limits for single categories, like Food. Copy last month\'s budget to save time.',
         'Bars turn amber near the limit and red once it is crossed.',
+        'The budget also tells you where the month is heading (at this pace you will spend...), how much of it is planned in categories, and the spending that has no budget yet, with a button to give it one.',
         'A category budget counts everything inside the category too. The card shows where the category sits, says when a bigger budget also counts it, and warns when the budgets inside ask for more than its limit. The list button shows what was spent this month.',
       ]),
       GuideSection('Carrying over what is left', [
@@ -285,6 +299,10 @@ const guideTopics = <GuideTopic>[
     summary: 'Money put into a shop, farm or partnership: is it paying?',
     route: AppRoutes.investments,
     sections: [
+      GuideSection('How it is going', [
+        'Open an investment to see how long money has been in, how much of it has come back, about what it makes a year, and when all of it is back at the same pace. A chart shows the profit of each month.',
+        'On the list, tap All, Open or Closed to narrow it, and use the sort button to put the best return first.',
+      ]),
       GuideSection('Tracking one', steps: true, [
         'Add an investment with its name and the money you put in first.',
         'Open it to record more money put in, profit received, money taken back, and what it is worth now.',
@@ -368,6 +386,7 @@ const guideTopics = <GuideTopic>[
       GuideSection('The fun parts', [
         'Takka is a small coin who comments on your day. Fun mode in Settings turns Takka, jokes, confetti and the gentle motion on or off.',
         'Writing something every day grows your streak. Days with no spending count too. Badges reward milestones.',
+        'Insights & habits (More > For fun) shows everything Hishab has noticed this month, the things you spend on again and again with what they come to in a month, and a money tip for the day. Tap an insight to go to what it is about.',
         'Month wrapped is a short swipeable story of the month. Near the month\'s end it appears on Home. Share a card as a picture with the share button.',
       ]),
     ],
@@ -417,6 +436,7 @@ const guideTopics = <GuideTopic>[
       GuideSection('Controlling them', steps: true, [
         'Open Settings > Alerts. Each alert has its own switch.',
         'Funny alert sounds off means your phone\'s usual notification sound.',
+        'In Settings > Alerts > Alert sounds you can choose Funny, Phone\'s or Silent for each alert and tap Hear it to try it now. The screen also says if the phone has turned Hishab\'s notifications off. If you hear nothing, check that the phone is not on silent or Do not disturb.',
         'If a notification never shows up, check that notifications are allowed for Hishab in your phone\'s settings.',
       ]),
     ],

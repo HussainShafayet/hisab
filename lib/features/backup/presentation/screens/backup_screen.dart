@@ -17,6 +17,7 @@ import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 import 'package:hishab/features/backup/data/drive_gateway.dart';
 import 'package:hishab/features/backup/presentation/drive_texts.dart';
+import 'package:hishab/features/backup/presentation/widgets/backup_status_card.dart';
 
 enum _Delivery { save, share }
 
@@ -345,6 +346,7 @@ class _BackupScreenState extends ConsumerState<BackupScreen> {
         children: [
           ListView(
             children: [
+              const BackupStatusCard(),
               heading(tr('Backup')),
               ListTile(
                 key: const ValueKey('export-backup'),

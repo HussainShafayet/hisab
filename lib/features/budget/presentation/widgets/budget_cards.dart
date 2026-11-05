@@ -4,6 +4,8 @@ import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/core/utils/dates.dart';
+import 'package:hishab/features/budget/domain/budget_insights.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
 import 'package:hishab/features/budget/domain/budget_progress.dart';
 import 'package:hishab/features/budget/presentation/widgets/budget_progress_bar.dart';
@@ -66,6 +68,10 @@ class OverallBudgetCard extends StatelessWidget {
       month: month,
       today: today,
     );
+    // Only while the month is going: after it, the total is already known.
+    final projected = today.isBefore(addMonths(monthStart(month), 1))
+        ? projectedSpend(spent: progress.spent, month: month, today: today)
+        : null;
 
     return Card(
       key: const ValueKey('overall-budget'),
@@ -161,6 +167,31 @@ class OverallBudgetCard extends StatelessWidget {
                   style: theme.textTheme.bodySmall?.copyWith(
                     color: pace == BudgetPace.fast
                         ? context.financeColors.warning
+                        : theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+              if (projected != null) ...[
+                const SizedBox(height: 4),
+                Text(
+                  projected > progress.limit
+                      ? tr(
+                          'At this pace you will spend {amount}, {over} over '
+                          'the budget',
+                          {
+                            'amount': formatPoisha(projected),
+                            'over': formatPoisha(projected - progress.limit),
+                          },
+                        )
+                      : tr(
+                          'At this pace you will spend {amount}, within the '
+                          'budget',
+                          {'amount': formatPoisha(projected)},
+                        ),
+                  key: const ValueKey('overall-projection'),
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: projected > progress.limit
+                        ? theme.colorScheme.error
                         : theme.colorScheme.onSurfaceVariant,
                   ),
                 ),
@@ -319,6 +350,136 @@ class CategoryBudgetTile extends StatelessWidget {
                 ],
               ),
             ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// How much of the monthly budget the category budgets plan for, and a warning
+/// when they ask for more than there is.
+class BudgetPlanCard extends StatelessWidget {
+  const BudgetPlanCard({required this.allocation, super.key});
+
+  final BudgetAllocation allocation;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = context.financeColors;
+    final share = allocation.limit <= 0
+        ? 0.0
+        : (allocation.planned / allocation.limit).clamp(0.0, 1.0);
+    final over = allocation.over;
+    return Card(
+      key: const ValueKey('budget-plan'),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              tr('Planned in categories'),
+              style: theme.textTheme.labelLarge,
+            ),
+            const SizedBox(height: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                key: const ValueKey('plan-bar'),
+                value: share,
+                minHeight: 8,
+                color: over ? colors.expense : theme.colorScheme.primary,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              tr('{planned} of {limit} is planned', {
+                'planned': formatPoisha(allocation.planned),
+                'limit': formatPoisha(allocation.limit),
+              }),
+              style: theme.textTheme.bodyMedium,
+            ),
+            const SizedBox(height: 2),
+            Text(
+              over
+                  ? tr('The categories ask for {amount} more than the month.', {
+                      'amount': formatPoisha(-allocation.unplanned),
+                    })
+                  : tr('{amount} is not planned yet.', {
+                      'amount': formatPoisha(allocation.unplanned),
+                    }),
+              key: const ValueKey('plan-note'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: over
+                    ? theme.colorScheme.error
+                    : theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// Spending that no category budget covers, with a button to give the biggest
+/// groups a budget.
+class UnbudgetedCard extends StatelessWidget {
+  const UnbudgetedCard({
+    required this.spending,
+    required this.onSetBudget,
+    super.key,
+  });
+
+  final UnbudgetedSpending spending;
+
+  /// Asked to give a top-level category a budget.
+  final ValueChanged<int> onSetBudget;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      key: const ValueKey('budget-unbudgeted'),
+      margin: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(tr('Spent with no budget'), style: theme.textTheme.labelLarge),
+            const SizedBox(height: 4),
+            Text(
+              formatPoisha(spending.total),
+              key: const ValueKey('unbudgeted-total'),
+              style: theme.textTheme.titleLarge?.tabular,
+            ),
+            const SizedBox(height: 4),
+            for (final group in spending.top)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        '${group.name} · ${formatPoisha(group.total)}',
+                        key: ValueKey('unbudgeted-${group.categoryId}'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (group.categoryId != null)
+                      TextButton(
+                        key: ValueKey('set-budget-${group.categoryId}'),
+                        onPressed: () => onSetBudget(group.categoryId!),
+                        child: Text(tr('Set budget')),
+                      ),
+                  ],
+                ),
+              ),
           ],
         ),
       ),

@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/features/settings/presentation/providers/alert_sound_providers.dart';
 import 'package:hishab/core/notifications/alert_kind.dart';
 import 'package:hishab/core/notifications/reminder_scheduler.dart';
 import 'package:hishab/core/utils/clock.dart';
@@ -127,6 +128,8 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
   final debts = ref.watch(debtsProvider).value;
   // Runs again when the zakat day changes.
   ref.watch(zakatSettingsProvider);
+  // And when the sound of one alert is chosen.
+  final overrides = ref.watch(alertSoundOverridesProvider).value ?? const {};
   // And when an alert is switched on or off, its time changes, or the sound
   // changes (the sound belongs to the channel a reminder goes to).
   final (funSounds, dailyOn, dailyMinutes, wrappedOn) = ref.watch(
@@ -169,7 +172,7 @@ final reminderSyncProvider = FutureProvider<void>((ref) async {
   ];
   await ref
       .read(reminderSchedulerProvider)
-      .replaceAll(reminders, funSounds: funSounds);
+      .replaceAll(reminders, funSounds: funSounds, overrides: overrides);
   // The history behind the notification bell.
   await ref
       .read(notificationLogRepositoryProvider)

@@ -35,7 +35,19 @@ import 'package:hishab/core/l10n/bn_quick.dart';
 import 'package:hishab/core/l10n/bn_recurring.dart';
 import 'package:hishab/core/l10n/bn_rollover.dart';
 import 'package:hishab/core/l10n/bn_tree_totals.dart';
+import 'package:hishab/core/l10n/bn_backup_status.dart';
+import 'package:hishab/core/l10n/bn_account_detail.dart';
+import 'package:hishab/core/l10n/bn_budget_insights.dart';
+import 'package:hishab/core/l10n/bn_report_links.dart';
+import 'package:hishab/core/l10n/bn_loan_insights.dart';
+import 'package:hishab/core/l10n/bn_insights_plus.dart';
+import 'package:hishab/core/l10n/bn_investment_facts.dart';
+import 'package:hishab/core/l10n/bn_more.dart';
+import 'package:hishab/core/l10n/bn_alert_sounds.dart';
+import 'package:hishab/core/l10n/bn_setup.dart';
+import 'package:hishab/core/l10n/bn_search.dart';
 import 'package:hishab/core/l10n/bn_sms.dart';
+import 'package:hishab/core/l10n/bn_tx_overview.dart';
 import 'package:hishab/core/l10n/bn_split.dart';
 import 'package:hishab/core/l10n/bn_tags.dart';
 import 'package:hishab/core/l10n/bn_wrapped.dart';
@@ -80,6 +92,18 @@ const bnStrings = <String, String>{
   ...bnRollover,
   ...bnTreeTotals,
   ...bnSms,
+  ...bnSearch,
+  ...bnSetup,
+  ...bnAlertSounds,
+  ...bnMore,
+  ...bnInvestmentFacts,
+  ...bnInsightsPlus,
+  ...bnLoanInsights,
+  ...bnReportLinks,
+  ...bnBudgetInsights,
+  ...bnAccountDetail,
+  ...bnTxOverview,
+  ...bnBackupStatus,
   ...bnSplit,
   ...bnTags,
   ...bnWrapped,

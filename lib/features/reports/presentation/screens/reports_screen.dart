@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hishab/core/router/app_routes.dart';
+import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/clock.dart';
@@ -17,6 +19,7 @@ import 'package:hishab/features/notifications/presentation/widgets/notification_
 import 'package:hishab/features/reports/domain/report_data.dart';
 import 'package:hishab/features/reports/presentation/providers/reports_providers.dart';
 import 'package:hishab/features/reports/presentation/widgets/category_tree_card.dart';
+import 'package:hishab/features/reports/presentation/widgets/highlights_card.dart';
 import 'package:hishab/features/reports/presentation/widgets/report_cards.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
@@ -166,6 +169,36 @@ class _ReportContent extends StatelessWidget {
       padding: const EdgeInsets.only(bottom: 96),
       children: [
         for (final (index, card) in [
+          if (data.totals.income == 0 &&
+              data.totals.expense == 0 &&
+              data.accounts.isEmpty)
+            Card(
+              key: const ValueKey('report-nothing'),
+              margin: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tr('Nothing recorded in this period.'),
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      tr('Add an entry and its numbers show up here.'),
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                    const SizedBox(height: 8),
+                    FilledButton.tonal(
+                      key: const ValueKey('report-add-entry'),
+                      onPressed: () => context.push(AppRoutes.addTransaction),
+                      child: Text(tr('Add transaction')),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ReportSummaryCard(
             totals: data.totals,
             previousTotals: data.previousTotals,
@@ -175,6 +208,7 @@ class _ReportContent extends StatelessWidget {
                 ? localizeDigits('${data.previousRange.start.year}')
                 : monthLabel(data.previousRange.start),
             days: daysBetween(data.range.start, end),
+            range: data.range,
           ),
           if (months != null) ...[
             IncomeExpenseBarCard(months: months),
@@ -187,12 +221,15 @@ class _ReportContent extends StatelessWidget {
           CategoryPieCard(
             categories: data.categories,
             incomeCategories: data.incomeCategories,
+            range: data.range,
           ),
           CategoryTreeCard(
             expense: data.expenseBranches,
             income: data.incomeBranches,
+            range: data.range,
           ),
-          AccountBreakdownCard(accounts: data.accounts),
+          HighlightsCard(range: data.range),
+          AccountBreakdownCard(accounts: data.accounts, range: data.range),
           if (!isYear) IncomeExpenseBarCard(months: data.months),
           TopExpensesCard(items: data.topExpenses),
         ].indexed)

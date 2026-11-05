@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:go_router/go_router.dart';
+import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/features/insights/domain/insights.dart';
-import 'package:hishab/features/insights/presentation/insight_text.dart';
+import 'package:hishab/features/insights/presentation/screens/insights_screen.dart';
 import 'package:hishab/features/insights/presentation/providers/insights_providers.dart';
 
 /// Short observations about this month: what changed, what is coming. Shows
@@ -36,28 +38,15 @@ class InsightsCard extends ConsumerWidget {
                 Text(tr('Insights'), style: theme.textTheme.titleSmall),
               ],
             ),
-            for (final insight in insights)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      insightIcon(insight.kind),
-                      size: 20,
-                      color: insightColor(context, insight.tone),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        insightText(insight),
-                        key: ValueKey('insight-${insight.kind.name}'),
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                    ),
-                  ],
-                ),
+            for (final insight in insights) InsightRow(insight: insight),
+            Align(
+              alignment: Alignment.centerRight,
+              child: TextButton(
+                key: const ValueKey('insights-see-all'),
+                onPressed: () => context.push(AppRoutes.insights),
+                child: Text(tr('See all')),
               ),
+            ),
           ],
         ),
       ),

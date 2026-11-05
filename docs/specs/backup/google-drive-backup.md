@@ -25,6 +25,24 @@ Drive, on its own, with nothing to remember.
   *No backup in Google Drive* when there is none. The choice and the account are
   device settings, so after a restore the switch is off until it is switched on.
 
+## Is my data backed up? (M37)
+Phone feedback: "backup hoise ki na kothao pai nai". The state of the Drive
+backup was only a small line in Settings. Backup & export now starts with a card
+(`backup-status-card`):
+- **Google Drive** (`status-drive`): not on (with *Turn on*), or the account and
+  *Saved 5 Nov, 3:30 pm (2 hours ago)*, or the problem in red with the last time
+  it did save. *Back up now* (`status-drive-now`) runs `DriveBackupService.attempt`
+  and says *Saved to Google Drive.* / the problem. *Check Drive*
+  (`status-drive-check`) asks Drive what is there (`check()`): when it was saved,
+  its size, how many transactions, accounts and categories, and whether that
+  matches this phone (*This phone has N newer*, *Drive has N more...*), or
+  *No backup in Google Drive*.
+- **Copy on this phone** (`status-auto`): the automatic copy, when it saved or
+  why it could not.
+- **Recent tries** (`status-log`): the last 10 tries of the Drive backup, each
+  with the time and *Saved* or the reason (device setting `drive_backup_log`, a
+  JSON list, kept out of backups).
+
 ## Rules
 - Scope `https://www.googleapis.com/auth/drive.file`: Hishab sees only files it
   made. A non-sensitive scope, so Google does not need to review the app.

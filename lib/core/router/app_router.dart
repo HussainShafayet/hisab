@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/features/search/presentation/screens/global_search_screen.dart';
+import 'package:hishab/features/transactions/domain/transaction_type.dart';
+import 'package:hishab/features/transactions/presentation/open_entries.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/router/app_shell.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/presentation/screens/account_form_screen.dart';
+import 'package:hishab/features/accounts/presentation/screens/account_detail_screen.dart';
 import 'package:hishab/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/backup_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/csv_import_screen.dart';
@@ -37,6 +41,7 @@ import 'package:hishab/features/notifications/presentation/screens/notifications
 import 'package:hishab/features/recurring/presentation/screens/recurring_form_screen.dart';
 import 'package:hishab/features/tags/presentation/screens/tag_detail_screen.dart';
 import 'package:hishab/features/fun/presentation/screens/badges_screen.dart';
+import 'package:hishab/features/insights/presentation/screens/insights_screen.dart';
 import 'package:hishab/features/fun/presentation/screens/wrapped_screen.dart';
 import 'package:hishab/features/metals/presentation/screens/metals_screen.dart';
 import 'package:hishab/features/zakat/presentation/screens/zakat_screen.dart';
@@ -44,6 +49,7 @@ import 'package:hishab/features/tags/presentation/screens/tags_screen.dart';
 import 'package:hishab/features/recurring/presentation/screens/recurring_screen.dart';
 import 'package:hishab/features/reports/presentation/screens/reports_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/more_screen.dart';
+import 'package:hishab/features/settings/presentation/screens/alert_sounds_screen.dart';
 import 'package:hishab/features/settings/presentation/screens/settings_screen.dart';
 import 'package:hishab/features/transactions/presentation/screens/add_several_screen.dart';
 import 'package:hishab/features/transactions/presentation/screens/transaction_form_screen.dart';
@@ -144,6 +150,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                               ? const _InvalidIdScreen('account')
                               : AccountFormScreen(accountId: id);
                         },
+                        routes: [
+                          GoRoute(
+                            path: 'details',
+                            parentNavigatorKey: _rootNavigatorKey,
+                            builder: (context, state) {
+                              final id = _idOf(state);
+                              return id == null
+                                  ? const _InvalidIdScreen('account')
+                                  : AccountDetailScreen(accountId: id);
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -160,6 +178,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                         '${state.uri.queryParameters['month'] ?? ''}-01',
                       ),
                     ),
+                  ),
+                  GoRoute(
+                    path: 'insights',
+                    parentNavigatorKey: _rootNavigatorKey,
+                    builder: (context, state) => const InsightsScreen(),
                   ),
                   GoRoute(
                     path: 'badges',
@@ -448,6 +471,13 @@ final routerProvider = Provider<GoRouter>((ref) {
                     path: 'settings',
                     parentNavigatorKey: _rootNavigatorKey,
                     builder: (context, state) => const SettingsScreen(),
+                    routes: [
+                      GoRoute(
+                        path: 'alerts',
+                        parentNavigatorKey: _rootNavigatorKey,
+                        builder: (context, state) => const AlertSoundsScreen(),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -470,7 +500,30 @@ final routerProvider = Provider<GoRouter>((ref) {
             state.uri.queryParameters['prefillAmount'] ?? '',
           ),
           prefillNote: state.uri.queryParameters['prefillNote'],
+          startAccountId: int.tryParse(
+            state.uri.queryParameters['account'] ?? '',
+          ),
+          startType: TransactionType.values
+              .asNameMap()[state.uri.queryParameters['type']],
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.search,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) => const GlobalSearchScreen(),
+      ),
+      GoRoute(
+        path: AppRoutes.entries,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final args = state.extra;
+          return args is FilteredEntriesArgs
+              ? TransactionsScreen(
+                  initialFilter: args.filter,
+                  title: args.title,
+                )
+              : const TransactionsScreen();
+        },
       ),
       GoRoute(
         path: AppRoutes.addSeveral,

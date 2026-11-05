@@ -4,6 +4,16 @@
 const lastBackupKey = 'last_backup_at';
 const backupSnoozedUntilKey = 'backup_snoozed_until';
 
+/// The places of the More list opened last (route paths, comma separated).
+/// It belongs to this phone, so it stays out of a backup.
+const moreRecentKey = 'more_recent';
+
+/// The Home setup checklist was put away. It belongs to this phone.
+const setupDismissedKey = 'setup_dismissed';
+
+/// The parts of Home the person put away (names, comma separated).
+const homeHiddenKey = 'home_hidden';
+
 /// When the automatic backup last wrote its file, and why it could not (an
 /// [AutoBackupProblem] name). They belong to this phone too.
 const lastAutoBackupKey = 'last_auto_backup_at';
@@ -17,6 +27,10 @@ const driveEmailKey = 'drive_backup_email';
 const lastDriveBackupKey = 'last_drive_backup_at';
 const driveProblemKey = 'drive_backup_problem';
 const driveDetailKey = 'drive_backup_detail';
+
+/// The last few tries of the Drive backup (a JSON list), so the person can see
+/// that it ran and when.
+const driveLogKey = 'drive_backup_log';
 
 /// The bazar list taking new items from a Google Form: the link of its
 /// published responses sheet, the link of the form (to send to others), how
@@ -36,6 +50,8 @@ const formDetailKey = 'bazar_form_detail';
 bool isDeviceSetting(String key) =>
     key == lastBackupKey ||
     key == backupSnoozedUntilKey ||
+    key == moreRecentKey ||
+    key == setupDismissedKey ||
     key == lastAutoBackupKey ||
     key == autoBackupProblemKey ||
     key == driveEnabledKey ||
@@ -43,6 +59,7 @@ bool isDeviceSetting(String key) =>
     key == lastDriveBackupKey ||
     key == driveProblemKey ||
     key == driveDetailKey ||
+    key == driveLogKey ||
     key == formCsvKey ||
     key == formLinkKey ||
     key == formImportedKey ||

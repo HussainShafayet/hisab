@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/notifications/alert_kind.dart';
 import 'package:hishab/core/notifications/alert_route.dart';
+import 'package:hishab/core/notifications/alert_sound_mode.dart';
 import 'package:timezone/timezone.dart' as tz;
 
 /// A notification to show at [when] (local time).
@@ -30,10 +31,24 @@ abstract class ReminderScheduler {
   /// Makes [reminders] the only scheduled ones: what was scheduled before is
   /// cancelled. Reminders in the past are ignored. With [funSounds] each kind
   /// plays its own funny sound; without, the phone's usual one.
-  Future<void> replaceAll(List<Reminder> reminders, {bool funSounds = true});
+  ///
+  /// [overrides] are the sounds the person chose for single alerts; they win
+  /// over [funSounds].
+  Future<void> replaceAll(
+    List<Reminder> reminders, {
+    bool funSounds = true,
+    Map<AlertKind, AlertSoundMode> overrides = const {},
+  });
 
   /// Shows [reminder] right now (its time is ignored), like the budget alert.
-  Future<void> showNow(Reminder reminder, {bool funSounds = true});
+  Future<void> showNow(
+    Reminder reminder, {
+    bool funSounds = true,
+    Map<AlertKind, AlertSoundMode> overrides = const {},
+  });
+
+  /// Whether the phone lets Hishab show notifications right now.
+  Future<bool> notificationsAllowed();
 
   /// Takes the notifications with these ids off the schedule.
   Future<void> cancel(Iterable<int> ids);
@@ -51,10 +66,18 @@ class NoopReminderScheduler implements ReminderScheduler {
   Future<void> replaceAll(
     List<Reminder> reminders, {
     bool funSounds = true,
+    Map<AlertKind, AlertSoundMode> overrides = const {},
   }) async {}
 
   @override
-  Future<void> showNow(Reminder reminder, {bool funSounds = true}) async {}
+  Future<void> showNow(
+    Reminder reminder, {
+    bool funSounds = true,
+    Map<AlertKind, AlertSoundMode> overrides = const {},
+  }) async {}
+
+  @override
+  Future<bool> notificationsAllowed() async => false;
 
   @override
   Future<void> cancel(Iterable<int> ids) async {}
@@ -84,13 +107,48 @@ class PluginReminderScheduler implements ReminderScheduler {
   static AndroidNotificationDetails detailsFor(
     AlertKind kind, {
     required bool funSounds,
-  }) => AndroidNotificationDetails(
-    funSounds ? '${kind.channelId}_fun' : kind.channelId,
-    funSounds ? tr('{name} (funny sound)', {'name': kind.label}) : kind.label,
-    importance: Importance.high,
-    priority: Priority.high,
-    sound: funSounds ? RawResourceAndroidNotificationSound(kind.sound) : null,
-  );
+    Map<AlertKind, AlertSoundMode> overrides = const {},
+  }) {
+    final mode = effectiveSound(
+      kind,
+      funSounds: funSounds,
+      overrides: overrides,
+    );
+    switch (mode) {
+      case AlertSoundMode.funny:
+        return AndroidNotificationDetails(
+          funnyChannelId(kind),
+          tr('{name} (funny sound)', {'name': kind.label}),
+          importance: Importance.high,
+          priority: Priority.high,
+          sound: RawResourceAndroidNotificationSound(kind.sound),
+        );
+      case AlertSoundMode.phone:
+        return AndroidNotificationDetails(
+          kind.channelId,
+          kind.label,
+          importance: Importance.high,
+          priority: Priority.high,
+        );
+      case AlertSoundMode.silent:
+        return AndroidNotificationDetails(
+          silentChannelId(kind),
+          tr('{name} (silent)', {'name': kind.label}),
+          importance: Importance.low,
+          priority: Priority.low,
+          playSound: false,
+          enableVibration: false,
+        );
+    }
+  }
+
+  /// The channel with the funny sound. A channel keeps the sound it was made
+  /// with for good, so a new name is the way to start afresh; the first one
+  /// (`<id>_fun`) is deleted when the app starts.
+  static String funnyChannelId(AlertKind kind) => '${kind.channelId}_fun2';
+
+  /// The channel with no sound.
+  static String silentChannelId(AlertKind kind) => '${kind.channelId}_silent';
 
   Future<void> _initialize() => _ready ??= _initializeNow();
 
@@ -108,12 +166,18 @@ class PluginReminderScheduler implements ReminderScheduler {
     if (launch?.didNotificationLaunchApp ?? false) {
       _openPayload(launch!.notificationResponse?.payload);
     }
-    // The one channel older versions made; each kind has its own now.
-    await _plugin
+    // The one channel older versions made; each kind has its own now. And the
+    // first funny-sound channels, which could keep a wrong sound for good.
+    final android = _plugin
         .resolvePlatformSpecificImplementation<
           AndroidFlutterLocalNotificationsPlugin
-        >()
-        ?.deleteNotificationChannel(channelId: 'recurring');
+        >();
+    await android?.deleteNotificationChannel(channelId: 'recurring');
+    for (final kind in AlertKind.values) {
+      await android?.deleteNotificationChannel(
+        channelId: '${kind.channelId}_fun',
+      );
+    }
   }
 
   static void _openPayload(String? payload) {
@@ -126,6 +190,7 @@ class PluginReminderScheduler implements ReminderScheduler {
   Future<void> replaceAll(
     List<Reminder> reminders, {
     bool funSounds = true,
+    Map<AlertKind, AlertSoundMode> overrides = const {},
   }) async {
     try {
       await _initialize();
@@ -143,7 +208,11 @@ class PluginReminderScheduler implements ReminderScheduler {
             reminder.when.millisecondsSinceEpoch,
           ),
           notificationDetails: NotificationDetails(
-            android: detailsFor(reminder.kind, funSounds: funSounds),
+            android: detailsFor(
+              reminder.kind,
+              funSounds: funSounds,
+              overrides: overrides,
+            ),
           ),
           androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
           payload: routeForAlert(reminder.kind),
@@ -156,7 +225,11 @@ class PluginReminderScheduler implements ReminderScheduler {
   }
 
   @override
-  Future<void> showNow(Reminder reminder, {bool funSounds = true}) async {
+  Future<void> showNow(
+    Reminder reminder, {
+    bool funSounds = true,
+    Map<AlertKind, AlertSoundMode> overrides = const {},
+  }) async {
     try {
       await _initialize();
       await _plugin.show(
@@ -164,12 +237,31 @@ class PluginReminderScheduler implements ReminderScheduler {
         title: reminder.title,
         body: reminder.body,
         notificationDetails: NotificationDetails(
-          android: detailsFor(reminder.kind, funSounds: funSounds),
+          android: detailsFor(
+            reminder.kind,
+            funSounds: funSounds,
+            overrides: overrides,
+          ),
         ),
         payload: routeForAlert(reminder.kind),
       );
     } on Object catch (error) {
       debugPrint('Could not show an alert: $error');
+    }
+  }
+
+  @override
+  Future<bool> notificationsAllowed() async {
+    try {
+      await _initialize();
+      final android = _plugin
+          .resolvePlatformSpecificImplementation<
+            AndroidFlutterLocalNotificationsPlugin
+          >();
+      return await android?.areNotificationsEnabled() ?? false;
+    } on Object catch (error) {
+      debugPrint('Could not ask if notifications are on: $error');
+      return false;
     }
   }
 
