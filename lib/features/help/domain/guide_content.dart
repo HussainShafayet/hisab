@@ -88,6 +88,7 @@ const guideTopics = <GuideTopic>[
         'On the Transactions tab, tap All, Expense, Income or Transfer to narrow the list; each shows how many there are. Under the summary you see how many entries, what you spend a day, your biggest expense and where most went. A category inside another shows its place, like Food › Kacha bazar.',
         'On the add form, the strip under the account shows what each kind of account holds now (Cash, Mobile banking, Bank...), and marks the ones this transaction uses.',
         'On Accounts, each card says what came in and went out this month. Tap a card to open that account: add an expense, income or transfer on it, and see every entry of any month with its In, Out and Net. The menu on the card still has Edit, Adjust balance and Archive.',
+        'On Reports, tap a number to see the entries behind it: Income or Expense at the top, a category in the pie or the tree, or an account. The Highlights card shows your biggest spending day, days with no spending, the average expense and which weekday takes most. Tap the biggest day to see what you spent that day.',
         'Note suggestions: as you type a note, notes from earlier entries appear under it. Tap one to fill the note, and the category and amount of that entry if they are still empty.',
         'In Add several, the calculator button in an amount adds up a sum like 1200+350 or 450×3 and puts the result in the amount.',
         'Add several: enter a handful of transactions on one screen and save them together. Paste lines turns lines like rickshaw 50 into rows.',

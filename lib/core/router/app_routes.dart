@@ -95,6 +95,10 @@ abstract final class AppRoutes {
   // Full-screen, opened above the bottom navigation.
   static const addTransaction = '/add';
 
+  /// The transactions that match a filter given with the route (opened from a
+  /// report or a budget), on a screen of their own.
+  static const entries = '/entries';
+
   /// Several transactions on one screen, saved with one tap.
   static const addSeveral = '/add/several';
 

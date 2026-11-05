@@ -17,6 +17,7 @@ import 'package:hishab/features/notifications/presentation/widgets/notification_
 import 'package:hishab/features/reports/domain/report_data.dart';
 import 'package:hishab/features/reports/presentation/providers/reports_providers.dart';
 import 'package:hishab/features/reports/presentation/widgets/category_tree_card.dart';
+import 'package:hishab/features/reports/presentation/widgets/highlights_card.dart';
 import 'package:hishab/features/reports/presentation/widgets/report_cards.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
@@ -175,6 +176,7 @@ class _ReportContent extends StatelessWidget {
                 ? localizeDigits('${data.previousRange.start.year}')
                 : monthLabel(data.previousRange.start),
             days: daysBetween(data.range.start, end),
+            range: data.range,
           ),
           if (months != null) ...[
             IncomeExpenseBarCard(months: months),
@@ -187,12 +189,15 @@ class _ReportContent extends StatelessWidget {
           CategoryPieCard(
             categories: data.categories,
             incomeCategories: data.incomeCategories,
+            range: data.range,
           ),
           CategoryTreeCard(
             expense: data.expenseBranches,
             income: data.incomeBranches,
+            range: data.range,
           ),
-          AccountBreakdownCard(accounts: data.accounts),
+          HighlightsCard(range: data.range),
+          AccountBreakdownCard(accounts: data.accounts, range: data.range),
           if (!isYear) IncomeExpenseBarCard(months: data.months),
           TopExpensesCard(items: data.topExpenses),
         ].indexed)

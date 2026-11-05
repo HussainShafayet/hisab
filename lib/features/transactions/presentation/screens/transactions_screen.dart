@@ -32,7 +32,13 @@ import 'package:hishab/features/transactions/presentation/widgets/transaction_ti
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
 class TransactionsScreen extends ConsumerStatefulWidget {
-  const TransactionsScreen({super.key});
+  const TransactionsScreen({this.initialFilter, this.title, super.key});
+
+  /// The filter the list starts with, when it is opened from a report.
+  final TransactionFilter? initialFilter;
+
+  /// The title, when it is not simply "Transactions".
+  final String? title;
 
   @override
   ConsumerState<TransactionsScreen> createState() => _TransactionsScreenState();
@@ -40,7 +46,8 @@ class TransactionsScreen extends ConsumerStatefulWidget {
 
 class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
   late DateTime _month = monthStart(ref.read(clockProvider)());
-  TransactionFilter _filter = const TransactionFilter();
+  late TransactionFilter _filter =
+      widget.initialFilter ?? const TransactionFilter();
   bool _searching = false;
   final _search = TextEditingController();
 
@@ -457,7 +464,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                         onChanged: (text) =>
                             setState(() => _filter = _filter.withQuery(text)),
                       )
-                    : Text(tr('Transactions')),
+                    : Text(widget.title ?? tr('Transactions')),
                 actions: [
                   const NotificationBell(),
                   const HelpButton('transactions'),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
+import 'package:hishab/features/transactions/presentation/open_entries.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/router/app_shell.dart';
@@ -490,6 +491,19 @@ final routerProvider = Provider<GoRouter>((ref) {
           startType: TransactionType.values
               .asNameMap()[state.uri.queryParameters['type']],
         ),
+      ),
+      GoRoute(
+        path: AppRoutes.entries,
+        parentNavigatorKey: _rootNavigatorKey,
+        builder: (context, state) {
+          final args = state.extra;
+          return args is FilteredEntriesArgs
+              ? TransactionsScreen(
+                  initialFilter: args.filter,
+                  title: args.title,
+                )
+              : const TransactionsScreen();
+        },
       ),
       GoRoute(
         path: AppRoutes.addSeveral,

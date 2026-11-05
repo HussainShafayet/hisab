@@ -70,6 +70,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [transactions](transactions/) | [List overview and balance by kind](transactions/list-overview.md) | 26 |
 | [accounts](accounts/) | [Account page and the month on each card](accounts/account-page.md) | 27 |
 | [budget](budget/) | [Plan, projection and spending with no budget](budget/plan-and-unbudgeted.md) | 28 |
+| [reports](reports/) | [Every number opens its entries, and highlights](reports/drill-down-and-highlights.md) | 29 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.
