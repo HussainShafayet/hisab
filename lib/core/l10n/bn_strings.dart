@@ -37,6 +37,7 @@ import 'package:hishab/core/l10n/bn_rollover.dart';
 import 'package:hishab/core/l10n/bn_tree_totals.dart';
 import 'package:hishab/core/l10n/bn_backup_status.dart';
 import 'package:hishab/core/l10n/bn_sms.dart';
+import 'package:hishab/core/l10n/bn_tx_overview.dart';
 import 'package:hishab/core/l10n/bn_split.dart';
 import 'package:hishab/core/l10n/bn_tags.dart';
 import 'package:hishab/core/l10n/bn_wrapped.dart';
@@ -81,6 +82,7 @@ const bnStrings = <String, String>{
   ...bnRollover,
   ...bnTreeTotals,
   ...bnSms,
+  ...bnTxOverview,
   ...bnBackupStatus,
   ...bnSplit,
   ...bnTags,

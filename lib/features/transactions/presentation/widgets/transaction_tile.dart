@@ -24,8 +24,13 @@ class TransactionTile extends ConsumerWidget {
     this.onLongPress,
     this.showDate = false,
     this.selected = false,
+    this.categoryPath,
     super.key,
   });
+
+  /// Where the category sits, like `Food › Kacha bazar`, for a category inside
+  /// another. Shown first under the title.
+  final String? categoryPath;
 
   /// Put the date before the account, for lists that are not grouped by day.
   final bool showDate;
@@ -58,6 +63,7 @@ class TransactionTile extends ConsumerWidget {
     };
 
     final details = [
+      ?categoryPath,
       if (showDate) DateFormat('d MMM').format(item.date),
       isTransfer
           ? '${item.accountName} → ${item.toAccountName ?? '?'}'

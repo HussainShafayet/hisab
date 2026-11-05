@@ -116,6 +116,20 @@ class TransactionFilter {
     feeling: option == FilterOption.feeling ? null : feeling,
   );
 
+  /// The same filter showing only [type] (everything when null).
+  TransactionFilter withType(TransactionType? type) => TransactionFilter(
+    query: query,
+    type: type,
+    categoryId: categoryId,
+    categoryScope: categoryScope,
+    accountId: accountId,
+    range: range,
+    minAmount: minAmount,
+    maxAmount: maxAmount,
+    tagId: tagId,
+    feeling: feeling,
+  );
+
   /// The same filter without the custom date range.
   TransactionFilter withoutRange() => TransactionFilter(
     query: query,

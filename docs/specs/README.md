@@ -67,6 +67,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [bazar](bazar/) | [Bazar list from a Google Form](bazar/google-form-inbox.md) | 19b |
 | [budget](budget/) | [Where a category budget sits](budget/category-placement.md) | 24 |
 | [categories](categories/) | [Split categories, one place for each thing](categories/split-and-deduplicate.md) | 34 |
+| [transactions](transactions/) | [List overview and balance by kind](transactions/list-overview.md) | 26 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

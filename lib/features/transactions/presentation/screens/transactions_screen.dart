@@ -11,6 +11,7 @@ import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
@@ -18,6 +19,7 @@ import 'package:hishab/features/notifications/presentation/widgets/notification_
 import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/transaction_filter.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
+import 'package:hishab/features/transactions/domain/transaction_stats.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/widgets/account_choice_sheet.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
@@ -25,6 +27,7 @@ import 'package:hishab/core/widgets/month_switcher.dart';
 import 'package:hishab/core/widgets/range_banner.dart';
 import 'package:hishab/features/transactions/presentation/widgets/filter_chips.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_filter_sheet.dart';
+import 'package:hishab/features/transactions/presentation/widgets/transaction_overview.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 
@@ -389,6 +392,33 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
     );
   }
 
+  /// How many of each type the list holds with everything else narrowing it
+  /// but the type, so the chips tell what a tap would show.
+  Map<TransactionType, int> _typeCounts(List<TransactionItem>? all) {
+    final counts = <TransactionType, int>{};
+    final others = applyTransactionFilter([
+      for (final item in all ?? const <TransactionItem>[])
+        if (!_hiddenIds.contains(item.id)) item,
+    ], _filter.withType(null));
+    for (final item in others) {
+      counts[item.type] = (counts[item.type] ?? 0) + 1;
+    }
+    return counts;
+  }
+
+  /// Where a category sits (`Food › Kacha bazar`), or null for a top-level one.
+  String? _pathOf(TransactionItem item, Map<int, Category> byId) {
+    final id = item.categoryId;
+    final parentId = item.categoryParentId;
+    if (id == null || parentId == null) return null;
+    final category = byId[id];
+    if (category == null) return null;
+    final names = categoryPathNames(category, byId);
+    return names.length < 2
+        ? null
+        : names.sublist(0, names.length - 1).join(' › ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final now = ref.read(clockProvider)();
@@ -462,6 +492,12 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
                     setState(() => _month = addMonths(_month, -1)),
                 onNext: () => setState(() => _month = addMonths(_month, 1)),
               ),
+            TypeFilterChips(
+              selected: _filter.type,
+              counts: _typeCounts(transactions.value),
+              onSelected: (type) =>
+                  setState(() => _filter = _filter.withType(type)),
+            ),
             FilterChips(
               filter: _filter,
               onRemove: (option) =>
@@ -515,7 +551,13 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       );
     }
 
+    final byId = <int, Category>{
+      for (final c in ref.watch(categoriesProvider(true)).value ?? const [])
+        c.id: c,
+    };
     final totals = totalsOf(shown);
+    final range = _filter.range ?? monthRange(_month);
+    final stats = statsOf(shown, range: range, now: now);
     // Only the first rows arrive one by one, so scrolling never replays it.
     var arrived = 1;
     return ListView(
@@ -526,21 +568,27 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
           0,
           TransactionSummary(income: totals.income, expense: totals.expense),
         ),
+        TransactionStatsRow(stats: stats),
         for (final group in groupByDay(shown)) ...[
           DayHeader(group: group, label: dayLabel(group.day, now)),
           for (final item in group.items)
-            arriving(arrived++, _buildRow(context, item)),
+            arriving(arrived++, _buildRow(context, item, _pathOf(item, byId))),
         ],
       ],
     );
   }
 
-  Widget _buildRow(BuildContext context, TransactionItem item) {
+  Widget _buildRow(
+    BuildContext context,
+    TransactionItem item,
+    String? categoryPath,
+  ) {
     // While choosing, a tap picks the row, and there is no swiping.
     if (_selecting) {
       return TransactionTile(
         key: ValueKey('transaction-${item.id}'),
         item: item,
+        categoryPath: categoryPath,
         selected: _selected.contains(item.id),
         onTap: () => _toggle(item.id),
         onLongPress: () => _toggle(item.id),
@@ -576,6 +624,7 @@ class _TransactionsScreenState extends ConsumerState<TransactionsScreen> {
       onDismissed: (_) => _delete(item),
       child: TransactionTile(
         item: item,
+        categoryPath: categoryPath,
         onTap: () => _edit(item),
         onLongPress: () => _showActions(item),
       ),

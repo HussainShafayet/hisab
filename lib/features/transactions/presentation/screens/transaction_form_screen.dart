@@ -15,7 +15,10 @@ import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/core/widgets/time_picking.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/accounts/domain/account_type.dart';
+import 'package:hishab/features/accounts/domain/type_balances.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
+import 'package:hishab/features/accounts/presentation/widgets/type_balance_strip.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_picker_sheet.dart';
 import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
@@ -934,6 +937,19 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     );
   }
 
+  /// What each kind of account holds now, with the kinds used here marked.
+  Widget _balanceStrip(Map<int, int> balances) {
+    final used = <AccountType>{
+      for (final id in [_accountId, _toAccountId])
+        if (_account(id) != null) _account(id)!.type,
+    };
+    return TypeBalanceStrip(
+      key: const ValueKey('type-balances'),
+      balances: balancesByType(_data.options.accounts, balances),
+      highlight: used,
+    );
+  }
+
   /// The wallet card for [accountId]: its balance, and what the balance will
   /// be once this transaction is saved.
   Widget _accountCard({
@@ -1120,6 +1136,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             onChosen: (id) => _accountId = id,
           ),
         ),
+        const SizedBox(height: 8),
+        _balanceStrip(balances),
       ],
       if (_dollarCard != null) ...[
         const SizedBox(height: 16),
@@ -1349,6 +1367,8 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           onChosen: (id) => _toAccountId = id,
         ),
       ),
+      const SizedBox(height: 8),
+      _balanceStrip(balances),
     ];
   }
 
