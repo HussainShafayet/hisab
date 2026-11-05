@@ -10,6 +10,7 @@ import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/month_switcher.dart';
 import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/features/budget/domain/budget_insights.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
 import 'package:hishab/features/budget/domain/budget_placement.dart';
 import 'package:hishab/features/budget/presentation/providers/budget_providers.dart';
@@ -23,6 +24,8 @@ import 'package:hishab/features/categories/presentation/providers/categories_pro
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:hishab/features/notifications/presentation/widgets/notification_bell.dart';
 import 'package:hishab/features/settings/presentation/providers/settings_providers.dart';
+import 'package:hishab/features/transactions/domain/transaction_item.dart';
+import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
 
 class BudgetScreen extends ConsumerStatefulWidget {
   const BudgetScreen({super.key});
@@ -100,7 +103,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     });
   }
 
-  Future<void> _addCategory(MonthBudget budget) async {
+  Future<void> _addCategory(MonthBudget budget, {int? preselect}) async {
     final categories = await ref
         .read(categoriesRepositoryProvider)
         .getCategories();
@@ -126,6 +129,7 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
       builder: (context) => BudgetLimitDialog(
         title: tr('Add category budget'),
         categoryChoices: choices,
+        initialCategoryId: preselect,
         showNoCarry: ref.read(preferencesProvider).budgetRollover,
       ),
     );
@@ -257,6 +261,22 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
         if (item.categoryId != null) item.categoryId!: item.limit,
     }, byId);
 
+    // What the budgets plan, and what they miss.
+    final monthItems =
+        ref.watch(transactionsInRangeProvider(monthRange(_month))).value ??
+        const <TransactionItem>[];
+    final covered = <int>{
+      for (final item in data.categories)
+        if (item.categoryId != null)
+          ...categoryAndDescendantIds(item.categoryId!, byId.values),
+    };
+    final unbudgeted = unbudgetedSpending(
+      monthItems,
+      covered: covered,
+      byId: byId,
+      noCategoryName: tr('No category'),
+    );
+
     return ListView(
       // Room below the last row so the add button never covers it.
       padding: const EdgeInsets.only(bottom: 96),
@@ -282,6 +302,19 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               trailing: const Icon(Icons.chevron_right),
               onTap: () => _editOverall(null),
             ),
+          ),
+        if (overall != null && data.categories.isNotEmpty)
+          BudgetPlanCard(
+            allocation: allocationOf(
+              limit: overall.limit,
+              items: data.categories,
+              placements: placements,
+            ),
+          ),
+        if (unbudgeted.total > 0)
+          UnbudgetedCard(
+            spending: unbudgeted,
+            onSetBudget: (id) => _addCategory(data, preselect: id),
           ),
         SwitchListTile(
           key: const ValueKey('rollover-switch'),

@@ -163,6 +163,7 @@ const guideTopics = <GuideTopic>[
         'Open the Budget tab and set the overall limit for the month.',
         'Optionally set limits for single categories, like Food. Copy last month\'s budget to save time.',
         'Bars turn amber near the limit and red once it is crossed.',
+        'The budget also tells you where the month is heading (at this pace you will spend...), how much of it is planned in categories, and the spending that has no budget yet, with a button to give it one.',
         'A category budget counts everything inside the category too. The card shows where the category sits, says when a bigger budget also counts it, and warns when the budgets inside ask for more than its limit. The list button shows what was spent this month.',
       ]),
       GuideSection('Carrying over what is left', [
