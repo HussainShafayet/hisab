@@ -42,6 +42,8 @@ import 'package:hishab/features/transactions/data/transactions_table.dart';
 import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
+import 'package:hishab/core/database/category_fixes.dart';
+
 part 'app_database.g.dart';
 
 /// One overall budget (null category) and one budget per category, per month.
@@ -109,6 +111,8 @@ class AppDatabase extends _$AppDatabase {
   /// 4: the `debts` and `debt_payments` tables (dhar / baki).
   /// 5: the `recurring_rules` table.
   /// 6: `accounts.credit_limit` and `accounts.bill_due_day` (credit cards).
+  /// 18: no new columns; moves the default "Kids pocket money" category
+  /// into "Children" (see `moveKidsPocketMoney`).
   /// 17: the `import_batches` table and `transactions.import_batch_id` (undo a
   /// CSV import).
   /// 16: `notification_log.seen` (the bell's unseen count),
@@ -125,7 +129,7 @@ class AppDatabase extends _$AppDatabase {
   /// 7: `transactions.usd_amount` and `accounts.usd_limit` (dollar spending
   /// on credit cards).
   @override
-  int get schemaVersion => 17;
+  int get schemaVersion => 18;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -213,6 +217,9 @@ class AppDatabase extends _$AppDatabase {
       if (from < 17) {
         await migrator.createTable(importBatches);
         await migrator.addColumn(transactions, transactions.importBatchId);
+      }
+      if (from < 18) {
+        await moveKidsPocketMoney(this);
       }
     },
     beforeOpen: (details) async {

@@ -57,6 +57,9 @@ const bnGuide = <String, String>{
   'Note suggestions: as you type a note, notes from earlier entries appear under it. Tap one to fill the note, and the category and amount of that entry if they are still empty.': 'নোটের পরামর্শ: নোট লেখার সময় আগের এন্ট্রির নোট নিচে আসে। একটিতে ট্যাপ করলে নোট ভরে যায়, আর ক্যাটাগরি ও টাকার অঙ্ক খালি থাকলে সেগুলোও ভরে যায়।',
   'In Add several, the calculator button in an amount adds up a sum like 1200+350 or 450×3 and puts the result in the amount.': '"একসাথে কয়েকটি"-তে টাকার অঙ্কের ক্যালকুলেটর বোতাম 1200+350 বা 450×3-এর মতো হিসাব করে ফলটি অঙ্কের ঘরে বসিয়ে দেয়।',
   'Add several: enter a handful of transactions on one screen and save them together. Paste lines turns lines like rickshaw 50 into rows.': 'একসাথে কয়েকটি: এক স্ক্রিনে কয়েকটি লেনদেন লিখে একবারে সংরক্ষণ করুন। "লাইন পেস্ট করুন" দিয়ে rickshaw 50-এর মতো লাইন থেকে সারি হয়ে যায়।',
+  'In Add several, every row uses the date at the top. Tap Same date as above on a row to give that row its own day and time.': 'একসাথে কয়েকটিতে সব সারি উপরের তারিখ নেয়। কোনো সারিতে "উপরের তারিখই" চাপলে সেই সারির নিজের দিন ও সময় দেওয়া যায়।',
+  'The clock chip next to the date sets the time. It says Now until you pick one.': 'তারিখের পাশের ঘড়ির চিপে সময় দেওয়া যায়। সময় না বাছা পর্যন্ত সেখানে "এখন" লেখা থাকে।',
+  'A category budget counts everything inside the category too. The card shows where the category sits, says when a bigger budget also counts it, and warns when the budgets inside ask for more than its limit. The list button shows what was spent this month.': 'ক্যাটাগরির বাজেট তার ভেতরের সবকিছুও ধরে। কার্ডে দেখায় ক্যাটাগরিটা কোথায় আছে, বড় কোনো বাজেটেও ধরা হলে সেটা বলে, আর ভেতরের বাজেটগুলো এর সীমার চেয়ে বেশি চাইলে সতর্ক করে। তালিকার বোতামে এই মাসের খরচ দেখা যায়।',
   'Needed, Wanted or Regret on an expense lets Home show how the month felt.': 'খরচে "দরকারি", "শখের" বা "পস্তাচ্ছি" দিলে হোম দেখাতে পারে মাসটা কেমন গেল।',
   'A tag (Trips & events) groups the expenses of a trip or an occasion.': 'ট্যাগ (ভ্রমণ ও অনুষ্ঠান) দিয়ে কোনো ভ্রমণ বা অনুষ্ঠানের খরচ একসাথে রাখা যায়।',
   'Finding and fixing': 'খোঁজা ও ঠিক করা',
@@ -357,7 +360,7 @@ const bnGuide = <String, String>{
   'Far above the usual: at least 10 times the usual amount of its category and ৳1,000 or more, like a slip of a zero.': 'স্বাভাবিকের চেয়ে অনেক বেশি: ক্যাটাগরির স্বাভাবিক অঙ্কের অন্তত ১০ গুণ আর ৳১,০০০ বা বেশি, যেমন একটা শূন্য বেশি পড়ে যাওয়া।',
   'In Other: spending that has no real category yet.':
       '"অন্যান্য"-তে: যে খরচের এখনো সত্যিকারের ক্যাটাগরি নেই।',
-  'Categories that look alike, like Utility and Utilities. Merge them from the Categories screen.': 'প্রায় একই নামের ক্যাটাগরি, যেমন Utility আর Utilities। ক্যাটাগরি পাতা থেকে এগুলো একত্র করুন।',
+  'Categories that look alike, like Utility and Utilities, or the same name twice in one place. Merge them from the Categories screen.': 'প্রায় একই নামের ক্যাটাগরি, যেমন Utility আর Utilities, বা একই জায়গায় একই নাম দুবার। ক্যাটাগরি পাতা থেকে এগুলো একত্র করুন।',
   'Nothing is changed unless you say so. Tap an entry to open and fix it.':
       'আপনি না বললে কিছুই বদলায় না। একটি এন্ট্রিতে চাপ দিয়ে খুলে ঠিক করুন।',
   'It looks at every entry you have, so run it after importing a sheet.':

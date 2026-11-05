@@ -64,4 +64,47 @@ void main() {
   test('a rate error shows its message', () {
     expect(const RateException('No net').toString(), 'No net');
   });
+
+  test('names the app instead of the default Dart user agent', () {
+    // api.gold-api.com answers "429 Too Many Requests" to `Dart/x (dart:io)`.
+    expect(HttpRateService.userAgent, startsWith('Hishab/'));
+    expect(HttpRateService.userAgent, isNot(contains('dart:io')));
+  });
+
+  group('parseBackupRate', () {
+    test('reads one currency in another', () {
+      expect(
+        parseBackupRate(
+          {
+            'date': '2026-11-04',
+            'xau': {'usd': 3981.65, 'bdt': 494418.6},
+          },
+          'xau',
+          'usd',
+        ),
+        3981.65,
+      );
+    });
+
+    test('refuses an answer without the rate', () {
+      expect(
+        () => parseBackupRate({'xau': {}}, 'xau', 'usd'),
+        throwsA(isA<RateException>()),
+      );
+      expect(
+        () => parseBackupRate(
+          {
+            'xau': {'usd': 0},
+          },
+          'xau',
+          'usd',
+        ),
+        throwsA(isA<RateException>()),
+      );
+      expect(
+        () => parseBackupRate('nope', 'xau', 'usd'),
+        throwsA(isA<RateException>()),
+      );
+    });
+  });
 }

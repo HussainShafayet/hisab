@@ -372,4 +372,57 @@ void main() {
       expect(check(const []).isClean, isTrue);
     });
   });
+
+  group('categories in the same place', () {
+    test('the same name twice under one group is a duplicate', () {
+      final result = check(
+        [],
+        categories: [
+          category(1, 'Food'),
+          category(2, 'Snacks', parentId: 1),
+          category(3, 'snacks ', parentId: 1),
+        ],
+      );
+      expect(result.similarCategories, hasLength(1));
+      final pair = result.similarCategories.single;
+      expect({pair.first.id, pair.second.id}, {2, 3});
+      expect(pair.firstLabel, 'Food › Snacks');
+    });
+
+    test('the same name under two groups is not', () {
+      final result = check(
+        [],
+        categories: [
+          category(1, 'In-laws'),
+          category(2, 'Gifts', parentId: 1),
+          category(3, 'Brothers & sisters'),
+          category(4, 'Gifts', parentId: 3),
+        ],
+      );
+      expect(result.similarCategories, isEmpty);
+    });
+
+    test('an old Kids wear is matched with Children > Clothes & shoes', () {
+      final result = check(
+        [],
+        categories: [
+          category(1, 'Shopping'),
+          category(2, 'Clothing', parentId: 1),
+          category(3, 'Kids wear', parentId: 2),
+          category(4, 'Family & gifts'),
+          category(5, 'Children', parentId: 4),
+          category(6, 'Clothes & shoes', parentId: 5),
+        ],
+      );
+      final pair = result.similarCategories.single;
+      expect({pair.first.id, pair.second.id}, {3, 6});
+      expect(
+        {pair.firstLabel, pair.secondLabel},
+        {
+          'Shopping › Clothing › Kids wear',
+          'Family & gifts › Children › Clothes & shoes',
+        },
+      );
+    });
+  });
 }

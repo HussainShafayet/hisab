@@ -862,7 +862,18 @@ void main() {
         await openFromMore(tester, 'Backup & export');
         expect(tester.takeException(), isNull);
 
-        // The Backup screen is a long list: scroll to the tile.
+        // The Backup screen is a long, lazy list: with big text the tile is
+        // not built yet, so scroll until it is.
+        await tester.scrollUntilVisible(
+          find.byKey(const ValueKey('import-csv')),
+          200,
+          scrollable: find
+              .descendant(
+                of: find.byType(ListView).last,
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        );
         await tester.ensureVisible(find.byKey(const ValueKey('import-csv')));
         await tester.pumpAndSettle();
         await tester.tap(find.byKey(const ValueKey('import-csv')));

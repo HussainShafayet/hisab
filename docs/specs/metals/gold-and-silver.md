@@ -33,7 +33,12 @@ bhori / ana / roti, see what it is worth today, and let zakat count it.
   `gram = bhori price x 10^6 / (11664 x quoted purity)`.
 - The market price is `ounce price in USD x taka per USD / 31.1034768`, the same
   as zakat's *Today's price*, from `api.gold-api.com` and `open.er-api.com`.
-  A failed fetch changes nothing and says so; typing always works.
+  A failed fetch changes nothing and says so; typing always works. Requests
+  send the user agent `Hishab/1.0 (personal finance app)`: api.gold-api.com
+  answers Dart's default one with `429 Too Many Requests`. When the main
+  services fail, both rates come from the free daily list at
+  `cdn.jsdelivr.net/npm/@fawazahmed0/currency-api` (`xau`/`xag` in `usd`,
+  `usd` in `bdt`; `parseBackupRate`).
 - A name is 1 to 60 letters, the weight above zero, purity 1 to 1000, the
   price paid zero or more.
 - Prices live in `app_settings` (`metals.gold_gram`, `metals.silver_gram`,

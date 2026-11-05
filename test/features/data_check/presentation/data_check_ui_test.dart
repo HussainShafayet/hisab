@@ -165,7 +165,8 @@ void main() {
 
     expect(find.byKey(const ValueKey('check-similar')), findsOneWidget);
     expect(find.byKey(ValueKey('check-pair-$a-$c')), findsOneWidget);
-    expect(find.text('Utilities  ≈  Utility'), findsOneWidget);
+    expect(find.text('Utilities'), findsWidgets);
+    expect(find.text('≈ Utility'), findsOneWidget);
 
     await tester.tap(find.byKey(ValueKey('check-pair-$a-$c')));
     await tester.pumpAndSettle();

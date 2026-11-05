@@ -1,3 +1,4 @@
+import 'package:hishab/features/budget/domain/budget_placement.dart';
 import 'package:flutter/material.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
@@ -189,13 +190,21 @@ class CategoryBudgetTile extends StatelessWidget {
     required this.month,
     required this.today,
     required this.onTap,
+    this.placement = const BudgetPlacement(),
+    this.onShowEntries,
     super.key,
   });
+
+  /// Opens the list of what was spent against this budget.
+  final VoidCallback? onShowEntries;
 
   final BudgetItem item;
   final DateTime month;
   final DateTime today;
   final VoidCallback onTap;
+
+  /// Where the category sits, shown so same-named budgets can be told apart.
+  final BudgetPlacement placement;
 
   @override
   Widget build(BuildContext context) {
@@ -232,6 +241,14 @@ class CategoryBudgetTile extends StatelessWidget {
                         ),
                       ),
                       const SizedBox(width: 8),
+                      if (onShowEntries != null)
+                        IconButton(
+                          key: ValueKey('budget-entries-${item.categoryId}'),
+                          tooltip: tr('See what was spent'),
+                          visualDensity: VisualDensity.compact,
+                          icon: const Icon(Icons.receipt_long, size: 20),
+                          onPressed: onShowEntries,
+                        ),
                       Text(
                         localizeDigits('${progress.percent}%'),
                         style: theme.textTheme.labelLarge?.tabular.copyWith(
@@ -240,6 +257,36 @@ class CategoryBudgetTile extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (placement.parentPath != null)
+                    Text(
+                      placement.parentPath!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  if (placement.insideOver(progress.limit))
+                    Text(
+                      tr(
+                        'The budgets inside add up to {amount}, more than this one',
+                        {'amount': formatPoisha(placement.insideLimits)},
+                      ),
+                      key: ValueKey('budget-inside-over-${item.categoryId}'),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.error,
+                      ),
+                    ),
+                  if (placement.countedIn != null)
+                    Text(
+                      tr('Also counted in the {name} budget', {
+                        'name': placement.countedIn,
+                      }),
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
                   const SizedBox(height: 2),
                   Text(
                     tr('Spent {spent} of {limit}', {

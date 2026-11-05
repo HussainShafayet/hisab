@@ -6,6 +6,7 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 import '../../../helpers/fixtures.dart';
 import '../../../helpers/pump_app.dart';
+import '../../../helpers/time_picker_actions.dart';
 
 Future<void> tapKey(WidgetTester tester, String key) async {
   final finder = find.byKey(ValueKey(key));
@@ -417,6 +418,92 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('paste-add')));
       await tester.pumpAndSettle();
       expect(saveButtonText('Save all 2'), findsOneWidget);
+    });
+
+    testWithDatabase('a row can have its own date and time', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddSeveral(tester);
+
+      await fillAmount(tester, 0, '50');
+      await chooseCategoryOfRow(tester, 0, b.food);
+      expect(find.text('Same date as above'), findsOneWidget);
+
+      // Row 1: 3 Oct at 9:05 PM.
+      await tapKey(tester, 'row-date-0');
+      await tester.tap(find.text('3').last);
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await typeTimeInPicker(tester, hour: '9', minute: '05');
+      expect(find.text('3 Oct, 9:05 PM'), findsOneWidget);
+
+      // Row 2 keeps the shared date (today, at the time of saving).
+      await tapKey(tester, 'add-row');
+      await fillAmount(tester, 1, '80');
+      await chooseCategoryOfRow(tester, 1, b.food);
+      await tapKey(tester, 'save-all');
+
+      final rows = await savedRows(db);
+      final byAmount = {for (final r in rows) r.amount: r.date};
+      expect(byAmount[5000], DateTime(2026, 10, 3, 21, 5));
+      expect(byAmount[8000], DateTime(2026, 10, 11, 14, 30));
+    });
+
+    testWithDatabase('the own date of a row can be taken off again', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddSeveral(tester);
+
+      await fillAmount(tester, 0, '50');
+      await chooseCategoryOfRow(tester, 0, b.food);
+      await tapKey(tester, 'row-date-0');
+      await tester.tap(find.text('3').last);
+      await tester.tap(find.text('OK'));
+      await tester.pumpAndSettle();
+      await typeTimeInPicker(tester, hour: '9', minute: '05');
+
+      await tester.tap(find.byKey(const ValueKey('row-date-clear-0')));
+      await tester.pumpAndSettle();
+      expect(find.text('Same date as above'), findsOneWidget);
+
+      await tapKey(tester, 'save-all');
+      expect((await savedRows(db)).single.date, DateTime(2026, 10, 11, 14, 30));
+    });
+
+    testWithDatabase('the shared date can have a time for every row', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddSeveral(tester);
+
+      await tapKey(tester, 'date-yesterday');
+      await tapKey(tester, 'date-time');
+      await typeTimeInPicker(tester, hour: '7', minute: '30');
+      expect(find.text('7:30 PM'), findsOneWidget);
+
+      await fillAmount(tester, 0, '50');
+      await chooseCategoryOfRow(tester, 0, b.food);
+      await tapKey(tester, 'add-row');
+      await fillAmount(tester, 1, '80');
+      await chooseCategoryOfRow(tester, 1, b.food);
+      await tapKey(tester, 'save-all');
+
+      final rows = await savedRows(db);
+      expect(rows, hasLength(2));
+      for (final row in rows) {
+        expect(row.date, DateTime(2026, 10, 10, 19, 30));
+      }
     });
   });
 }

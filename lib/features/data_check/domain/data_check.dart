@@ -1,6 +1,7 @@
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/features/backup/domain/import_plan.dart';
 import 'package:hishab/features/categories/domain/category.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/transactions/domain/transaction_item.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -32,12 +33,30 @@ class DuplicateGroup {
   int get extra => items.length - 1;
 }
 
+/// Category paths (lower case, joined by `>`) of defaults that meant the same
+/// thing in older versions, so a phone that still has both is told.
+const knownCategoryOverlaps = [
+  ('shopping>clothing>kids wear', 'family & gifts>children>clothes & shoes'),
+];
+
 /// Two categories with names that look alike, such as "Utility" and "Utilities".
 class SimilarCategories {
-  const SimilarCategories(this.first, this.second);
+  const SimilarCategories(
+    this.first,
+    this.second, {
+    this.firstPath,
+    this.secondPath,
+  });
 
   final Category first;
   final Category second;
+
+  /// Where each sits, like `Family & gifts › Children › Clothes & shoes`.
+  final String? firstPath;
+  final String? secondPath;
+
+  String get firstLabel => firstPath ?? first.name;
+  String get secondLabel => secondPath ?? second.name;
 }
 
 /// What sits in "Other" and "Other income": spending nobody named.
@@ -199,6 +218,44 @@ List<SimilarCategories> _similarCategories(List<Category> categories) {
   final byId = {for (final category in active) category.id: category};
   final seen = <String>{};
   final pairs = <SimilarCategories>[];
+  void add(Category a, Category b) {
+    final key = a.id < b.id ? '${a.id}-${b.id}' : '${b.id}-${a.id}';
+    if (seen.add(key)) {
+      pairs.add(
+        SimilarCategories(
+          a,
+          b,
+          firstPath: categoryPathLabel(a, byId),
+          secondPath: categoryPathLabel(b, byId),
+        ),
+      );
+    }
+  }
+
+  // The same name twice in the same place is a real duplicate.
+  final byPlace = <String, Category>{};
+  for (final category in active) {
+    final place =
+        '${category.type.name}|${category.parentId}|'
+        '${normalizeName(category.name)}';
+    final first = byPlace[place];
+    if (first == null) {
+      byPlace[place] = category;
+    } else {
+      add(first, category);
+    }
+  }
+
+  // Defaults that older versions had in two places.
+  String pathKeyOf(Category c) =>
+      categoryPathNames(c, byId).map(normalizeName).join('>');
+  final byPath = {for (final c in active) pathKeyOf(c): c};
+  for (final (a, b) in knownCategoryOverlaps) {
+    final first = byPath[a];
+    final second = byPath[b];
+    if (first != null && second != null) add(first, second);
+  }
+
   for (final category in active) {
     final match = similarCategory(category.name, category.type, [
       for (final other in existing)
@@ -212,11 +269,7 @@ List<SimilarCategories> _similarCategories(List<Category> categories) {
     if (category.parentId == other.id || other.parentId == category.id) {
       continue;
     }
-    final key = category.id < other.id
-        ? '${category.id}-${other.id}'
-        : '${other.id}-${category.id}';
-    if (!seen.add(key)) continue;
-    pairs.add(SimilarCategories(category, other));
+    add(category, other);
   }
   return pairs.take(maxListed).toList();
 }

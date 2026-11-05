@@ -11,9 +11,12 @@ import 'package:hishab/core/widgets/month_switcher.dart';
 import 'package:hishab/core/widgets/motion.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/budget/domain/budget_item.dart';
+import 'package:hishab/features/budget/domain/budget_placement.dart';
 import 'package:hishab/features/budget/presentation/providers/budget_providers.dart';
 import 'package:hishab/features/budget/presentation/widgets/budget_cards.dart';
+import 'package:hishab/features/budget/presentation/widgets/budget_entries_sheet.dart';
 import 'package:hishab/features/budget/presentation/widgets/budget_limit_dialog.dart';
+import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
@@ -245,6 +248,14 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
     );
     final leftoverLastMonth =
         ref.watch(lastMonthLeftoverProvider(_month)).value ?? 0;
+    final byId = <int, Category>{
+      for (final c in ref.watch(categoriesProvider(true)).value ?? const [])
+        c.id: c,
+    };
+    final placements = budgetPlacements({
+      for (final item in data.categories)
+        if (item.categoryId != null) item.categoryId!: item.limit,
+    }, byId);
 
     return ListView(
       // Room below the last row so the add button never covers it.
@@ -307,6 +318,20 @@ class _BudgetScreenState extends ConsumerState<BudgetScreen> {
               month: _month,
               today: now,
               onTap: () => _editCategory(item),
+              onShowEntries: item.categoryId == null
+                  ? null
+                  : () => showBudgetEntries(
+                      context,
+                      name: byId[item.categoryId] == null
+                          ? (item.categoryName ?? '')
+                          : categoryPathLabel(byId[item.categoryId]!, byId),
+                      month: _month,
+                      categoryIds: categoryAndDescendantIds(
+                        item.categoryId!,
+                        byId.values,
+                      ),
+                    ),
+              placement: placements[item.categoryId] ?? const BudgetPlacement(),
             ),
           ),
         Padding(

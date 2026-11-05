@@ -81,7 +81,8 @@ void main() {
 
     test('transport words', () {
       expect(suggest('Rickshaw fare'), 'City travel');
-      expect(suggest('Pathao'), 'Ride sharing');
+      // "Pathao" itself is a default now, so a new name is used.
+      expect(suggest('Pathao trip'), 'Ride sharing');
       expect(suggest('CNG to office'), 'CNG & auto');
       expect(suggest('Octane for bike'), 'Fuel');
       expect(suggest('Night train'), 'Train');

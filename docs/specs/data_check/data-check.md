@@ -31,7 +31,11 @@ screen finds the likely ones and leaves the choice to the person.
      and *Utilities*; `similarCategory`). Not listed: the same name under two
      groups (*Gifts* of the wife and of the children, on purpose), a group and
      what is inside it, archived categories, income against expense. A tap
-     opens Categories, where *Merge into…* does it.
+     opens Categories, where *Merge into…* does it. Also listed: the same
+     name twice under the same group (a real duplicate), and known overlaps
+     left from older defaults (`knownCategoryOverlaps`: *Shopping > Clothing >
+     Kids wear* with *Family & gifts > Children > Clothes & shoes*). Rows show
+     the full path of both (`firstLabel` / `secondLabel`).
 - At most 20 entries are listed per kind (`maxListed`).
 - A balance correction is not an entry of the person's and is never listed.
 
