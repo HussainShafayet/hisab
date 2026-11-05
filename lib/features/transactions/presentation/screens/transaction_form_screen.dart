@@ -64,6 +64,8 @@ class TransactionFormScreen extends ConsumerWidget {
     this.payUsd,
     this.prefillAmount,
     this.prefillNote,
+    this.startAccountId,
+    this.startType,
     super.key,
   });
 
@@ -79,6 +81,11 @@ class TransactionFormScreen extends ConsumerWidget {
   /// total of the bazar list.
   final int? prefillAmount;
   final String? prefillNote;
+
+  /// A new transaction starts on this account and as this type (from an
+  /// account's own page).
+  final int? startAccountId;
+  final TransactionType? startType;
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -113,6 +120,8 @@ class TransactionFormScreen extends ConsumerWidget {
             payUsd: payUsd,
             prefillAmount: prefillAmount,
             prefillNote: prefillNote,
+            startAccountId: startAccountId,
+            startType: startType,
           ),
         );
   }
@@ -127,7 +136,12 @@ class _TransactionForm extends ConsumerStatefulWidget {
     this.payUsd,
     this.prefillAmount,
     this.prefillNote,
+    this.startAccountId,
+    this.startType,
   });
+
+  final int? startAccountId;
+  final TransactionType? startType;
 
   final TransactionFormArgs args;
   final TransactionFormData data;
@@ -268,6 +282,14 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     }
     final prefillNote = widget.prefillNote;
     if (_isAdding && prefillNote != null) _note.text = prefillNote;
+
+    // Started from an account's own page.
+    final start = widget.startAccountId;
+    if (_isAdding && card == null && start != null && usableAccount(start)) {
+      _accountId = start;
+    }
+    final startType = widget.startType;
+    if (_isAdding && card == null && startType != null) _type = startType;
 
     for (final node in [_amountFocus, _noteFocus, _feeFocus, _usdFocus]) {
       node.addListener(_onFocusChanged);

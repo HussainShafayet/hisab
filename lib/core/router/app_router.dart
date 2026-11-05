@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/router/app_shell.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/presentation/screens/account_form_screen.dart';
+import 'package:hishab/features/accounts/presentation/screens/account_detail_screen.dart';
 import 'package:hishab/features/accounts/presentation/screens/accounts_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/backup_screen.dart';
 import 'package:hishab/features/backup/presentation/screens/csv_import_screen.dart';
@@ -144,6 +146,18 @@ final routerProvider = Provider<GoRouter>((ref) {
                               ? const _InvalidIdScreen('account')
                               : AccountFormScreen(accountId: id);
                         },
+                        routes: [
+                          GoRoute(
+                            path: 'details',
+                            parentNavigatorKey: _rootNavigatorKey,
+                            builder: (context, state) {
+                              final id = _idOf(state);
+                              return id == null
+                                  ? const _InvalidIdScreen('account')
+                                  : AccountDetailScreen(accountId: id);
+                            },
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -470,6 +484,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             state.uri.queryParameters['prefillAmount'] ?? '',
           ),
           prefillNote: state.uri.queryParameters['prefillNote'],
+          startAccountId: int.tryParse(
+            state.uri.queryParameters['account'] ?? '',
+          ),
+          startType: TransactionType.values
+              .asNameMap()[state.uri.queryParameters['type']],
         ),
       ),
       GoRoute(

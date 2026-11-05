@@ -13,8 +13,11 @@ import 'package:hishab/core/widgets/show_archived_chip.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/domain/account_balance.dart';
+import 'package:hishab/features/accounts/domain/account_type.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/accounts/presentation/providers/account_activity_providers.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
+import 'package:hishab/features/accounts/presentation/widgets/activity_line.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_type_ui.dart';
 import 'package:hishab/features/accounts/presentation/widgets/adjust_balance_dialog.dart';
 import 'package:hishab/features/accounts/presentation/widgets/credit_card_tile.dart';
@@ -163,6 +166,7 @@ class _TotalCard extends ConsumerWidget {
             const SizedBox(height: 12),
             const Divider(height: 1, color: Color(0x44FFFFFF)),
             const SizedBox(height: 12),
+            if (!hidden) _ShareBar(byType: byType),
             Wrap(
               spacing: 20,
               runSpacing: 8,
@@ -179,6 +183,45 @@ class _TotalCard extends ConsumerWidget {
             ),
           ],
         ],
+      ),
+    );
+  }
+}
+
+/// How the money is shared between the kinds of account: one bar, a slice for
+/// each kind that holds something, as wide as its share.
+class _ShareBar extends StatelessWidget {
+  const _ShareBar({required this.byType});
+
+  final Map<AccountType, int> byType;
+
+  @override
+  Widget build(BuildContext context) {
+    final slices = [
+      for (final entry in byType.entries)
+        if (entry.value > 0) entry,
+    ];
+    if (slices.length < 2) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 12),
+      child: ClipRRect(
+        key: const ValueKey('share-bar'),
+        borderRadius: BorderRadius.circular(4),
+        child: SizedBox(
+          height: 8,
+          child: Row(
+            children: [
+              for (final entry in slices)
+                Expanded(
+                  flex: entry.value,
+                  child: ColoredBox(
+                    key: ValueKey('share-${entry.key.name}'),
+                    color: Color.lerp(entry.key.color, Colors.white, 0.45)!,
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -259,7 +302,7 @@ class _AccountCardTile extends ConsumerWidget {
       account: _account,
       balance: item.balance,
       hideBalance: ref.watch(preferencesProvider.select((p) => p.hideBalances)),
-      onTap: () => context.push(AppRoutes.editAccount(_account.id)),
+      onTap: () => context.push(AppRoutes.accountDetails(_account.id)),
       trailing: PopupMenuButton<_AccountAction>(
         icon: const Icon(Icons.more_vert, color: Colors.white),
         onSelected: (action) => _onAction(context, ref, action),
@@ -282,13 +325,23 @@ class _AccountCardTile extends ConsumerWidget {
         ],
       ),
     );
-    if (status == null) return card;
+    final month = ActivityLine(
+      activity: ref.watch(monthActivityProvider)[_account.id],
+      hidden: ref.watch(preferencesProvider.select((p) => p.hideBalances)),
+    );
+    if (status == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [card, month],
+      );
+    }
     // A credit card also says when the bill is due, how much is left to
     // spend, and its dollars, right under it.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         card,
+        month,
         CreditCardDetails(
           card: status,
           today: ref.watch(clockProvider)(),

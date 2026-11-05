@@ -371,7 +371,8 @@ void main() {
       await pumpAppWithDatabase(tester, db);
       await openFromMore(tester, 'Accounts');
 
-      await tester.tap(accountCard('Cash'));
+      await openCardMenu(tester, 'Cash');
+      await tester.tap(find.text('Edit'));
       await tester.pumpAndSettle();
 
       expect(find.text('Edit account'), findsOneWidget);
@@ -417,7 +418,8 @@ void main() {
       await pumpAppWithDatabase(tester, db);
       await openFromMore(tester, 'Accounts');
 
-      await tester.tap(accountCard('Savings'));
+      await openCardMenu(tester, 'Savings');
+      await tester.tap(find.text('Edit'));
       await tester.pumpAndSettle();
 
       expect(

@@ -76,6 +76,14 @@ abstract final class AppRoutes {
   static const newAccount = '/more/accounts/new';
   static String editAccount(int id) => '/more/accounts/$id';
 
+  /// An account's month: what came in and went out, and its entries.
+  static String accountDetails(int id) => '/more/accounts/$id/details';
+
+  /// A new transaction that starts on [accountId], as an expense, income or
+  /// transfer ([type] is the name of a transaction type).
+  static String addOnAccount(int accountId, {String? type}) =>
+      '/add?account=$accountId${type == null ? '' : '&type=$type'}';
+
   /// [type] is a `CategoryType` name (`expense` or `income`). Pass [parentId]
   /// to add a sub-category.
   static String newCategory({String? type, int? parentId}) => Uri(
