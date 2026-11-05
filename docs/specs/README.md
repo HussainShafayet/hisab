@@ -73,6 +73,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [reports](reports/) | [Every number opens its entries, and highlights](reports/drill-down-and-highlights.md) | 29 |
 | [debts](debts/) | [Loans: net, coming up, search, sort, pay in parts](debts/net-upcoming-payoff.md) | 30 |
 | [insights](insights/) | [More insights, habits and a tip of the day](insights/insights-habits-tips.md) | 31 |
+| [investments](investments/) | [How long, how fast, and the list](investments/how-it-is-going.md) | 32 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

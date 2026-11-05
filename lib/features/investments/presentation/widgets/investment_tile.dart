@@ -8,7 +8,15 @@ import 'package:hishab/features/investments/presentation/widgets/investment_form
 
 /// One investment in the list: what was put in, what it has made so far.
 class InvestmentTile extends StatelessWidget {
-  const InvestmentTile({required this.item, required this.onTap, super.key});
+  const InvestmentTile({
+    required this.item,
+    required this.onTap,
+    this.heldDays,
+    super.key,
+  });
+
+  /// How long it has been going, shown after the amount put in.
+  final int? heldDays;
 
   final InvestmentItem item;
   final VoidCallback onTap;
@@ -51,14 +59,19 @@ class InvestmentTile extends StatelessWidget {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      investment.isClosed
-                          ? tr('Closed · put in {amount}', {
-                              'amount': formatPoisha(item.putIn),
-                            })
-                          : tr('Put in {amount}', {
-                              'amount': formatPoisha(item.putIn),
-                            }),
+                      [
+                        investment.isClosed
+                            ? tr('Closed · put in {amount}', {
+                                'amount': formatPoisha(item.putIn),
+                              })
+                            : tr('Put in {amount}', {
+                                'amount': formatPoisha(item.putIn),
+                              }),
+                        if (heldDays != null) _held(heldDays!),
+                      ].join(' · '),
                       key: ValueKey('investment-put-in-${investment.id}'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                       style: theme.textTheme.bodySmall?.copyWith(
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
@@ -106,3 +119,8 @@ class InvestmentTile extends StatelessWidget {
     );
   }
 }
+
+/// "12 days" / "6 months", short, for the line under the name.
+String _held(int days) => days < 60
+    ? plural(days, '1 day', '{n} days')
+    : plural(days ~/ 30, '1 month', '{n} months');

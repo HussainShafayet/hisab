@@ -295,6 +295,10 @@ const guideTopics = <GuideTopic>[
     summary: 'Money put into a shop, farm or partnership: is it paying?',
     route: AppRoutes.investments,
     sections: [
+      GuideSection('How it is going', [
+        'Open an investment to see how long money has been in, how much of it has come back, about what it makes a year, and when all of it is back at the same pace. A chart shows the profit of each month.',
+        'On the list, tap All, Open or Closed to narrow it, and use the sort button to put the best return first.',
+      ]),
       GuideSection('Tracking one', steps: true, [
         'Add an investment with its name and the money you put in first.',
         'Open it to record more money put in, profit received, money taken back, and what it is worth now.',
