@@ -65,6 +65,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [backup](backup/) | [Automatic backup](backup/auto-backup.md) | 19b |
 | [backup](backup/) | [Backup to Google Drive](backup/google-drive-backup.md) | 19b |
 | [bazar](bazar/) | [Bazar list from a Google Form](bazar/google-form-inbox.md) | 19b |
+| [budget](budget/) | [Where a category budget sits](budget/category-placement.md) | 24 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

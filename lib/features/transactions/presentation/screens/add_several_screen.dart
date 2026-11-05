@@ -10,6 +10,7 @@ import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/core/widgets/time_picking.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_picker_sheet.dart';
@@ -86,6 +87,10 @@ class _Row {
   int? toAccountId;
   int? categoryId;
 
+  /// This row's own day and time. Null means the shared date at the top, at
+  /// the time of saving.
+  DateTime? when;
+
   /// Why the row could not be saved, shown under it.
   String? error;
 
@@ -121,6 +126,10 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
   /// since the last frame may still draw them.
   final _retired = <_Row>[];
   late DateTime _day;
+
+  /// The time for the rows that use the shared date. Null means the time of
+  /// saving.
+  TimeOfDay? _time;
   bool _saving = false;
 
   /// What the last save did, while some rows are still to be fixed.
@@ -264,6 +273,31 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
     if (picked != null && mounted) setState(() => _day = dateOnly(picked));
   }
 
+  Future<void> _pickTime() async {
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _time ?? TimeOfDay.fromDateTime(ref.read(clockProvider)()),
+    );
+    if (picked != null && mounted) setState(() => _time = picked);
+  }
+
+  Future<void> _pickRowDate(_Row row) async {
+    final now = ref.read(clockProvider)();
+    final picked = await pickDayAndTime(
+      context,
+      initial:
+          row.when ??
+          combineDayWithTime(
+            _day,
+            _time == null
+                ? now
+                : DateTime(2000, 1, 1, _time!.hour, _time!.minute),
+          ),
+      now: now,
+    );
+    if (picked != null && mounted) setState(() => row.when = picked);
+  }
+
   Map<int, int> _balances() => {
     for (final item
         in ref.read(accountsProvider(true)).value ??
@@ -355,7 +389,13 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
   /// Saves every row that is filled in, one after the other. Saved rows leave
   /// the screen; a row with a mistake stays, with its reason.
   Future<void> _save() async {
-    final date = combineDayWithTime(_day, ref.read(clockProvider)());
+    final time = _time;
+    final shared = combineDayWithTime(
+      _day,
+      time == null
+          ? ref.read(clockProvider)()
+          : DateTime(2000, 1, 1, time.hour, time.minute),
+    );
     final pending = <_Row>[];
     final inputs = <TransactionInput>[];
     var failed = 0;
@@ -366,7 +406,7 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
         row.error = null;
         final draft = row.draft;
         if (draft.isBlank) continue;
-        final parsed = parseBatchDraft(draft, date);
+        final parsed = parseBatchDraft(draft, row.when ?? shared);
         final input = parsed.input;
         if (input == null) {
           row.error = parsed.error;
@@ -554,6 +594,21 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
           selected: isOther,
           onSelected: (_) => _pickDate(),
         ),
+        ChoiceChip(
+          key: const ValueKey('date-time'),
+          showCheckmark: false,
+          avatar: const Icon(Icons.schedule, size: 16),
+          tooltip: tr('Change the time'),
+          label: Text(
+            _time == null
+                ? tr('Now')
+                : formatClockTime(
+                    DateTime(2000, 1, 1, _time!.hour, _time!.minute),
+                  ),
+          ),
+          selected: _time != null,
+          onSelected: (_) => _pickTime(),
+        ),
       ],
     );
   }
@@ -740,6 +795,29 @@ class _AddSeveralFormState extends ConsumerState<_AddSeveralForm> {
               textCapitalization: TextCapitalization.sentences,
               onChanged: (_) => _edited(row),
               decoration: InputDecoration(labelText: tr('Note'), isDense: true),
+            ),
+            const SizedBox(height: 4),
+            InputChip(
+              key: ValueKey('row-date-$index'),
+              avatar: const Icon(Icons.event, size: 16),
+              tooltip: tr('Own date and time for this row'),
+              label: Text(
+                row.when == null
+                    ? tr('Same date as above')
+                    : formatDayAndTime(row.when!, ref.read(clockProvider)()),
+              ),
+              selected: row.when != null,
+              showCheckmark: false,
+              isEnabled: !_saving,
+              onPressed: () => _pickRowDate(row),
+              deleteIcon: Icon(
+                Icons.close,
+                key: ValueKey('row-date-clear-$index'),
+                size: 16,
+              ),
+              onDeleted: row.when == null
+                  ? null
+                  : () => setState(() => row.when = null),
             ),
             if (row.error != null)
               Padding(

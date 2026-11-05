@@ -33,7 +33,10 @@ helps place a new category so no one has to guess which goes inside which.
   - *Wife / Husband*: Clothes & jewellery, Cosmetics & beauty, Medicine &
     doctor, Gifts, Pocket money, Outings together;
   - *Children*: Baby food & diapers, Clothes & shoes, Toys & games, Medicine &
-    doctor, Treats & birthdays (school fees stay in *Education*);
+    doctor, Treats & birthdays, Pocket money (school fees stay in
+    *Education*). Kids' clothes are here only, not under *Shopping >
+    Clothing*. Schema 18 moves an old install's *Family & gifts > Kids pocket
+    money* into *Children* as *Pocket money* (`moveKidsPocketMoney`);
   - *Brothers & sisters*: Monthly help, Gifts, Education help;
   - *In-laws*: Monthly help, Gifts, Feast & visits.
 

@@ -3,6 +3,8 @@ const bnAddSeveral = <String, String>{
   '1 row needs fixing': '১টি সারি ঠিক করতে হবে',
   '1 transaction saved': '১টি লেনদেন সংরক্ষিত হয়েছে',
   'Add row': 'সারি যোগ করুন',
+  'Own date and time for this row': 'এই সারির নিজের তারিখ ও সময়',
+  'Same date as above': 'উপরের তারিখই',
   'Add several': 'একসঙ্গে কয়েকটি যোগ করুন',
   'Each row is saved on its own. A row with a mistake stays here for you to fix.': 'প্রতিটি সারি আলাদাভাবে সংরক্ষিত হয়। ভুল থাকা সারিটি ঠিক করার জন্য এখানেই থাকে।',
   'Remove row': 'সারি সরান',

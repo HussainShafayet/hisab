@@ -60,6 +60,18 @@ double parseMetalPrice(Object? json) {
   );
 }
 
+/// The rate of one [from] in [to] in the answer of the backup currency service
+/// (`{"date": "...", "xau": {"usd": 3981.6}}`), for example `xau` in `usd`.
+double parseBackupRate(Object? json, String from, String to) {
+  if (json is Map && json[from] is Map) {
+    final rate = (json[from] as Map)[to];
+    if (rate is num && rate > 0) return rate.toDouble();
+  }
+  throw RateException(
+    tr('The rate service gave an answer that cannot be read.'),
+  );
+}
+
 /// Reads the rates from free services: open.er-api.com for dollars and
 /// api.gold-api.com for gold and silver. No account or key is needed.
 class HttpRateService implements RateService {
@@ -67,12 +79,26 @@ class HttpRateService implements RateService {
 
   final Duration timeout;
 
+  /// Sent with every request. The default `Dart/x (dart:io)` is blocked by
+  /// the metal price service.
+  static const userAgent = 'Hishab/1.0 (personal finance app)';
+
   static const _usdUrl = 'https://open.er-api.com/v6/latest/USD';
   static const _goldUrl = 'https://api.gold-api.com/price/XAU';
   static const _silverUrl = 'https://api.gold-api.com/price/XAG';
 
+  /// Asked when the services above fail: a free daily currency list that
+  /// also has gold (xau) and silver (xag).
+  static String _backupUrl(String code) =>
+      'https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/'
+      'currencies/$code.json';
+
   Future<Object?> _get(String url) async {
-    final client = HttpClient()..connectionTimeout = timeout;
+    // api.gold-api.com turns away Dart's default user agent with
+    // "429 Too Many Requests", so the app names itself.
+    final client = HttpClient()
+      ..connectionTimeout = timeout
+      ..userAgent = userAgent;
     try {
       final request = await client.getUrl(Uri.parse(url)).timeout(timeout);
       final response = await request.close().timeout(timeout);
@@ -92,13 +118,29 @@ class HttpRateService implements RateService {
   }
 
   @override
-  Future<double> usdToBdt() async => parseUsdToBdt(await _get(_usdUrl));
+  Future<double> usdToBdt() async {
+    try {
+      return parseUsdToBdt(await _get(_usdUrl));
+    } on RateException {
+      return parseBackupRate(await _get(_backupUrl('usd')), 'usd', 'bdt');
+    }
+  }
 
   @override
   Future<MetalPrices> metals() async {
-    final gold = parseMetalPrice(await _get(_goldUrl));
-    final silver = parseMetalPrice(await _get(_silverUrl));
-    return MetalPrices(goldPerOunce: gold, silverPerOunce: silver);
+    try {
+      final gold = parseMetalPrice(await _get(_goldUrl));
+      final silver = parseMetalPrice(await _get(_silverUrl));
+      return MetalPrices(goldPerOunce: gold, silverPerOunce: silver);
+    } on RateException {
+      final gold = parseBackupRate(await _get(_backupUrl('xau')), 'xau', 'usd');
+      final silver = parseBackupRate(
+        await _get(_backupUrl('xag')),
+        'xag',
+        'usd',
+      );
+      return MetalPrices(goldPerOunce: gold, silverPerOunce: silver);
+    }
   }
 }
 

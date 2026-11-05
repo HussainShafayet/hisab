@@ -27,7 +27,10 @@ number by default; the calculator is there when wanted.
   what it owes. See [credit cards](../accounts/credit-cards.md).
 - A [credit card](../accounts/credit-cards.md) account says "Owed after this"
   and warns only when a purchase goes over its limit.
-- Date: Today / Yesterday / Pick date. Note: free text.
+- Date: Today / Yesterday / Pick date, and a time chip (`date-time`): *Now*
+  until a time is picked (then saved at the picked time on the chosen day).
+  Editing starts from the transaction's own time. List rows show the time
+  under the amount (`tile-time-<id>`). Note: free text.
 - **Save** saves and closes. **Save & new** saves, then empties the amount,
   category and note and puts the cursor back in the amount, keeping the type,
   account and date, so several things bought the same day can be entered one

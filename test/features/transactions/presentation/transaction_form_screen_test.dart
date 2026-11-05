@@ -9,6 +9,7 @@ import 'package:hishab/features/transactions/presentation/widgets/amount_keypad.
 import '../../../helpers/fixtures.dart';
 import '../../../helpers/form_actions.dart';
 import '../../../helpers/pump_app.dart';
+import '../../../helpers/time_picker_actions.dart';
 import '../../../helpers/test_database.dart';
 
 Future<void> tapText(WidgetTester tester, String text) async {
@@ -859,6 +860,28 @@ void main() {
       await tapText(tester, 'Save');
 
       expect((await savedRows(db)).single.date, DateTime(2026, 10, 3, 14, 30));
+    });
+
+    testWithDatabase('the time can be chosen too', (tester, db) async {
+      useTallScreen(tester);
+      final b = await seedBasics(db);
+      await pumpAppWithDatabase(tester, db);
+      await openAddForm(tester);
+
+      // A new transaction is saved at the time it is now, until one is picked.
+      expect(find.text('Now'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('date-time')));
+      await tester.pumpAndSettle();
+      await typeTimeInPicker(tester, hour: '8', minute: '15');
+      expect(find.text('8:15 PM'), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('date-yesterday')));
+      await tester.pump();
+      await typeAmount(tester, '10');
+      await chooseCategory(tester, b.food);
+      await tapText(tester, 'Save');
+
+      expect((await savedRows(db)).single.date, DateTime(2026, 10, 10, 20, 15));
     });
   });
 

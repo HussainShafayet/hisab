@@ -15,7 +15,10 @@ and save them with one tap, instead of walking through the form once for each.
   (the account money leaves, or arrives in for an income), category (not for a
   transfer), the second account (transfer only) and a note. Rows may use the
   same accounts and categories or different ones. One date (Today / Yesterday /
-  a picked day) is shared by all rows.
+  a picked day) is shared by all rows, at the time of saving. Each row has a
+  *Same date as above* chip (`row-date-N`): tapping it asks for a day and then
+  a time, and that row is saved then; the chip's ✕ (`row-date-clear-N`) takes it back to the shared
+  date. The shared date has a time chip too (`date-time`, *Now* until picked).
 - **Paste lines** (the clipboard button in the app bar) opens a box for
   lines, one entry on each: `rickshaw 50`, `lunch 120 bkash`, `+salary 30k`.
   *Paste from the clipboard* adds what the phone has copied. *Add rows* makes

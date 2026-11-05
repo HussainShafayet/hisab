@@ -5,6 +5,7 @@ import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/theme/tabular_figures.dart';
 import 'package:hishab/core/utils/money.dart';
+import 'package:hishab/core/widgets/time_picking.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/categories/presentation/widgets/category_avatar.dart';
 import 'package:hishab/features/settings/presentation/providers/income_privacy_providers.dart';
@@ -123,12 +124,26 @@ class TransactionTile extends ConsumerWidget {
               fontWeight: FontWeight.w600,
             );
             // Income is a secret while it is hidden; a balance fix is not.
-            if (incomeHidden &&
-                item.type == TransactionType.income &&
-                !item.isAdjustment) {
-              return HiddenIncome(style: style);
-            }
-            return Text(amountText, style: style);
+            final amount =
+                incomeHidden &&
+                    item.type == TransactionType.income &&
+                    !item.isAdjustment
+                ? HiddenIncome(style: style)
+                : Text(amountText, style: style);
+            return Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                amount,
+                Text(
+                  formatClockTime(item.date),
+                  key: ValueKey('tile-time-${item.id}'),
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            );
           }(),
         ),
       ),

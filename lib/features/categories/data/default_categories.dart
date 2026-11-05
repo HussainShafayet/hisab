@@ -303,7 +303,6 @@ const defaultExpenseCategories = [
         children: [
           DefaultCategory('Shirt & panjabi'),
           DefaultCategory('Saree & women\'s wear'),
-          DefaultCategory('Kids wear'),
           DefaultCategory('Shoes & bags'),
         ],
       ),
@@ -362,6 +361,7 @@ const defaultExpenseCategories = [
           DefaultCategory('Toys & games', icon: 'sports_esports'),
           DefaultCategory('Medicine & doctor', icon: 'medical_services'),
           DefaultCategory('Treats & birthdays'),
+          DefaultCategory('Pocket money', icon: 'wallet'),
         ],
       ),
       DefaultCategory(
@@ -383,7 +383,6 @@ const defaultExpenseCategories = [
       DefaultCategory('Salami (Eid)'),
       DefaultCategory('Wedding & gaye holud gift'),
       DefaultCategory('Birthday gifts'),
-      DefaultCategory('Kids pocket money', icon: 'child_care'),
     ],
   ),
   DefaultCategory(

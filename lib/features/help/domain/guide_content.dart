@@ -85,6 +85,8 @@ const guideTopics = <GuideTopic>[
         'Note suggestions: as you type a note, notes from earlier entries appear under it. Tap one to fill the note, and the category and amount of that entry if they are still empty.',
         'In Add several, the calculator button in an amount adds up a sum like 1200+350 or 450×3 and puts the result in the amount.',
         'Add several: enter a handful of transactions on one screen and save them together. Paste lines turns lines like rickshaw 50 into rows.',
+        'In Add several, every row uses the date at the top. Tap Same date as above on a row to give that row its own day and time.',
+        'The clock chip next to the date sets the time. It says Now until you pick one.',
         'Needed, Wanted or Regret on an expense lets Home show how the month felt.',
         'A tag (Trips & events) groups the expenses of a trip or an occasion.',
       ]),
@@ -154,6 +156,7 @@ const guideTopics = <GuideTopic>[
         'Open the Budget tab and set the overall limit for the month.',
         'Optionally set limits for single categories, like Food. Copy last month\'s budget to save time.',
         'Bars turn amber near the limit and red once it is crossed.',
+        'A category budget counts everything inside the category too. The card shows where the category sits, says when a bigger budget also counts it, and warns when the budgets inside ask for more than its limit. The list button shows what was spent this month.',
       ]),
       GuideSection('Carrying over what is left', [
         'Switch on Carry over what is left on the Budget tab. Money you did not spend in a month is then added to the same budget of the next month, with a note on the card.',
@@ -431,7 +434,7 @@ const guideTopics = <GuideTopic>[
         'Dated in the future: often a wrong year, or a day and month the wrong way round.',
         'Far above the usual: at least 10 times the usual amount of its category and ৳1,000 or more, like a slip of a zero.',
         'In Other: spending that has no real category yet.',
-        'Categories that look alike, like Utility and Utilities. Merge them from the Categories screen.',
+        'Categories that look alike, like Utility and Utilities, or the same name twice in one place. Merge them from the Categories screen.',
       ]),
       GuideSection('Good to know', [
         'Nothing is changed unless you say so. Tap an entry to open and fix it.',

@@ -12,6 +12,7 @@ import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/money_form_field.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/core/widgets/time_picking.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
@@ -159,6 +160,9 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
   Feeling? _feeling;
   late DateTime _day;
 
+  /// The clock time chosen by hand. Null means "now" for a new transaction.
+  TimeOfDay? _time;
+
   /// Whether the amount is typed with the calculator keypad, so it can be a
   /// sum like `1200+350`. Otherwise it is a plain number typed on the keyboard.
   bool _calculator = false;
@@ -206,6 +210,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     final usd = source?.usdAmount;
     _usd.text = usd == null ? '' : poishaToInput(usd);
     _day = dateOnly(_isEditing ? source!.date : now);
+    if (_isEditing) _time = TimeOfDay.fromDateTime(source!.date);
 
     // When copying, only reuse an account or category that can still be used.
     bool usableAccount(int? id) =>
@@ -532,7 +537,12 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     }
 
     final isTransfer = _type == TransactionType.transfer;
-    final time = _isEditing ? _data.source!.date : ref.read(clockProvider)();
+    final picked = _time;
+    final time = picked != null
+        ? DateTime(2000, 1, 1, picked.hour, picked.minute)
+        : _isEditing
+        ? _data.source!.date
+        : ref.read(clockProvider)();
     final input = TransactionInput(
       type: _type,
       amount: amount,
@@ -610,6 +620,16 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
       currentDate: today,
     );
     if (picked != null && mounted) setState(() => _day = dateOnly(picked));
+  }
+
+  Future<void> _pickTime() async {
+    _closeKeypad();
+    final now = ref.read(clockProvider)();
+    final picked = await showTimePicker(
+      context: context,
+      initialTime: _time ?? TimeOfDay.fromDateTime(now),
+    );
+    if (picked != null && mounted) setState(() => _time = picked);
   }
 
   Future<void> _addAccountFirst() async {
@@ -1602,6 +1622,21 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           ),
           selected: isOther,
           onSelected: (_) => _pickDate(),
+        ),
+        ChoiceChip(
+          key: const ValueKey('date-time'),
+          showCheckmark: false,
+          avatar: const Icon(Icons.schedule, size: 16),
+          tooltip: tr('Change the time'),
+          label: Text(
+            _time == null
+                ? tr('Now')
+                : formatClockTime(
+                    DateTime(2000, 1, 1, _time!.hour, _time!.minute),
+                  ),
+          ),
+          selected: _time != null,
+          onSelected: (_) => _pickTime(),
         ),
       ],
     );
