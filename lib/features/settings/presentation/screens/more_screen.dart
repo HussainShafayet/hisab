@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/router/app_routes.dart';
+import 'package:hishab/core/theme/finance_colors.dart';
+import 'package:hishab/features/settings/domain/more_status.dart';
+import 'package:hishab/features/settings/presentation/providers/more_providers.dart';
 import 'package:hishab/features/notifications/presentation/widgets/notification_bell.dart';
 
 /// One place in the More list.
@@ -17,14 +21,14 @@ class _Entry {
 /// The "More" tab: entry points to everything that is not a main tab, in
 /// groups, each with a line saying what it is for. A search box at the top
 /// finds one by what it is called or what it is for.
-class MoreScreen extends StatefulWidget {
+class MoreScreen extends ConsumerStatefulWidget {
   const MoreScreen({super.key});
 
   @override
-  State<MoreScreen> createState() => _MoreScreenState();
+  ConsumerState<MoreScreen> createState() => _MoreScreenState();
 }
 
-class _MoreScreenState extends State<MoreScreen> {
+class _MoreScreenState extends ConsumerState<MoreScreen> {
   final _search = TextEditingController();
   String _query = '';
 
@@ -228,18 +232,60 @@ class _MoreScreenState extends State<MoreScreen> {
     );
   }
 
-  /// The whole list, in groups.
+  /// The whole list, in groups: the last places opened first, then each group
+  /// in a card of its own.
   List<Widget> _everything() {
     final help = _help;
+    final groups = _groups();
+    final byRoute = {
+      for (final (_, entries) in groups)
+        for (final entry in entries) entry.route: entry,
+    };
+    final recent = [
+      for (final route in ref.watch(moreRecentProvider).value ?? const [])
+        ?byRoute[route],
+    ];
     return [
       _MoreTile(
         key: const ValueKey('more-help'),
         entry: help,
         highlighted: true,
       ),
-      for (final (heading, entries) in _groups()) ...[
+      if (recent.isNotEmpty) ...[
+        _Heading(tr('Opened lately')),
+        Padding(
+          key: const ValueKey('more-recent'),
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 4,
+            children: [
+              for (final entry in recent)
+                ActionChip(
+                  key: ValueKey('recent-${entry.route}'),
+                  avatar: Icon(entry.icon, size: 18),
+                  label: Text(entry.title),
+                  onPressed: () => openMore(context, ref, entry.route),
+                ),
+            ],
+          ),
+        ),
+      ],
+      for (final (heading, entries) in groups) ...[
         _Heading(heading),
-        for (final entry in entries) _MoreTile(entry: entry),
+        Card(
+          key: ValueKey('more-group-$heading'),
+          margin: const EdgeInsets.symmetric(horizontal: 16),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (final (index, entry) in entries.indexed) ...[
+                if (index > 0) const Divider(height: 1, indent: 56),
+                _MoreTile(entry: entry),
+              ],
+            ],
+          ),
+        ),
       ],
     ];
   }
@@ -294,7 +340,35 @@ class _Heading extends StatelessWidget {
   }
 }
 
-class _MoreTile extends StatelessWidget {
+/// Opens a place of the More list and remembers it for "Opened lately".
+Future<void> openMore(BuildContext context, WidgetRef ref, String route) {
+  rememberMoreVisit(ProviderScope.containerOf(context), route);
+  return context.push(route);
+}
+
+/// What a status says, in words.
+String moreStatusText(MoreStatus status) {
+  final days = status.args['days'];
+  return switch (status.kind) {
+    MoreStatusKind.loansLate => plural(
+      status.args['count']! as int,
+      '1 late',
+      '{n} late',
+    ),
+    MoreStatusKind.backupNever => tr('No backup yet'),
+    MoreStatusKind.backupOld || MoreStatusKind.backupFresh =>
+      (days! as int) == 0
+          ? tr('Backed up today')
+          : plural(days as int, 'Backup 1 day old', 'Backup {n} days old'),
+    MoreStatusKind.recurringSoon => switch (days! as int) {
+      0 => tr('Due today'),
+      1 => tr('Due tomorrow'),
+      final n => tr('Due in {n} days', {'n': n}),
+    },
+  };
+}
+
+class _MoreTile extends ConsumerWidget {
   const _MoreTile({required this.entry, this.highlighted = false, super.key});
 
   final _Entry entry;
@@ -303,14 +377,31 @@ class _MoreTile extends StatelessWidget {
   final bool highlighted;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final colors = Theme.of(context).colorScheme;
+    final status = ref.watch(moreStatusProvider)[entry.route];
     final tile = ListTile(
       leading: Icon(entry.icon, color: highlighted ? colors.primary : null),
       title: Text(entry.title),
       subtitle: Text(entry.subtitle),
-      trailing: const Icon(Icons.chevron_right),
-      onTap: () => context.push(entry.route),
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (status != null)
+            Text(
+              moreStatusText(status),
+              key: ValueKey('more-status-${entry.route}'),
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: status.warning
+                    ? context.financeColors.warning
+                    : colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          const Icon(Icons.chevron_right),
+        ],
+      ),
+      onTap: () => openMore(context, ref, entry.route),
     );
     if (!highlighted) return tile;
     return Padding(

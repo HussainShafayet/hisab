@@ -74,6 +74,7 @@ const bnGuide = <String, String>{
   'How it is going': 'কেমন চলছে',
   'Open an investment to see how long money has been in, how much of it has come back, about what it makes a year, and when all of it is back at the same pace. A chart shows the profit of each month.': 'কোনো বিনিয়োগ খুললে দেখা যায় কতদিন টাকা আছে, কতটা ফেরত এসেছে, বছরে প্রায় কত লাভ হয়, আর একই গতিতে কবে সবটা ফেরত আসবে। একটি চার্টে প্রতি মাসের লাভ দেখা যায়।',
   'On the list, tap All, Open or Closed to narrow it, and use the sort button to put the best return first.': 'তালিকায় সব, চালু বা বন্ধ চাপলে তালিকা ছোট হয়, আর সাজানোর বোতামে সেরা রিটার্ন আগে আনা যায়।',
+  'More also lists the places you opened lately, and shows a short note on a tile when something needs a look, like loans that are late or no backup yet.': '"আরও" ট্যাবে সম্প্রতি খোলা জায়গাগুলো দেখানো হয়, আর কিছু দেখার দরকার হলে (যেমন দেরি হওয়া ধার বা ব্যাকআপ না থাকা) ঘরের পাশে ছোট একটি নোট থাকে।',
   'Needed, Wanted or Regret on an expense lets Home show how the month felt.': 'খরচে "দরকারি", "শখের" বা "পস্তাচ্ছি" দিলে হোম দেখাতে পারে মাসটা কেমন গেল।',
   'A tag (Trips & events) groups the expenses of a trip or an occasion.': 'ট্যাগ (ভ্রমণ ও অনুষ্ঠান) দিয়ে কোনো ভ্রমণ বা অনুষ্ঠানের খরচ একসাথে রাখা যায়।',
   'Finding and fixing': 'খোঁজা ও ঠিক করা',

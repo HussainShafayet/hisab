@@ -4,6 +4,10 @@
 const lastBackupKey = 'last_backup_at';
 const backupSnoozedUntilKey = 'backup_snoozed_until';
 
+/// The places of the More list opened last (route paths, comma separated).
+/// It belongs to this phone, so it stays out of a backup.
+const moreRecentKey = 'more_recent';
+
 /// When the automatic backup last wrote its file, and why it could not (an
 /// [AutoBackupProblem] name). They belong to this phone too.
 const lastAutoBackupKey = 'last_auto_backup_at';
@@ -40,6 +44,7 @@ const formDetailKey = 'bazar_form_detail';
 bool isDeviceSetting(String key) =>
     key == lastBackupKey ||
     key == backupSnoozedUntilKey ||
+    key == moreRecentKey ||
     key == lastAutoBackupKey ||
     key == autoBackupProblemKey ||
     key == driveEnabledKey ||
