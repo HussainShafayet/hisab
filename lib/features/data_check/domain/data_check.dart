@@ -37,6 +37,10 @@ class DuplicateGroup {
 /// thing in older versions, so a phone that still has both is told.
 const knownCategoryOverlaps = [
   ('shopping>clothing>kids wear', 'family & gifts>children>clothes & shoes'),
+  (
+    'family & gifts>pocket money>children',
+    'family & gifts>children>pocket money',
+  ),
 ];
 
 /// Two categories with names that look alike, such as "Utility" and "Utilities".
@@ -243,6 +247,30 @@ List<SimilarCategories> _similarCategories(List<Category> categories) {
       byPlace[place] = category;
     } else {
       add(first, category);
+    }
+  }
+
+  // A combined name ("Bus & rickshaw") next to the things it names ("Bus",
+  // "Rickshaw") in the same place: the old default kept for its history, and
+  // the split ones that replaced it.
+  final byParent = <int?, List<Category>>{};
+  for (final category in active) {
+    byParent.putIfAbsent(category.parentId, () => []).add(category);
+  }
+  for (final category in active) {
+    final parts = category.name
+        .split(RegExp(r'\s*(?:&|,|\band\b)\s*'))
+        .map(normalizeName)
+        .where((part) => part.isNotEmpty)
+        .toList();
+    if (parts.length < 2) continue;
+    for (final sibling in byParent[category.parentId] ?? const <Category>[]) {
+      if (sibling.id != category.id &&
+          sibling.type == category.type &&
+          parts.contains(normalizeName(sibling.name))) {
+        add(category, sibling);
+        break;
+      }
     }
   }
 

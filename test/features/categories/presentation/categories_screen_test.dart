@@ -183,13 +183,13 @@ void main() {
 
       await tester.enterText(
         find.widgetWithText(TextFormField, 'Name'),
-        'Tiffin',
+        'Packed lunch',
       );
       await tapSave(tester, 'Add category');
 
-      expect(listRow('Tiffin'), findsOneWidget);
+      expect(listRow('Packed lunch'), findsOneWidget);
       final food = await categoryNamed(db, 'Food');
-      expect((await categoryNamed(db, 'Tiffin')).parentId, food.id);
+      expect((await categoryNamed(db, 'Packed lunch')).parentId, food.id);
     }, seedDefaults: true);
   });
 

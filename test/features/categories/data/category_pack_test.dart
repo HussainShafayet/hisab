@@ -242,8 +242,8 @@ void main() {
           'Food > Kacha bazar > Fish',
           'Food > Kacha bazar > Vegetables',
           'Food > Groceries > Rice (chal)',
-          'Food > Snacks & tea > Fuchka & chotpoti',
-          'Food > Restaurants > Biryani & kacchi',
+          'Food > Snacks & tea > Fuchka',
+          'Food > Restaurants > Biryani',
         ]),
       );
     });

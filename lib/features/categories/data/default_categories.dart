@@ -63,11 +63,19 @@ List<DefaultEntry> flattenDefaults(List<DefaultCategory> roots) {
 }
 
 /// Everyday life in Bangladesh: kacha bazar, rickshaw, tuition, salami,
-/// fitra. The busiest groups (food, transport, bills, shopping...) go down a
-/// few levels, like Food > Kacha bazar > Fish. The app creates these when the
-/// database is first created, in this order (the list position becomes
-/// `sort_order`), and an older install can add the missing ones from the
-/// Categories screen. Every category can be changed or archived in the app.
+/// fitra. Two things were done on purpose:
+///
+/// * Nothing is two things at once. "Bus & rickshaw" is Bus and Rickshaw side
+///   by side, so a report can tell them apart.
+/// * A thing sits in one place only, by what the money was for. Medicine is in
+///   Health, clothes in Shopping, gifts in Family & gifts > Gifts. WHO it was
+///   for (wife, children, parents) is a tag, not another copy of the tree.
+///
+/// The busiest groups go down a few levels, like Food > Kacha bazar > Fish >
+/// Hilsa. The app creates these when the database is first created, in this
+/// order (the list position becomes `sort_order`), and an older install can add
+/// the missing ones from the Categories screen. Every category can be changed
+/// or archived in the app.
 const defaultExpenseCategories = [
   DefaultCategory(
     'Food',
@@ -79,10 +87,13 @@ const defaultExpenseCategories = [
         icon: 'local_grocery_store',
         children: [
           DefaultCategory('Rice (chal)'),
-          DefaultCategory('Dal & pulses'),
+          DefaultCategory('Dal'),
+          DefaultCategory('Pulses'),
           DefaultCategory('Cooking oil'),
-          DefaultCategory('Flour, sugar & salt'),
-          DefaultCategory('Spices & masala'),
+          DefaultCategory('Flour'),
+          DefaultCategory('Sugar'),
+          DefaultCategory('Salt'),
+          DefaultCategory('Spices (masala)'),
         ],
       ),
       DefaultCategory(
@@ -90,18 +101,32 @@ const defaultExpenseCategories = [
         icon: 'shopping_cart',
         children: [
           DefaultCategory('Vegetables'),
-          DefaultCategory('Fish'),
-          DefaultCategory('Meat & chicken'),
+          DefaultCategory(
+            'Fish',
+            children: [
+              DefaultCategory('Hilsa (ilish)'),
+              DefaultCategory('Rui'),
+              DefaultCategory('Katla'),
+              DefaultCategory('Small fish'),
+            ],
+          ),
+          DefaultCategory('Beef'),
+          DefaultCategory('Mutton'),
+          DefaultCategory('Chicken'),
           DefaultCategory('Fruits'),
-          DefaultCategory('Eggs & milk'),
+          DefaultCategory('Eggs'),
+          DefaultCategory('Milk'),
         ],
       ),
       DefaultCategory(
         'Restaurants',
         children: [
-          DefaultCategory('Biryani & kacchi'),
-          DefaultCategory('Fast food & burger'),
-          DefaultCategory('Chinese & thai'),
+          DefaultCategory('Biryani'),
+          DefaultCategory('Kacchi'),
+          DefaultCategory('Fast food'),
+          DefaultCategory('Burger'),
+          DefaultCategory('Chinese'),
+          DefaultCategory('Thai'),
           DefaultCategory('Food delivery apps'),
         ],
       ),
@@ -109,18 +134,22 @@ const defaultExpenseCategories = [
         'Snacks & tea',
         icon: 'local_cafe',
         children: [
-          DefaultCategory('Cha & tea stall', icon: 'local_cafe'),
-          DefaultCategory('Fuchka & chotpoti', icon: 'fastfood'),
+          DefaultCategory('Cha (tea stall)', icon: 'local_cafe'),
+          DefaultCategory('Fuchka', icon: 'fastfood'),
+          DefaultCategory('Chotpoti', icon: 'fastfood'),
           DefaultCategory('Street snacks'),
           DefaultCategory('Sweets (mishti)', icon: 'celebration'),
-          DefaultCategory('Bakery & cake'),
+          DefaultCategory('Bakery'),
+          DefaultCategory('Cake'),
         ],
       ),
       DefaultCategory(
         'Daily meals',
         children: [
-          DefaultCategory('Tiffin & office lunch'),
-          DefaultCategory('Iftar & sehri'),
+          DefaultCategory('Tiffin'),
+          DefaultCategory('Office lunch'),
+          DefaultCategory('Iftar'),
+          DefaultCategory('Sehri'),
         ],
       ),
     ],
@@ -133,8 +162,10 @@ const defaultExpenseCategories = [
       DefaultCategory(
         'City travel',
         children: [
-          DefaultCategory('Bus & rickshaw'),
-          DefaultCategory('CNG & auto', icon: 'local_taxi'),
+          DefaultCategory('Bus'),
+          DefaultCategory('Rickshaw'),
+          DefaultCategory('CNG', icon: 'local_taxi'),
+          DefaultCategory('Auto', icon: 'local_taxi'),
           DefaultCategory(
             'Ride sharing',
             icon: 'local_taxi',
@@ -179,7 +210,8 @@ const defaultExpenseCategories = [
         children: [
           DefaultCategory('Intercity bus'),
           DefaultCategory('Train', icon: 'train'),
-          DefaultCategory('Launch & ferry'),
+          DefaultCategory('Launch'),
+          DefaultCategory('Ferry'),
           DefaultCategory('Air ticket', icon: 'flight'),
         ],
       ),
@@ -190,8 +222,10 @@ const defaultExpenseCategories = [
           DefaultCategory('Fuel', icon: 'local_gas_station'),
           DefaultCategory('Bike servicing', icon: 'two_wheeler'),
           DefaultCategory('Car servicing'),
-          DefaultCategory('Tyre & repairs'),
-          DefaultCategory('Parking & toll'),
+          DefaultCategory('Tyre'),
+          DefaultCategory('Vehicle repairs'),
+          DefaultCategory('Parking'),
+          DefaultCategory('Toll'),
         ],
       ),
     ],
@@ -230,7 +264,7 @@ const defaultExpenseCategories = [
       ),
       DefaultCategory(
         'TV & cable',
-        children: [DefaultCategory('Cable & dish')],
+        children: [DefaultCategory('Cable'), DefaultCategory('Dish')],
       ),
     ],
   ),
@@ -242,13 +276,15 @@ const defaultExpenseCategories = [
     children: [
       DefaultCategory('Maid (bua)'),
       DefaultCategory('Cook'),
-      DefaultCategory('Guard & service charge'),
+      DefaultCategory('Guard'),
+      DefaultCategory('Service charge'),
       DefaultCategory(
         'Repairs',
         children: [
           DefaultCategory('Plumber'),
           DefaultCategory('Electrician'),
-          DefaultCategory('Carpenter & mistri'),
+          DefaultCategory('Carpenter'),
+          DefaultCategory('Mistri'),
         ],
       ),
     ],
@@ -264,10 +300,12 @@ const defaultExpenseCategories = [
         children: [
           DefaultCategory('Doctor visit'),
           DefaultCategory('Lab tests'),
-          DefaultCategory('X-ray & scans'),
+          DefaultCategory('X-ray'),
+          DefaultCategory('Scans'),
         ],
       ),
-      DefaultCategory('Hospital & surgery'),
+      DefaultCategory('Hospital'),
+      DefaultCategory('Surgery'),
       DefaultCategory('Dental'),
       DefaultCategory('Eye care', icon: 'spa'),
     ],
@@ -277,7 +315,8 @@ const defaultExpenseCategories = [
     icon: 'school',
     color: 0xFF5C6BC0,
     children: [
-      DefaultCategory('School & college fees'),
+      DefaultCategory('School fees'),
+      DefaultCategory('College fees'),
       DefaultCategory(
         'Tuition & coaching',
         children: [
@@ -285,10 +324,13 @@ const defaultExpenseCategories = [
           DefaultCategory('Coaching centre'),
         ],
       ),
-      DefaultCategory('Books & stationery', icon: 'menu_book'),
-      DefaultCategory('Exam & admission fees'),
+      DefaultCategory('Books', icon: 'menu_book'),
+      DefaultCategory('Stationery', icon: 'menu_book'),
+      DefaultCategory('Exam fees'),
+      DefaultCategory('Admission fees'),
       DefaultCategory('Uniform', icon: 'checkroom'),
-      DefaultCategory('Hostel & mess'),
+      DefaultCategory('Hostel'),
+      DefaultCategory('Mess'),
       DefaultCategory('Online courses'),
     ],
   ),
@@ -301,25 +343,34 @@ const defaultExpenseCategories = [
         'Clothing',
         icon: 'checkroom',
         children: [
-          DefaultCategory('Shirt & panjabi'),
-          DefaultCategory('Saree & women\'s wear'),
-          DefaultCategory('Shoes & bags'),
+          DefaultCategory('Shirt'),
+          DefaultCategory('Panjabi'),
+          DefaultCategory('Saree'),
+          DefaultCategory('Women\'s wear'),
+          DefaultCategory('Kids wear'),
+          DefaultCategory('Shoes'),
+          DefaultCategory('Bags'),
+          DefaultCategory('Jewellery', icon: 'redeem'),
         ],
       ),
       DefaultCategory(
         'Household',
         children: [
-          DefaultCategory('Kitchen & utensils'),
+          DefaultCategory('Kitchen items'),
+          DefaultCategory('Utensils'),
           DefaultCategory('Cleaning supplies'),
-          DefaultCategory('Bedding & curtains'),
+          DefaultCategory('Bedding'),
+          DefaultCategory('Curtains'),
         ],
       ),
       DefaultCategory(
         'Electronics & mobile',
         icon: 'phone_android',
         children: [
-          DefaultCategory('Mobile & accessories'),
-          DefaultCategory('Computer & laptop'),
+          DefaultCategory('Mobile phone'),
+          DefaultCategory('Accessories'),
+          DefaultCategory('Computer'),
+          DefaultCategory('Laptop'),
           DefaultCategory('Home appliances'),
         ],
       ),
@@ -332,57 +383,50 @@ const defaultExpenseCategories = [
     color: 0xFFFF7043,
     children: [
       DefaultCategory(
-        'Support to parents',
+        'Monthly support',
         icon: 'volunteer_activism',
         children: [
-          DefaultCategory('Monthly money', icon: 'payments'),
-          DefaultCategory('Parents\' medicine', icon: 'medical_services'),
-          DefaultCategory('Clothes for parents', icon: 'checkroom'),
-          DefaultCategory('Visits home', icon: 'directions_bus'),
+          DefaultCategory('Parents', icon: 'payments'),
+          DefaultCategory('Siblings', icon: 'payments'),
+          DefaultCategory('In-laws', icon: 'payments'),
+          DefaultCategory('Relatives', icon: 'payments'),
         ],
       ),
+      DefaultCategory('Education help', icon: 'school'),
+      DefaultCategory('Visits home', icon: 'directions_bus'),
       DefaultCategory(
-        'Wife / Husband',
+        'Pocket money',
+        icon: 'wallet',
         children: [
-          DefaultCategory('Clothes & jewellery', icon: 'checkroom'),
-          DefaultCategory('Cosmetics & beauty', icon: 'spa'),
-          DefaultCategory('Medicine & doctor', icon: 'medical_services'),
-          DefaultCategory('Gifts'),
-          DefaultCategory('Pocket money', icon: 'wallet'),
-          DefaultCategory('Outings together', icon: 'movie'),
+          DefaultCategory('Wife'),
+          DefaultCategory('Husband'),
+          DefaultCategory('Children'),
         ],
       ),
       DefaultCategory(
         'Children',
         icon: 'child_care',
         children: [
-          DefaultCategory('Baby food & diapers', icon: 'local_grocery_store'),
-          DefaultCategory('Clothes & shoes', icon: 'checkroom'),
-          DefaultCategory('Toys & games', icon: 'sports_esports'),
-          DefaultCategory('Medicine & doctor', icon: 'medical_services'),
-          DefaultCategory('Treats & birthdays'),
-          DefaultCategory('Pocket money', icon: 'wallet'),
+          DefaultCategory('Baby food', icon: 'local_grocery_store'),
+          DefaultCategory('Diapers'),
+          DefaultCategory('Toys', icon: 'sports_esports'),
+          DefaultCategory('Treats'),
+          DefaultCategory('Birthday party'),
         ],
       ),
       DefaultCategory(
-        'Brothers & sisters',
+        'Gifts',
+        icon: 'card_giftcard',
         children: [
-          DefaultCategory('Monthly help', icon: 'payments'),
-          DefaultCategory('Gifts'),
-          DefaultCategory('Education help', icon: 'school'),
+          DefaultCategory('Salami (Eid)'),
+          DefaultCategory('Eid gift'),
+          DefaultCategory('Birthday gift'),
+          DefaultCategory('Wedding gift'),
+          DefaultCategory('Gaye holud gift'),
+          DefaultCategory('Anniversary gift'),
+          DefaultCategory('Other gifts'),
         ],
       ),
-      DefaultCategory(
-        'In-laws',
-        children: [
-          DefaultCategory('Monthly help', icon: 'payments'),
-          DefaultCategory('Gifts'),
-          DefaultCategory('Feast & visits'),
-        ],
-      ),
-      DefaultCategory('Salami (Eid)'),
-      DefaultCategory('Wedding & gaye holud gift'),
-      DefaultCategory('Birthday gifts'),
     ],
   ),
   DefaultCategory(
@@ -399,8 +443,10 @@ const defaultExpenseCategories = [
         ],
       ),
       DefaultCategory('Pohela Boishakh'),
-      DefaultCategory('Puja & other festivals'),
-      DefaultCategory('Feast & guests'),
+      DefaultCategory('Puja'),
+      DefaultCategory('Other festivals'),
+      DefaultCategory('Feast'),
+      DefaultCategory('Guests'),
       DefaultCategory('Decoration'),
     ],
   ),
@@ -409,10 +455,14 @@ const defaultExpenseCategories = [
     icon: 'movie',
     color: 0xFF26C6DA,
     children: [
-      DefaultCategory('Cinema & shows'),
-      DefaultCategory('Tour & hotel', icon: 'flight'),
-      DefaultCategory('Outings & picnic'),
-      DefaultCategory('Streaming & subscriptions', icon: 'music_note'),
+      DefaultCategory('Cinema'),
+      DefaultCategory('Shows'),
+      DefaultCategory('Tour', icon: 'flight'),
+      DefaultCategory('Hotel', icon: 'flight'),
+      DefaultCategory('Outings'),
+      DefaultCategory('Picnic'),
+      DefaultCategory('Streaming', icon: 'music_note'),
+      DefaultCategory('Subscriptions', icon: 'music_note'),
       DefaultCategory('Games', icon: 'sports_esports'),
     ],
   ),
@@ -421,7 +471,8 @@ const defaultExpenseCategories = [
     icon: 'spa',
     color: 0xFF9CCC65,
     children: [
-      DefaultCategory('Haircut & salon'),
+      DefaultCategory('Haircut'),
+      DefaultCategory('Salon'),
       DefaultCategory('Parlour'),
       DefaultCategory('Cosmetics'),
       DefaultCategory('Gym', icon: 'fitness_center'),
@@ -435,9 +486,11 @@ const defaultExpenseCategories = [
       DefaultCategory('Zakat'),
       DefaultCategory('Fitra'),
       DefaultCategory('Sadaqah'),
-      DefaultCategory('Mosque & madrasa'),
+      DefaultCategory('Mosque'),
+      DefaultCategory('Madrasa'),
       DefaultCategory('Qurbani'),
-      DefaultCategory('Hajj & umrah'),
+      DefaultCategory('Hajj'),
+      DefaultCategory('Umrah'),
     ],
   ),
   DefaultCategory(
@@ -456,10 +509,14 @@ const defaultExpenseCategories = [
     icon: 'account_balance',
     color: 0xFF78909C,
     children: [
-      DefaultCategory('bKash & Nagad charge', icon: 'phone_android'),
+      DefaultCategory('bKash charge', icon: 'phone_android'),
+      DefaultCategory('Nagad charge', icon: 'phone_android'),
       DefaultCategory('Bank charge'),
-      DefaultCategory('Tax & government fees'),
-      DefaultCategory('Passport, NID & licence'),
+      DefaultCategory('Tax'),
+      DefaultCategory('Government fees'),
+      DefaultCategory('Passport'),
+      DefaultCategory('NID'),
+      DefaultCategory('Driving licence'),
       DefaultCategory('Late fee'),
     ],
   ),
@@ -474,7 +531,8 @@ const defaultIncomeCategories = [
     children: [
       DefaultCategory('Basic salary'),
       DefaultCategory('Overtime'),
-      DefaultCategory('Eid & festival bonus'),
+      DefaultCategory('Eid bonus'),
+      DefaultCategory('Festival bonus'),
     ],
   ),
   DefaultCategory(
@@ -487,11 +545,17 @@ const defaultIncomeCategories = [
   DefaultCategory('Tuition income', icon: 'school', color: 0xFF5C6BC0),
   DefaultCategory('Rent income', icon: 'home', color: 0xFF8D6E63),
   DefaultCategory('Remittance (abroad)', icon: 'flight', color: 0xFF26A69A),
-  DefaultCategory('Farming & crops', icon: 'store', color: 0xFF7CB342),
+  DefaultCategory(
+    'Farming',
+    icon: 'store',
+    color: 0xFF7CB342,
+    children: [DefaultCategory('Crops'), DefaultCategory('Livestock')],
+  ),
   DefaultCategory(
     'Pension & allowance',
     icon: 'account_balance',
     color: 0xFF78909C,
+    children: [DefaultCategory('Pension'), DefaultCategory('Allowance')],
   ),
   DefaultCategory(
     'Profit & maturity',
@@ -509,9 +573,11 @@ const defaultIncomeCategories = [
     color: 0xFFFF7043,
     children: [
       DefaultCategory('Salami received'),
-      DefaultCategory('Wedding & birthday gift'),
+      DefaultCategory('Wedding gift received'),
+      DefaultCategory('Birthday gift received'),
     ],
   ),
-  DefaultCategory('Refund & cashback', icon: 'wallet', color: 0xFFFFA726),
+  DefaultCategory('Refund', icon: 'wallet', color: 0xFFFFA726),
+  DefaultCategory('Cashback', icon: 'wallet', color: 0xFFFFA726),
   DefaultCategory('Other income', icon: 'more_horiz', color: 0xFF9E9E9E),
 ];

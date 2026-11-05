@@ -141,6 +141,7 @@ const guideTopics = <GuideTopic>[
         'Archive a category you no longer use. Old transactions keep it.',
       ]),
       GuideSection('Tidying up', [
+        'The categories are split so each thing has its own place: Bus and Rickshaw, not Bus & rickshaw. Medicine is in Health and clothes are in Shopping for everyone. To see who the money was for, use a tag. An older category that already has entries stays as it is; Data check shows it next to the new ones so you can merge them.',
         'Two names for the same thing? Open the menu of a category with no sub-categories and choose Merge into. Pick the category to keep. Its transactions, budgets, repeating entries and challenges move there, and the old one is archived. This cannot be undone here, so make a backup first if you are unsure.',
         'Move a category to another place from its Edit screen, under Inside. What is inside it goes with it.',
       ]),

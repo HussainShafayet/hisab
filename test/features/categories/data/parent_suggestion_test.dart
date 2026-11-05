@@ -71,19 +71,19 @@ void main() {
     test('food words find the right shelf of Food', () {
       expect(suggest('Hilsa fish'), 'Fish');
       expect(suggest('Sobji'), 'Vegetables');
-      expect(suggest('Murgi'), 'Meat & chicken');
-      expect(suggest('Fuchka masala'), 'Fuchka & chotpoti');
-      expect(suggest('Evening cha'), 'Cha & tea stall');
-      expect(suggest('Kacchi biryani'), 'Biryani & kacchi');
-      expect(suggest('Office lunch'), 'Daily meals');
+      expect(suggest('Murgi'), 'Chicken');
+      expect(suggest('Fuchka masala'), 'Fuchka');
+      expect(suggest('Evening cha'), 'Cha (tea stall)');
+      expect(suggest('Kacchi biryani'), 'Kacchi');
+      expect(suggest('Lunch box'), 'Daily meals');
       expect(suggest('Basmati chal'), 'Rice (chal)');
     });
 
     test('transport words', () {
-      expect(suggest('Rickshaw fare'), 'City travel');
+      expect(suggest('Rickshaw fare'), 'Rickshaw');
       // "Pathao" itself is a default now, so a new name is used.
       expect(suggest('Pathao trip'), 'Ride sharing');
-      expect(suggest('CNG to office'), 'CNG & auto');
+      expect(suggest('CNG to office'), 'CNG');
       expect(suggest('Octane for bike'), 'Fuel');
       expect(suggest('Night train'), 'Train');
       expect(suggest('Bike chain'), 'Own vehicle');
@@ -101,11 +101,11 @@ void main() {
       expect(suggest('Dentist'), 'Dental');
       expect(suggest('Pharmacy'), 'Medicine');
       expect(suggest('Math tutor'), 'Tuition & coaching');
-      expect(suggest('Khata & pen'), 'Books & stationery');
+      expect(suggest('Khata & pen'), 'Stationery');
     });
 
     test('family, festivals, charity and savings', () {
-      expect(suggest('Salami'), 'Family & gifts');
+      expect(suggest('Salami'), 'Salami (Eid)');
       expect(suggest('Pohela Boishakh outing'), 'Festivals');
       expect(suggest('Mosque donation'), 'Charity & zakat');
       expect(suggest('Shomiti'), 'Savings & insurance');
@@ -122,24 +122,21 @@ void main() {
     });
 
     test('income words go inside the income groups', () {
-      expect(suggest('Eid bonus', type: CategoryType.income), 'Salary');
+      expect(suggest('Yearly bonus', type: CategoryType.income), 'Salary');
       expect(
         suggest('Shop sales today', type: CategoryType.income),
         'Business',
       );
-      expect(
-        suggest('Crop sale', type: CategoryType.income),
-        'Farming & crops',
-      );
+      expect(suggest('Crop sale', type: CategoryType.income), 'Farming');
       expect(suggest('Salami', type: CategoryType.income), 'Gift');
     });
   });
 
   group('by the default names', () {
     test('a default that is missing goes inside the place it belongs', () {
-      final all = fresh(skip: {'Hostel & mess', 'Cook'});
+      final all = fresh(skip: {'Hostel', 'Cook'});
 
-      expect(suggest('Hostel & mess', all: all), 'Education');
+      expect(suggest('Hostel', all: all), 'Education');
       expect(suggest('Cook', all: all), 'House help & repairs');
     });
 
@@ -175,7 +172,7 @@ void main() {
     test('for a name that is already used, at any level', () {
       expect(suggest('Food'), isNull);
       expect(suggest('fish'), isNull);
-      expect(suggest('Fuchka & chotpoti'), isNull);
+      expect(suggest('Fuchka'), isNull);
     });
 
     test('when no group it could go inside is there', () {

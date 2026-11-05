@@ -32,10 +32,7 @@ void main() {
     await typeName(tester, 'Fuchka masala');
 
     expect(find.byKey(_banner), findsOneWidget);
-    expect(
-      find.text('Looks like it goes inside Fuchka & chotpoti.'),
-      findsOneWidget,
-    );
+    expect(find.text('Looks like it goes inside Fuchka.'), findsOneWidget);
     expect(parentValue(tester), 'Top level');
   }, seedDefaults: true);
 
@@ -49,7 +46,7 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('parent-suggestion-apply')));
     await tester.pump();
 
-    expect(parentValue(tester), contains('Fuchka & chotpoti'));
+    expect(parentValue(tester), contains('Fuchka'));
     expect(find.byKey(_banner), findsNothing);
   }, seedDefaults: true);
 
@@ -63,7 +60,7 @@ void main() {
     await openForm(tester);
 
     await typeName(tester, 'Rickshaw fare');
-    expect(find.text('Looks like it goes inside City travel.'), findsOneWidget);
+    expect(find.text('Looks like it goes inside Rickshaw.'), findsOneWidget);
     await typeName(tester, 'Xyzzy');
     expect(find.byKey(_banner), findsNothing);
   }, seedDefaults: true);
