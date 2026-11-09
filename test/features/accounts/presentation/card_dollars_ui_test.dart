@@ -1,5 +1,6 @@
 import 'package:drift/drift.dart' show Value;
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/core/net/rate_service.dart';
@@ -36,13 +37,15 @@ CreditCardStatus status({
 
 Future<void> pumpTile(WidgetTester tester, CreditCardStatus card) =>
     tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(
-          body: CreditCardTile(
-            card: card,
-            today: DateTime(2026, 10, 11),
-            onTap: () {},
-            onPay: () {},
+      ProviderScope(
+        child: MaterialApp(
+          home: Scaffold(
+            body: CreditCardTile(
+              card: card,
+              today: DateTime(2026, 10, 11),
+              onTap: () {},
+              onPay: () {},
+            ),
           ),
         ),
       ),

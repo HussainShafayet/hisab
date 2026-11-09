@@ -101,3 +101,22 @@ mode, `turnKeyboardOn`, `turnCalculatorOn`, `openMoreDetails`.
   bazar). Undo puts the transaction back as it was.
 - A swipe to the right, or a tap, opens the editor. A long press has Edit,
   Duplicate and Delete.
+
+## How the category stands (phone feedback: "category-r current balance")
+Under the category, once one is chosen, a line says what that category holds in
+the month of the entry's date (`standing-money`): *Spent on Food this month:
+৳4,200.00*, or *Received in Salary this month: ...* for income. With an amount
+typed it ends *..., ৳4,700.00 after this*.
+- The money counts the category and everything inside it, as the budget does:
+  expenses (or income) only, never transfers or balance fixes
+  (`ReportsDao.ownTotalsByCategory`, `categoryAndDescendantIds`).
+- An expense also gets `standing-budget` when a budget covers the category:
+  its own, or else the nearest one above it. *Budget for Food: ৳5,800.00
+  left, ৳5,300.00 after this*; red *over by ৳1,200.00 after this* once the entry
+  passes it. The left figure includes what was carried over (`BudgetItem.limit`).
+- Editing an entry in the same category and month does not count it twice
+  (`counted` in `standingLine`). Another month says *in Sep 2026*.
+- Never blocks anything: it is a note, like the balance preview.
+- Code: `domain/category_standing.dart`, `categoryStandingProvider`,
+  `CategoryStandingNote`. Tests: `category_standing_test.dart` and
+  `category_standing_ui_test.dart`.

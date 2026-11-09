@@ -21,7 +21,8 @@ const driveBackupFileName = 'Hishab-backup.json';
 
 /// Why Google Drive did not take or give the backup.
 enum DriveProblem {
-  /// The person closed the Google sign-in.
+  /// The Google sign-in or its permission window stopped before it finished:
+  /// closed by the person, or ended by Google (see [DriveException.detail]).
   cancelled,
 
   /// Nobody is signed in, or Google asks to sign in again.
@@ -85,11 +86,17 @@ class GoogleDriveGateway implements DriveGateway {
 
   @override
   Future<String> signIn() async {
+    // The step is kept in the detail: Google reports a sign-in that fails
+    // after an account was chosen (a key it does not know) as "canceled", the
+    // same as a closed window, so the step and the words are all there is to
+    // tell them apart.
+    var step = 'sign-in';
     try {
       await _init();
       final account = await GoogleSignIn.instance.authenticate(
         scopeHint: const [driveScope],
       );
+      step = 'permission';
       await account.authorizationClient.authorizeScopes(const [driveScope]);
       return account.email;
     } on GoogleSignInException catch (error) {
@@ -97,7 +104,7 @@ class GoogleDriveGateway implements DriveGateway {
         error.code == GoogleSignInExceptionCode.canceled
             ? DriveProblem.cancelled
             : DriveProblem.failed,
-        '${error.code.name} ${error.description ?? ''}'.trim(),
+        '$step: ${error.code.name} ${error.description ?? ''}'.trim(),
       );
     }
   }

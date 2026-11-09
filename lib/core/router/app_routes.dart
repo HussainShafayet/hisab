@@ -114,6 +114,19 @@ abstract final class AppRoutes {
   static String payCardBill(int cardId, int owed, {int usd = 0}) =>
       '/add?payCard=$cardId&amount=$owed${usd > 0 ? '&usd=$usd' : ''}';
 
+  /// A new expense on the credit card [cardId] for a charge of the bank (a
+  /// late fee, interest...): [categoryId] and [note] are filled in, the amount
+  /// is typed.
+  static String cardCharge(int cardId, {int? categoryId, String? note}) => Uri(
+    path: '/add',
+    queryParameters: {
+      'account': '$cardId',
+      'type': 'expense',
+      'category': ?categoryId?.toString(),
+      'prefillNote': ?note,
+    },
+  ).toString();
+
   /// A new transaction that starts with [amount] poisha and [note], like the
   /// total of the bazar list. The form pops `true` once it is saved.
   static String addWithPrefill({required int amount, required String note}) =>

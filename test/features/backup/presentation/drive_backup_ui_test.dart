@@ -113,7 +113,7 @@ void main() {
       );
     });
 
-    testWithDatabase('stays off when the sign-in is closed', (
+    testWithDatabase('stays off, and says so, when the sign-in stops', (
       tester,
       db,
     ) async {
@@ -129,7 +129,10 @@ void main() {
       await tester.pumpAndSettle();
 
       expect(tester.widget<SwitchListTile>(driveSwitch).value, isFalse);
-      expect(find.byType(SnackBar), findsNothing);
+      expect(
+        find.textContaining('Google sign-in did not finish'),
+        findsOneWidget,
+      );
     });
 
     testWithDatabase('says what Google said when it cannot save', (

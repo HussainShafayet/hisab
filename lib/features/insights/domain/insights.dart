@@ -288,7 +288,10 @@ List<Insight> buildInsights(InsightInput input, {int max = 4}) {
   }
 
   // Days with no spending at all.
-  if (input.daysSoFar >= 5 && input.noSpendDays >= 3) {
+  // Only a month with some spending has days worth praising.
+  if (input.daysSoFar >= 5 &&
+      input.noSpendDays >= 3 &&
+      input.noSpendDays < input.daysSoFar) {
     found.add(
       Insight(InsightKind.noSpendDays, InsightTone.good, {
         'count': input.noSpendDays,

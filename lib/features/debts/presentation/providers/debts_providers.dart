@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/features/debts/data/bill_splitter.dart';
 import 'package:hishab/features/debts/data/debts_repository.dart';
+import 'package:hishab/features/debts/data/paid_for_me.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 
 final debtsRepositoryProvider = Provider<DebtsRepository>(
@@ -26,4 +27,8 @@ final debtPaymentsProvider = StreamProvider.autoDispose
 
 final billSplitterProvider = Provider<BillSplitter>(
   (ref) => BillSplitter(ref.watch(appDatabaseProvider)),
+);
+
+final paidForMeProvider = Provider<PaidForMe>(
+  (ref) => PaidForMe(ref.watch(appDatabaseProvider)),
 );

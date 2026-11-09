@@ -63,6 +63,22 @@ More → **Loans** (বাংলা: ধার ও বাকি).
   (`AppRoutes.newDebtGoing`). Test:
   `test/features/debts/presentation/loan_tab_direction_test.dart`.
 
+- **Someone paid for me** (phone feedback, 2026-11-09): a friend pays a shop or
+  a bill for me, so no money touches my accounts, but it is my expense and I
+  owe it. On a new loan with *I took money*, the switch **They paid a bill for
+  me** (`paid-for-me`) asks for an expense category (`paid-for-me-category`) and
+  hides *Update my account too*. Saving makes the loan and the expense together,
+  or neither (`PaidForMe`). The switch is not on the form when editing.
+  - The expense counts in reports and budgets on the day of the loan. Its note
+    is the loan's note, or "Paid by Rahim".
+  - A transaction needs an account, so two entries go on the default account
+    (or the first open one): the borrowed amount as a correction and the
+    expense. They cancel, so the balance does not change. The form says which
+    account.
+  - After saving, the two are separate: deleting only the loan or only the
+    expense leaves the other, and the balance moves by that amount. Changing
+    the loan's amount later does not change the expense.
+
 ## Rules
 - An amount is above zero. A due day is not before the day it was given. A name
   is required (at most 60 characters), a note at most 500.
@@ -104,6 +120,8 @@ More → **Loans** (বাংলা: ধার ও বাকি).
 - `test/features/debts/data/debts_repository_test.dart` (making, changing,
   setting off)
 - `test/features/debts/data/debts_backup_test.dart`
+- `test/features/debts/data/paid_for_me_test.dart`
+- `test/features/debts/presentation/paid_for_me_ui_test.dart`
 - `test/features/debts/presentation/debts_screen_test.dart` (tabs, quick
   actions, people, set off, cards, the form, one loan, changing a loan)
 - `test/features/debts/presentation/loans_home_card_test.dart`

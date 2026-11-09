@@ -131,7 +131,7 @@ class AppDatabase extends _$AppDatabase {
   /// 7: `transactions.usd_amount` and `accounts.usd_limit` (dollar spending
   /// on credit cards).
   @override
-  int get schemaVersion => 19;
+  int get schemaVersion => 20;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -225,6 +225,9 @@ class AppDatabase extends _$AppDatabase {
       }
       if (from < 19) {
         await refreshDefaultCategories(this);
+      }
+      if (from < 20) {
+        await tidyCategories(this);
       }
     },
     beforeOpen: (details) async {

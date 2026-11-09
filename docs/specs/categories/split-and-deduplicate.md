@@ -12,7 +12,7 @@ duplicate ache merge koro", "aro tree korte paro".
 - **A thing is in one place only, by what the money was for.** Medicine is in
   Health, clothes (also kids wear, jewellery) in Shopping, gifts in *Family &
   gifts > Gifts* (Salami, Eid, Birthday, Wedding, Gaye holud, Anniversary),
-  pocket money in *Pocket money > Wife / Husband / Children*, monthly help in
+  pocket money in the person's own group (*Wife > Pocket money*; see tidy-up.md), monthly help in
   *Monthly support > Parents / Siblings / In-laws / Relatives*. WHO it was for is
   a **tag** (Trips & events), not another copy of the tree.
 - **Deeper tree** where it helps: Food > Kacha bazar > Fish > Hilsa / Rui /

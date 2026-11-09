@@ -503,6 +503,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           startAccountId: int.tryParse(
             state.uri.queryParameters['account'] ?? '',
           ),
+          startCategoryId: int.tryParse(
+            state.uri.queryParameters['category'] ?? '',
+          ),
           startType: TransactionType.values
               .asNameMap()[state.uri.queryParameters['type']],
         ),

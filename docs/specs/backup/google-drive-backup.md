@@ -25,6 +25,27 @@ Drive, on its own, with nothing to remember.
   *No backup in Google Drive* when there is none. The choice and the account are
   device settings, so after a restore the switch is off until it is switched on.
 
+## When the sign-in stops (phone feedback)
+"Mail select korar por turn on ta chalu hoy nai": the switch stayed off and
+nothing was said. `google_sign_in` 7 reports a window the person closed and a
+sign-in that Google ends after an account was chosen (the Android OAuth client
+for this package + signing key is missing or does not match) with the same code,
+`canceled`. The app used to treat `canceled` as "the person closed it" and show
+nothing.
+- Now every stop is told (`DriveProblem.cancelled`): *Google sign-in did not
+  finish, so Google Drive backup is still off. If you did choose an account,
+  Google may not know this copy of the app yet: its signing key must be added in
+  Google Cloud.* followed by the step and Google's own words in brackets, like
+  `(sign-in: canceled activity is cancelled by the user.)` or
+  `(permission: canceled ...)`, so a closed window and a key Google does not know
+  can be told apart.
+- The fix for the second is outside the code: in Google Cloud > Credentials the
+  project needs an **Android** OAuth client for `com.hishab.app` with the SHA-1
+  of the key that signed the installed APK. The release APK is signed with the
+  debug key (`~/.android/debug.keystore`; `keytool -list -v -keystore
+  ~/.android/debug.keystore -alias androiddebugkey -storepass android`), and
+  while the consent screen is in Testing the account must be a test user.
+
 ## Is my data backed up? (M37)
 Phone feedback: "backup hoise ki na kothao pai nai". The state of the Drive
 backup was only a small line in Settings. Backup & export now starts with a card

@@ -6,6 +6,7 @@ const bnDrive = <String, String>{
   'Gets the copy kept in your Google Drive and replaces everything on this phone.':
       'আপনার গুগল ড্রাইভে রাখা কপি এনে এই ফোনের সবকিছু বদলে দেয়।',
   'Google did not allow it. Check that the Drive API is on and the app is published in Google Cloud.': 'গুগল অনুমতি দেয়নি। গুগল ক্লাউডে Drive API চালু আছে কি না আর অ্যাপ পাবলিশ করা হয়েছে কি না দেখুন।',
+  'Google sign-in did not finish, so Google Drive backup is still off. If you did choose an account, Google may not know this copy of the app yet: its signing key must be added in Google Cloud.': 'গুগল সাইন-ইন শেষ হয়নি, তাই গুগল ড্রাইভ ব্যাকআপ এখনও বন্ধ। আপনি অ্যাকাউন্ট বেছে নিয়ে থাকলে গুগল হয়তো অ্যাপের এই কপিটি এখনও চেনে না: এর সাইনিং কী গুগল ক্লাউডে যোগ করতে হবে।',
   'Google Drive did not take the file.': 'গুগল ড্রাইভ ফাইলটি নেয়নি।',
   'Hishab has not saved a backup in this Google account yet.':
       'এই গুগল অ্যাকাউন্টে হিসাব এখনও কোনো ব্যাকআপ রাখেনি।',

@@ -71,12 +71,12 @@ void main() {
     final shown = find.byWidgetPredicate(
       (w) =>
           w.key is ValueKey<String> &&
-          (w.key! as ValueKey<String>).value.startsWith('insight-'),
+          (w.key! as ValueKey<String>).value.startsWith('insight-row-'),
     );
     expect(shown.evaluate().length, lessThanOrEqualTo(4));
     // The warning is the first line.
     final first = tester
-        .getTopLeft(find.byKey(const ValueKey('insight-spendingUp')))
+        .getTopLeft(find.byKey(const ValueKey('insight-row-spendingUp')))
         .dy;
     for (final element in shown.evaluate()) {
       expect(

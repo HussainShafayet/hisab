@@ -106,7 +106,8 @@ void main() {
       );
       await tester.tap(find.byKey(ValueKey('set-budget-${b.transport}')));
       await tester.pumpAndSettle();
-      expect(find.text('Add category budget'), findsOneWidget);
+      // The button on the screen behind, and the title of the dialog.
+      expect(find.text('Add category budget'), findsNWidgets(2));
       // The dialog starts on that category.
       expect(find.text('Transport'), findsWidgets);
     });

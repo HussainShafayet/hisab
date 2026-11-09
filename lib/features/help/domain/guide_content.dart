@@ -89,7 +89,7 @@ const guideTopics = <GuideTopic>[
         'If an SMS is already in your records, or an entry with the same amount, day and account is there, you are told and can open that entry instead of adding it again.',
         'Is my data backed up? Open Backup & export: the card at the top says when Google Drive and this phone last saved a copy. Back up now saves one this second, and Check Drive looks in Drive and tells you what is there and whether it matches this phone.',
         'On the Transactions tab, tap All, Expense, Income or Transfer to narrow the list; each shows how many there are. Under the summary you see how many entries, what you spend a day, your biggest expense and where most went. A category inside another shows its place, like Food › Kacha bazar.',
-        'On the add form, the strip under the account shows what each kind of account holds now (Cash, Mobile banking, Bank...), and marks the ones this transaction uses.',
+        'On the add form, under the category, a line says what that category holds this month (spent, or received for income). Once you type an amount it adds "after this". If a budget covers the category, the next line says how much of it is left, and turns red when this entry goes over it. To see a wallet balance, look at the account card: it shows the balance and what is left after this.',
         'On Accounts, each card says what came in and went out this month. Tap a card to open that account: add an expense, income or transfer on it, and see every entry of any month with its In, Out and Net. The menu on the card still has Edit, Adjust balance and Archive.',
         'On Reports, tap a number to see the entries behind it: Income or Expense at the top, a category in the pie or the tree, or an account. The Highlights card shows your biggest spending day, days with no spending, the average expense and which weekday takes most. Tap the biggest day to see what you spent that day.',
         'On Loans, the top says how you stand (you will get more than you give, or the other way round), and Coming up lists the next loans to fall due. Use the search and sort buttons to find a person or put the biggest amount first. Open a loan and Pay it off in parts shows what to pay each month to finish in 3, 6 or 12 months.',
@@ -129,6 +129,8 @@ const guideTopics = <GuideTopic>[
       GuideSection('Credit cards', [
         'A credit card is money you owe, not money you have. It shows Owed, the limit and what is left to spend.',
         'Paying the card bill is a transfer into the card, so it is not counted as an expense twice.',
+        'Add a late fee or charge sits under every credit card (on Accounts, on the account page and in the Credit cards list in Loans). Choose late fee, annual fee, interest, over-limit fee, tax or another bank charge, type the amount, and it is written as an expense on the card. It adds to what you owe, and goes in Fees & charges.',
+        'If the limit is passed, nothing is blocked. The card says by how much, with three ways on: Pay the extra (a transfer of the part that is over), Change the limit (when the bank has raised it), and Add a late fee or charge for the fee the bank put on.',
       ]),
     ],
   ),
@@ -144,6 +146,7 @@ const guideTopics = <GuideTopic>[
         'Categories are a tree. Food can hold Kacha bazar, which can hold Fish. A group\'s total is everything inside it.',
         'The defaults follow daily life in Bangladesh: kacha bazar, rickshaw, tuition, salami, fitra. Older installs can add them with the Add them card.',
         'Each category has an amount for this month on the Categories screen, so you see where the money went.',
+        'Family & gifts has a group for each person: Wife, Husband and Children. Each holds what you spend on that person: pocket money, clothes, medicine, doctor, gifts and more. The same name in two people (Clothes, Gifts) is on purpose: the place tells them apart. Family events holds Aqiqah, Khatna, Wedding, Milad and Funeral.',
       ]),
       GuideSection('Adding your own', steps: true, [
         'Tap the add button and type a name. Choose an icon and a colour.',
@@ -154,6 +157,7 @@ const guideTopics = <GuideTopic>[
         'The categories are split so each thing has its own place: Bus and Rickshaw, not Bus & rickshaw. Medicine is in Health and clothes are in Shopping for everyone. To see who the money was for, use a tag. An older category that already has entries stays as it is; Data check shows it next to the new ones so you can merge them.',
         'Two names for the same thing? Open the menu of a category with no sub-categories and choose Merge into. Pick the category to keep. Its transactions, budgets, repeating entries and challenges move there, and the old one is archived. This cannot be undone here, so make a backup first if you are unsure.',
         'Move a category to another place from its Edit screen, under Inside. What is inside it goes with it.',
+        'The wand button at the top of Categories (Merge doubled categories) merges categories with the same name in the same place, and moves the old Pocket money of the wife, husband and children into each of them. Every transaction moves to the category that stays. Names that only look alike, like Bus & rickshaw and Bus, are left for you to merge.',
       ]),
     ],
   ),
@@ -214,6 +218,7 @@ const guideTopics = <GuideTopic>[
         'The add button starts a loan the way of the tab that is open: on I\'ll give it starts as I borrowed, on the other tabs as I lent. You can still change it in the form.',
         'Open a loan to record a payment. A progress bar shows how much is paid. All paid closes it in one tap.',
         'Choose an account if the money really moved a wallet, and its balance changes with the loan.',
+        'If someone paid a shop or a bill for you, choose I borrowed and turn on They paid a bill for me. Pick the category: it counts as your expense, you owe them, and your balance stays the same.',
       ]),
       GuideSection('Reading the screen', [
         'I\'ll get shows what people owe you. I\'ll give shows what you owe, and your credit cards. People shows what is left between you and each person.',
@@ -478,6 +483,7 @@ const guideTopics = <GuideTopic>[
         'Home asks you to Send a copy every two weeks. One tap opens the share sheet with the backup ready: choose Google Drive, email or a chat. The copy in Downloads goes with the phone if it is lost or reset, and the one in Drive does not.',
         'The screen shows when you last made one, and Home reminds you after two weeks.',
         'Restore from a backup replaces what is on this phone with the file. Do it on a new phone or after a reset.',
+        'If turning on Google Drive stops after you choose an account, a message now says so, with the reason in brackets. It usually means Google does not know this copy of the app yet: its signing key has to be added in Google Cloud. Nothing is turned on until it works.',
         'Export CSV gives a spreadsheet of your transactions. Import CSV brings in a sheet from another app.',
       ]),
       GuideSection('Importing a sheet', steps: true, [

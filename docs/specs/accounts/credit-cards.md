@@ -34,6 +34,38 @@ still be spent, and when the bill is due, and so paying the bill is one tap.
 - **Home**: the Loans card counts what is owed on cards in "I'll give" and points
   out a bill due within 5 days.
 
+## Late fees and other charges (phone feedback)
+"Liability-te je CC ache oita pore ar kisu add kora jay na": a bank adds a late
+fee, an annual fee, interest or VAT that the person never spent, and there was
+no place for it.
+- **Add a late fee or charge** (`add-charge-<card>`) sits under every credit
+  card: on Accounts, on the account page and in Loans (*I'll give*), also for a
+  card that owes nothing. It opens a sheet, *What did the bank charge?*: Late
+  payment fee, Annual fee, Interest, Over-limit fee, VAT or tax on charges, SMS
+  or other bank charge, Another charge (`CardCharge`).
+- The choice opens the add form as an **expense on that card** with the
+  category (in *Fees & charges*: Late fee, Card annual fee, Card interest,
+  Over-limit fee, Tax, Bank charge; *Another charge* leaves it empty) and the
+  note filled in; the person types the amount. It adds to what is owed, counts
+  as an expense, and the *Owed after this* preview and the over-limit warning
+  work as for a purchase.
+- A category that is missing (an install from before these were defaults) is
+  made inside *Fees & charges* (`CategoriesRepository.feeCategoryId`); one that
+  exists by that name is used.
+- Route: `AppRoutes.cardCharge(cardId, categoryId, note)` =
+  `/add?account=&type=expense&category=&prefillNote=` (form: `startCategoryId`).
+
+## When the limit is passed
+Spending is never blocked (a bank often allows it and adds a fee). When the taka
+or dollar limit is passed the card shows a box (`card-over-limit-<card>`): *৳500.00
+is over the limit of this card.* and three ways on:
+- **Pay the extra** (`pay-extra-<card>`): a transfer into the card for the part
+  that is over (taka limit only).
+- **Change the limit** (`raise-limit-<card>`): the account form, for when the
+  bank raised the limit.
+- **Add a late fee or charge** (above) for an over-limit fee.
+Tests: `test/features/accounts/presentation/card_charge_ui_test.dart`.
+
 ## Dollars (dual currency cards)
 A card such as EBL can show two limits, one in taka and one in dollars (for
 example ৳111,200 and $74, after part of a ৳120,000 limit was moved to dollars).

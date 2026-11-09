@@ -108,7 +108,7 @@ class HighlightsCard extends ConsumerWidget {
                   ),
                 tile(
                   key: const ValueKey('highlight-nospend'),
-                  icon: Icons.savings_outlined,
+                  icon: Icons.account_balance_wallet_outlined,
                   label: tr('Days with no spending'),
                   value: tr('{days} of {total}', {
                     'days': facts.noSpendDays,

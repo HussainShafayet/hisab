@@ -84,6 +84,36 @@ class CategoriesRepository {
     });
   }
 
+  /// The expense category called [name], for a fee or charge: the active one
+  /// that exists, or else a new one inside "Fees & charges" (outside any group
+  /// when that is gone). So a card's late fee has a place even on an install
+  /// from before the fee categories were defaults.
+  Future<int> feeCategoryId(String name) async {
+    final all = await getCategories();
+    final wanted = name.trim().toLowerCase();
+    for (final category in all) {
+      if (category.type == CategoryType.expense &&
+          category.name.trim().toLowerCase() == wanted) {
+        return category.id;
+      }
+    }
+    final group = all
+        .where(
+          (category) =>
+              category.type == CategoryType.expense &&
+              category.parentId == null &&
+              category.name.trim().toLowerCase() == 'fees & charges',
+        )
+        .firstOrNull;
+    return createCategory(
+      name: name,
+      type: CategoryType.expense,
+      parentId: group?.id,
+      icon: 'account_balance',
+      color: 0xFF78909C,
+    );
+  }
+
   /// Adds the default categories this install is missing (the Bangladesh
   /// daily-life ones) and returns how many were added. Nothing that exists is
   /// changed or brought back.
