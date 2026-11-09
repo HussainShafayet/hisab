@@ -124,7 +124,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').getSingle();
       // Every upgrade step ran, up to the current version.
-      expect(version.read<int>('user_version'), 19);
+      expect(version.read<int>('user_version'), 20);
     },
   );
 
@@ -154,7 +154,7 @@ void main() {
     expect(await db.settingsDao.getAll(), {'language': 'bangla'});
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test('upgrading from version 3 adds the loan tables', () async {
@@ -197,7 +197,7 @@ void main() {
     expect((await db.debtsDao.getWithPaid(debt))!.paid, 400);
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test('upgrading from version 5 adds the credit card columns', () async {
@@ -237,7 +237,7 @@ void main() {
     expect(saved.creditLimit, 5000000);
     expect(saved.billDueDay, 15);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test('upgrading from version 6 adds the dollar columns', () async {
@@ -292,7 +292,7 @@ void main() {
     expect((await db.accountsDao.getById(card))!.usdLimit, 25000);
     expect((await db.transactionsDao.getById(after))!.usdAmount, 2500);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test('upgrading from version 7 adds the savings goal tables', () async {
@@ -325,7 +325,7 @@ void main() {
     );
     expect((await db.goalsDao.getWithSaved(goal))!.saved, 1500);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test('upgrading from version 8 adds tags', () async {
@@ -377,7 +377,7 @@ void main() {
     );
     expect((await db.transactionsDao.getById(after))!.tagId, trip);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test('upgrading from version 9 adds the bazar list tables', () async {
@@ -408,7 +408,7 @@ void main() {
     expect((await db.bazarDao.getItem(id))!.quantity, 1);
     expect((await db.bazarDao.priceFor('rice'))!.price, 12000);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test(
@@ -435,7 +435,7 @@ void main() {
         contains('app_settings'),
       );
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 19);
+      expect(version.read<int>('user_version'), 20);
       expect(
         tables.map((t) => t.read<String>('name')),
         containsAll(['debts', 'debt_payments', 'recurring_rules']),
@@ -469,7 +469,7 @@ void main() {
     );
     expect((await db.metalsDao.getById(id))!.name, 'Necklace');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test('upgrading from version 12 adds the investment tables', () async {
@@ -513,7 +513,7 @@ void main() {
         .get();
     expect(indexes, hasLength(1));
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test('upgrading from version 13 adds the notification history', () async {
@@ -545,7 +545,7 @@ void main() {
     expect(rows.single.title, 'Bill');
     expect(rows.single.seen, isFalse);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 19);
+    expect(version.read<int>('user_version'), 20);
   });
 
   test('upgrading from version 14 adds the challenges table', () async {

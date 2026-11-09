@@ -1,9 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hishab/core/l10n/translator.dart';
+import 'package:hishab/core/router/app_routes.dart';
 import 'package:hishab/core/theme/finance_colors.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/features/accounts/domain/credit_card.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
+import 'package:hishab/features/accounts/presentation/widgets/card_charge_sheet.dart';
 import 'package:intl/intl.dart';
 
 /// "Bill due 15 Oct", "Bill due today" or "Bill due tomorrow", or null when
@@ -53,9 +57,10 @@ class CreditCardTile extends StatelessWidget {
 }
 
 /// What goes under a credit card's wallet card: the day the bill is due, the
-/// "Pay bill" button, and, for a card with dollars, the dollars spent, what is
-/// still due in dollars and what is left to spend.
-class CreditCardDetails extends StatelessWidget {
+/// "Pay bill" and "Add a charge" buttons, what to do when the limit is passed,
+/// and, for a card with dollars, the dollars spent, what is still due in
+/// dollars and what is left to spend.
+class CreditCardDetails extends ConsumerWidget {
   const CreditCardDetails({
     required this.card,
     required this.today,
@@ -68,7 +73,7 @@ class CreditCardDetails extends StatelessWidget {
   final VoidCallback onPay;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final colors = context.financeColors;
     final due = cardDueText(card, today);
@@ -105,8 +110,89 @@ class CreditCardDetails extends StatelessWidget {
             ],
           ),
         ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: TextButton.icon(
+            key: ValueKey('add-charge-${card.account.id}'),
+            onPressed: () =>
+                addCardCharge(context, ref, cardId: card.account.id),
+            icon: const Icon(Icons.add_card_outlined, size: 18),
+            label: Text(tr('Add a late fee or charge')),
+          ),
+        ),
+        if (card.isOverLimit) _OverLimit(card: card),
         if (card.showsDollars) _DollarLines(card: card),
       ],
+    );
+  }
+}
+
+/// What to do when the limit is passed: the bank may allow it and charge a
+/// fee, so there are three ways on: pay the extra, ask the bank for a higher
+/// limit and write it here, or write the fee. Nothing is blocked.
+class _OverLimit extends StatelessWidget {
+  const _OverLimit({required this.card});
+
+  final CreditCardStatus card;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = context.financeColors;
+    final id = card.account.id;
+    final left = card.takaLeft;
+    final extra = left != null && left < 0 ? -left : 0;
+    return Container(
+      key: ValueKey('card-over-limit-$id'),
+      margin: const EdgeInsets.only(top: 6),
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+      decoration: BoxDecoration(
+        color: colors.expense.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            extra > 0
+                ? tr('{amount} is over the limit of this card.', {
+                    'amount': formatPoisha(extra),
+                  })
+                : tr('The dollar limit of this card is passed.'),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.expense,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            tr(
+              'Spending is never blocked. Pay the extra, ask the bank for a '
+              'higher limit, or write down the fee it charged.',
+            ),
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          Wrap(
+            spacing: 4,
+            children: [
+              if (extra > 0)
+                TextButton(
+                  key: ValueKey('pay-extra-$id'),
+                  onPressed: () =>
+                      context.push(AppRoutes.payCardBill(id, extra)),
+                  child: Text(tr('Pay the extra')),
+                ),
+              TextButton(
+                key: ValueKey('raise-limit-$id'),
+                onPressed: () => context.push(AppRoutes.editAccount(id)),
+                child: Text(tr('Change the limit')),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }

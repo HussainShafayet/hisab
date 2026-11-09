@@ -1,11 +1,17 @@
 import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/features/backup/data/drive_gateway.dart';
 
-/// What to tell the person about a problem with Google Drive. Null for a
-/// sign-in that was closed: they did that themselves.
+/// What to tell the person about a problem with Google Drive. A sign-in that
+/// stops is told too: Google ends one it does not trust (an app key it does not
+/// know) the same way as a closed window, and saying nothing left the switch
+/// off with no reason.
 String? driveProblemText(DriveProblem problem, [String? detail]) {
   final text = switch (problem) {
-    DriveProblem.cancelled => null,
+    DriveProblem.cancelled => tr(
+      'Google sign-in did not finish, so Google Drive backup is still off. '
+      'If you did choose an account, Google may not know this copy of the '
+      'app yet: its signing key must be added in Google Cloud.',
+    ),
     DriveProblem.needsSignIn => tr('Sign in to Google again.'),
     DriveProblem.noInternet => tr(
       'No internet. Check your connection and try again.',
@@ -16,7 +22,6 @@ String? driveProblemText(DriveProblem problem, [String? detail]) {
     ),
     DriveProblem.failed => tr('Google Drive did not take the file.'),
   };
-  if (text == null) return null;
   return detail == null || detail.isEmpty ? text : '$text ($detail)';
 }
 

@@ -21,15 +21,14 @@ korle kemon hobe?".
 - Time of day under each amount (see entry-form).
 
 ## Behaviour: the form
-- Under the account card (and under From / To for a transfer) a strip
-  (`type-balances`) shows what each **kind** of account holds right now: *Cash
-  ৳5,000.00*, *Mobile banking ৳1,200.00*, *Bank ৳30,000.00*, *Credit card -৳4,000*
-  (owed, in red). The kinds used by this transaction have a colored border.
-  Archived accounts are left out. (`balancesByType`, `TypeBalanceStrip`.)
+- ~~A strip of what each kind of account holds, under the account card~~ was
+  taken out (phone feedback: "account select er pore abar wallet gulo show
+  korteso keno?"). The chosen account's own card already says its balance, and
+  the rest is on the Accounts screen.
 - The wallet cards keep showing the balance and *After this* of the chosen
   account.
 
 ## Tests
 `test/features/transactions/domain/transaction_stats_test.dart`,
 `test/features/transactions/presentation/transactions_overview_test.dart`,
-`test/features/accounts/domain/type_balances_test.dart`.
+`test/features/transactions/presentation/category_standing_ui_test.dart` (the form has no wallet strip).

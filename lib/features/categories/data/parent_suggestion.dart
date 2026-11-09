@@ -171,7 +171,10 @@ const _expenseWords = <(String, List<String>)>[
   ('Family & gifts > Gifts > Wedding gift', ['wedding']),
   ('Family & gifts > Gifts > Birthday gift', ['birthday']),
   ('Family & gifts > Gifts', ['gift']),
-  ('Family & gifts > Pocket money', ['pocket']),
+  ('Family & gifts > Wife', ['wife', 'bou']),
+  ('Family & gifts > Husband', ['husband']),
+  ('Family & gifts > Children', ['child', 'children', 'baby', 'kids']),
+  ('Family & gifts > Family events', ['aqiqah', 'khatna', 'milad', 'funeral']),
   (
     'Family & gifts > Monthly support > Parents',
     ['parents', 'baba', 'abbu', 'amma'],

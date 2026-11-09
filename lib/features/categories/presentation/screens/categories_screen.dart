@@ -81,6 +81,53 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
     () => _closed.contains(id) ? _closed.remove(id) : _closed.add(id),
   );
 
+  /// Merges the categories that are the same name in the same place, and moves
+  /// the pocket money of the wife, husband and children into each of them.
+  Future<void> _tidy() async {
+    final messenger = ScaffoldMessenger.of(context);
+    final go = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(tr('Merge doubled categories?')),
+        content: Text(
+          tr(
+            'Two categories with the same name in the same place become one, '
+            'and the pocket money of the wife, husband and children moves '
+            'into each of them. No transaction is lost: they all move to the '
+            'category that stays.',
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: Text(tr('Cancel')),
+          ),
+          FilledButton(
+            key: const ValueKey('tidy-confirm'),
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text(tr('Merge')),
+          ),
+        ],
+      ),
+    );
+    if (go != true || !mounted) return;
+    try {
+      final result = await ref.read(categoryTidyProvider).run();
+      if (result.isEmpty) {
+        messenger.showMessage(tr('No doubled categories. All is in order.'));
+      } else {
+        messenger.showMessage(
+          tr('{merged} merged, {moved} moved. No transaction was lost.', {
+            'merged': result.merged,
+            'moved': result.moved,
+          }),
+        );
+      }
+    } on Object catch (error) {
+      messenger.showError(describeError(error));
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final categories = ref.watch(categoriesProvider(_showArchived));
@@ -102,6 +149,12 @@ class _CategoriesScreenState extends ConsumerState<CategoriesScreen> {
         title: Text(tr('Categories')),
         actions: [
           const HelpButton('categories'),
+          IconButton(
+            key: const ValueKey('tidy-categories'),
+            tooltip: tr('Merge doubled categories'),
+            icon: const Icon(Icons.auto_fix_high),
+            onPressed: _tidy,
+          ),
           if (parents.isNotEmpty)
             IconButton(
               key: const ValueKey('collapse-all'),

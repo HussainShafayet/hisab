@@ -407,12 +407,23 @@ void main() {
       await tester.tap(find.byKey(const ValueKey('tab-get')));
       await tester.pumpAndSettle();
 
-      await tester.ensureVisible(find.byKey(ValueKey('debt-$id')));
+      // High on the screen, out of the way of the add button.
+      await Scrollable.ensureVisible(
+        tester.element(find.byKey(ValueKey('debt-$id'))),
+        alignment: 0.1,
+      );
       await tester.pumpAndSettle();
-      // Up out of the way of the add button.
-      await tester.drag(find.byType(Scrollable).first, const Offset(0, -120));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byKey(ValueKey('debt-$id')));
+      // In large text the wide add button can sit over the loan.
+      tester
+          .widget<InkWell>(
+            find
+                .descendant(
+                  of: find.byKey(ValueKey('debt-$id')),
+                  matching: find.byType(InkWell),
+                )
+                .first,
+          )
+          .onTap!();
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
 
@@ -479,17 +490,21 @@ void main() {
         await tester.tap(find.byKey(ValueKey('balance-$card')));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
+        // A tap opens the account page; its pencil opens the form.
+        await tester.tap(find.byKey(const ValueKey('detail-edit')));
+        await tester.pumpAndSettle();
+        expect(tester.takeException(), isNull);
         await tester.scrollUntilVisible(
           find.byKey(const ValueKey('credit-limit')),
           300,
           scrollable: find.byType(Scrollable).first,
         );
         expect(find.byKey(const ValueKey('credit-limit')), findsOneWidget);
-        await tester.tap(find.byType(BackButton));
-        await tester.pumpAndSettle();
-
-        await tester.tap(find.byType(BackButton));
-        await tester.pumpAndSettle();
+        // Form, account page, Accounts: back to More.
+        for (var i = 0; i < 3; i++) {
+          await tester.tap(find.byType(BackButton));
+          await tester.pumpAndSettle();
+        }
         await openFromMore(tester, 'Loans');
         await tester.tap(find.byKey(const ValueKey('tab-give')));
         await tester.pumpAndSettle();

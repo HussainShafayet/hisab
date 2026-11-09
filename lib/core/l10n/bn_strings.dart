@@ -7,6 +7,9 @@ import 'package:hishab/core/l10n/bn_afford.dart';
 import 'package:hishab/core/l10n/bn_badges.dart';
 import 'package:hishab/core/l10n/bn_bazar.dart';
 import 'package:hishab/core/l10n/bn_bulk_edit.dart';
+import 'package:hishab/core/l10n/bn_card_charges.dart';
+import 'package:hishab/core/l10n/bn_category_standing.dart';
+import 'package:hishab/core/l10n/bn_category_tidy.dart';
 import 'package:hishab/core/l10n/bn_categories_pack.dart';
 import 'package:hishab/core/l10n/bn_challenges.dart';
 import 'package:hishab/core/l10n/bn_core.dart';
@@ -63,6 +66,9 @@ const bnStrings = <String, String>{
   ...bnBadges,
   ...bnBazar,
   ...bnBulkEdit,
+  ...bnCardCharges,
+  ...bnCategoryStanding,
+  ...bnCategoryTidy,
   ...bnCategoriesPack,
   ...bnChallenges,
   ...bnCore,

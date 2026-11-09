@@ -15,10 +15,7 @@ import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/core/widgets/time_picking.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
-import 'package:hishab/features/accounts/domain/account_type.dart';
-import 'package:hishab/features/accounts/domain/type_balances.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
-import 'package:hishab/features/accounts/presentation/widgets/type_balance_strip.dart';
 import 'package:hishab/features/accounts/presentation/widgets/account_picker_sheet.dart';
 import 'package:hishab/features/categories/domain/category.dart';
 import 'package:hishab/features/categories/domain/category_tree.dart';
@@ -37,6 +34,9 @@ import 'package:hishab/features/transactions/presentation/widgets/quick_type_bar
 import 'package:hishab/features/transactions/domain/transaction_input.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
+import 'package:hishab/features/transactions/domain/category_standing.dart';
+import 'package:hishab/features/transactions/presentation/providers/category_standing_providers.dart';
+import 'package:hishab/features/transactions/presentation/widgets/category_standing_note.dart';
 import 'package:hishab/features/transactions/presentation/widgets/amount_keypad.dart';
 import 'package:hishab/features/transactions/presentation/widgets/amount_text_formatter.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
@@ -65,6 +65,7 @@ class TransactionFormScreen extends ConsumerWidget {
     this.prefillAmount,
     this.prefillNote,
     this.startAccountId,
+    this.startCategoryId,
     this.startType,
     super.key,
   });
@@ -85,6 +86,9 @@ class TransactionFormScreen extends ConsumerWidget {
   /// A new transaction starts on this account and as this type (from an
   /// account's own page).
   final int? startAccountId;
+
+  /// A new transaction starts in this category (a card's fee, say).
+  final int? startCategoryId;
   final TransactionType? startType;
 
   @override
@@ -121,6 +125,7 @@ class TransactionFormScreen extends ConsumerWidget {
             prefillAmount: prefillAmount,
             prefillNote: prefillNote,
             startAccountId: startAccountId,
+            startCategoryId: startCategoryId,
             startType: startType,
           ),
         );
@@ -137,10 +142,14 @@ class _TransactionForm extends ConsumerStatefulWidget {
     this.prefillAmount,
     this.prefillNote,
     this.startAccountId,
+    this.startCategoryId,
     this.startType,
   });
 
   final int? startAccountId;
+
+  /// A new transaction starts in this category (a card's fee, say).
+  final int? startCategoryId;
   final TransactionType? startType;
 
   final TransactionFormArgs args;
@@ -290,6 +299,15 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     }
     final startType = widget.startType;
     if (_isAdding && card == null && startType != null) _type = startType;
+    final startCategory = widget.startCategoryId;
+    if (_isAdding &&
+        card == null &&
+        startCategory != null &&
+        _data.options
+            .categoriesFor(_type)
+            .any((category) => category.id == startCategory)) {
+      _categoryId = startCategory;
+    }
 
     for (final node in [_amountFocus, _noteFocus, _feeFocus, _usdFocus]) {
       node.addListener(_onFocusChanged);
@@ -959,16 +977,48 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     );
   }
 
-  /// What each kind of account holds now, with the kinds used here marked.
-  Widget _balanceStrip(Map<int, int> balances) {
-    final used = <AccountType>{
-      for (final id in [_accountId, _toAccountId])
-        if (_account(id) != null) _account(id)!.type,
-    };
-    return TypeBalanceStrip(
-      key: const ValueKey('type-balances'),
-      balances: balancesByType(_data.options.accounts, balances),
-      highlight: used,
+  /// What the chosen category holds this month, and what is left of its
+  /// budget, with this entry added once an amount is typed. Nothing while no
+  /// category is chosen or the numbers are not read yet.
+  Widget _standingNote() {
+    final id = _categoryId;
+    if (id == null || _type == TransactionType.transfer) {
+      return const SizedBox.shrink();
+    }
+    final month = monthStart(_day);
+    final standing = ref
+        .watch(
+          categoryStandingProvider((categoryId: id, type: _type, month: month)),
+        )
+        .value;
+    if (standing == null) return const SizedBox.shrink();
+    final name = _data.options
+        .categoriesFor(_type)
+        .where((category) => category.id == id)
+        .firstOrNull
+        ?.name;
+    if (name == null) return const SizedBox.shrink();
+    final source = _data.source;
+    final counted =
+        _isEditing &&
+            source != null &&
+            source.categoryId == id &&
+            source.type == _type &&
+            monthStart(source.date) == month
+        ? source.amount
+        : 0;
+    final today = ref.read(clockProvider)();
+    return CategoryStandingNote(
+      line: standingLine(
+        standing,
+        entry: evaluateAmount(_amount.text) ?? 0,
+        counted: counted,
+      ),
+      categoryName: name,
+      type: _type,
+      when: month == monthStart(today)
+          ? tr('this month')
+          : tr('in {month}', {'month': DateFormat('MMM yyyy').format(month)}),
     );
   }
 
@@ -1145,6 +1195,7 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         ..._transferFields(context, balances)
       else ...[
         _categoryArea(context),
+        _standingNote(),
         const SizedBox(height: 12),
         _accountCard(
           key: const ValueKey('account-field'),
@@ -1158,8 +1209,6 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
             onChosen: (id) => _accountId = id,
           ),
         ),
-        const SizedBox(height: 8),
-        _balanceStrip(balances),
       ],
       if (_dollarCard != null) ...[
         const SizedBox(height: 16),
@@ -1389,8 +1438,6 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
           onChosen: (id) => _toAccountId = id,
         ),
       ),
-      const SizedBox(height: 8),
-      _balanceStrip(balances),
     ];
   }
 

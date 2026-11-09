@@ -12,6 +12,11 @@ import 'package:hishab/core/widgets/money_form_field.dart';
 import 'package:hishab/core/widgets/state_views.dart';
 import 'package:hishab/features/accounts/domain/account.dart';
 import 'package:hishab/features/accounts/presentation/providers/accounts_providers.dart';
+import 'package:hishab/features/categories/domain/category.dart';
+import 'package:hishab/features/categories/domain/category_tree.dart';
+import 'package:hishab/features/categories/domain/category_type.dart';
+import 'package:hishab/features/categories/presentation/providers/categories_providers.dart';
+import 'package:hishab/features/categories/presentation/widgets/category_picker_sheet.dart';
 import 'package:hishab/features/debts/data/debts_repository.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
@@ -103,10 +108,49 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
   late DateTime? _dueOn = widget.initial?.dueOn;
   late int? _accountId = widget.initial?.accountId;
   List<String> _people = const [];
+  bool _paidForMe = false;
+  int? _categoryId;
+  List<Category> _categories = const [];
   bool _saving = false;
   String? _error;
 
   bool get _isEditing => widget.initial != null;
+
+  /// Someone paid a bill for me: only for a new loan of money I took.
+  bool get _isPaidForMe =>
+      _paidForMe && !_isEditing && _direction == DebtDirection.borrowed;
+
+  List<Category> get _expenseCategories => flattenCategoryTree(
+    buildCategoryTree([
+      for (final c in _categories)
+        if (c.type == CategoryType.expense && !c.isArchived) c,
+    ]),
+  );
+
+  /// The account the two entries of a bill paid for me go on: the default one,
+  /// or the first open one.
+  AccountWithBalance? _paidForMeAccount(List<AccountWithBalance> accounts) {
+    final open = [
+      for (final a in accounts)
+        if (!a.account.isArchived) a,
+    ];
+    final preferred = ref.read(preferencesProvider).defaultAccountId;
+    return open.where((a) => a.account.id == preferred).firstOrNull ??
+        open.firstOrNull;
+  }
+
+  Future<void> _chooseCategory() async {
+    final pick = await showCategoryPicker(
+      context,
+      title: tr('Expense category'),
+      categories: _expenseCategories,
+      selectedId: _categoryId,
+      allowAdd: false,
+    );
+    if (pick case CategoryPicked(:final id) when mounted) {
+      setState(() => _categoryId = id);
+    }
+  }
 
   /// The kind of loan is fixed once a payment was made: it went one way.
   bool get _kindLocked => _isEditing && widget.paid > 0;
@@ -116,6 +160,9 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
     super.initState();
     ref.read(debtsRepositoryProvider).knownPeople().then((people) {
       if (mounted) setState(() => _people = people);
+    });
+    ref.read(categoriesRepositoryProvider).getCategories().then((all) {
+      if (mounted) setState(() => _categories = all);
     });
   }
 
@@ -139,6 +186,17 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
 
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
+    final paidForMeAccount = _paidForMeAccount(
+      ref.read(accountsProvider(true)).value ?? const [],
+    );
+    if (_isPaidForMe && _categoryId == null) {
+      setState(() => _error = tr('Choose a category.'));
+      return;
+    }
+    if (_isPaidForMe && paidForMeAccount == null) {
+      setState(() => _error = tr('Add an account first'));
+      return;
+    }
     setState(() {
       _saving = true;
       _error = null;
@@ -161,6 +219,18 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
           note: _note.text,
           accountId: _accountId,
         );
+      } else if (_isPaidForMe) {
+        await ref
+            .read(paidForMeProvider)
+            .record(
+              person: _person.text,
+              amount: parseTakaToPoisha(_amount.text)!,
+              accountId: paidForMeAccount!.account.id,
+              categoryId: _categoryId!,
+              date: combineDayWithTime(_openedOn, now),
+              dueOn: _dueOn,
+              note: _note.text,
+            );
       } else {
         await repository.createDebt(
           person: _person.text,
@@ -185,6 +255,47 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
         });
       }
     }
+  }
+
+  Widget _paidForMeFields(ThemeData theme, AccountWithBalance? account) {
+    final byId = {for (final c in _categories) c.id: c};
+    final selected = byId[_categoryId];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        InkWell(
+          key: const ValueKey('paid-for-me-category'),
+          onTap: _chooseCategory,
+          borderRadius: BorderRadius.circular(12),
+          child: InputDecorator(
+            decoration: InputDecoration(
+              labelText: tr('Expense category'),
+              suffixIcon: const Icon(Icons.unfold_more),
+            ),
+            child: Text(
+              selected == null
+                  ? tr('Choose a category')
+                  : categoryPathLabel(selected, byId),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ),
+        if (account != null)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(
+              tr('Noted on {account}. Its balance does not change.', {
+                'account': account.account.name,
+              }),
+              key: const ValueKey('paid-for-me-account'),
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+      ],
+    );
   }
 
   /// What the text fields held on opening, to tell if anything was typed.
@@ -313,22 +424,41 @@ class _DebtFormState extends ConsumerState<_DebtForm> {
                     onChanged: (_) => setState(() {}),
                   ),
                   const SizedBox(height: 8),
-                  LoanAccountField(
-                    accounts: accounts,
-                    accountId: _accountId,
-                    moneyIn: !lent,
-                    amount: parseTakaToPoisha(_amount.text),
-                    preferredId: ref.read(preferencesProvider).defaultAccountId,
-                    alreadyApplied: initial?.accountId == null
-                        ? null
-                        : (
-                            accountId: initial!.accountId!,
-                            change: initial.direction == DebtDirection.lent
-                                ? -initial.amount
-                                : initial.amount,
-                          ),
-                    onChanged: (id) => setState(() => _accountId = id),
-                  ),
+                  if (!lent && !_isEditing)
+                    SwitchListTile(
+                      key: const ValueKey('paid-for-me'),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(tr('They paid a bill for me')),
+                      subtitle: Text(
+                        tr('It counts as my expense, and I owe them.'),
+                      ),
+                      value: _paidForMe,
+                      onChanged: (on) => setState(() {
+                        _paidForMe = on;
+                        _error = null;
+                      }),
+                    ),
+                  if (_isPaidForMe)
+                    _paidForMeFields(theme, _paidForMeAccount(accounts))
+                  else
+                    LoanAccountField(
+                      accounts: accounts,
+                      accountId: _accountId,
+                      moneyIn: !lent,
+                      amount: parseTakaToPoisha(_amount.text),
+                      preferredId: ref
+                          .read(preferencesProvider)
+                          .defaultAccountId,
+                      alreadyApplied: initial?.accountId == null
+                          ? null
+                          : (
+                              accountId: initial!.accountId!,
+                              change: initial.direction == DebtDirection.lent
+                                  ? -initial.amount
+                                  : initial.amount,
+                            ),
+                      onChanged: (id) => setState(() => _accountId = id),
+                    ),
                   // Closed at first: most loans need only the three above.
                   Theme(
                     data: theme.copyWith(dividerColor: Colors.transparent),

@@ -67,6 +67,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [bazar](bazar/) | [Bazar list from a Google Form](bazar/google-form-inbox.md) | 19b |
 | [budget](budget/) | [Where a category budget sits](budget/category-placement.md) | 24 |
 | [categories](categories/) | [Split categories, one place for each thing](categories/split-and-deduplicate.md) | 34 |
+| [categories](categories/) | [A group for each person, and merging doubled categories](categories/tidy-up.md) | 38 |
 | [transactions](transactions/) | [List overview and balance by kind](transactions/list-overview.md) | 26 |
 | [accounts](accounts/) | [Account page and the month on each card](accounts/account-page.md) | 27 |
 | [budget](budget/) | [Plan, projection and spending with no budget](budget/plan-and-unbudgeted.md) | 28 |

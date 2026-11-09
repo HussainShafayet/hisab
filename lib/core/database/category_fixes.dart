@@ -2,6 +2,7 @@ import 'package:drift/drift.dart';
 import 'package:hishab/core/database/app_database.dart';
 import 'package:hishab/features/categories/data/categories_repository.dart';
 import 'package:hishab/features/categories/data/category_mapper.dart';
+import 'package:hishab/features/categories/data/category_tidy.dart';
 import 'package:hishab/features/categories/data/category_pack.dart';
 import 'package:hishab/features/categories/data/default_categories.dart';
 import 'package:hishab/features/categories/data/legacy_defaults.dart';
@@ -121,4 +122,31 @@ Future<void> refreshDefaultCategories(AppDatabase db) async {
   ], defaultExpenseCategories);
   await retire(CategoryType.income, legacyIncomePaths, defaultIncomeCategories);
   await CategoriesRepository(db).addMissingDefaults();
+}
+
+/// Version 20: the people of the house got a group each (*Family & gifts >
+/// Wife / Husband / Children*), and doubled categories were merged.
+///
+/// 1. [CategoryTidy] moves *Pocket money > Wife* (...) into the person and
+///    merges the doubles, keeping every transaction.
+/// 2. An install made with the defaults gets the new groups' categories
+///    (Clothes, Medicine, Doctor...), as in [refreshDefaultCategories].
+///
+/// Tidying the categories is a favour: when something in it fails, the app
+/// still opens and the person can run it again from the Categories screen.
+Future<void> tidyCategories(AppDatabase db) async {
+  try {
+    await CategoryTidy(db).run();
+    final rows = await db.categoriesDao.getAll(includeArchived: true);
+    final domain = [for (final row in rows) row.toDomain()];
+    final byId = {for (final c in domain) c.id: c};
+    final madeWithDefaults = domain.any(
+      (c) =>
+          c.type == CategoryType.expense &&
+          pathKey(pathOf(c, byId)) == pathKey(['Food', 'Kacha bazar']),
+    );
+    if (madeWithDefaults) await CategoriesRepository(db).addMissingDefaults();
+  } on Object {
+    // Left for the person to run again.
+  }
 }

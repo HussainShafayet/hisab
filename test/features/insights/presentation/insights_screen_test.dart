@@ -106,6 +106,7 @@ void main() {
         categoryId: b.food,
         date: DateTime(2026, 10, 3),
       );
+      await showHomeExtras(db);
       await pumpAppWithDatabase(tester, db);
 
       final seeAll = find.byKey(const ValueKey('insights-see-all'));

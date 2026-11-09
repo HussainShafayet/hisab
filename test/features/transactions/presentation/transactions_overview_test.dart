@@ -1,11 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:hishab/features/accounts/domain/account_type.dart';
-import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 import '../../../helpers/fixtures.dart';
-import '../../../helpers/form_actions.dart';
 import '../../../helpers/pump_app.dart';
 import '../../../helpers/test_database.dart';
 import 'transactions_screen_test.dart' show openTab, row, seedMonth;
@@ -76,42 +73,6 @@ void main() {
         find.descendant(of: row(id), matching: find.text('Fish')),
         findsOneWidget,
       );
-    });
-  });
-
-  group('the balance of each kind of account on the form', () {
-    testWithDatabase('shows what cash, bKash and the bank hold', (
-      tester,
-      db,
-    ) async {
-      useTallScreen(tester);
-      final cash = await insertTestAccount(db, name: 'Cash');
-      await insertTestAccount(
-        db,
-        name: 'bKash',
-        type: AccountType.mobileBanking,
-      );
-      await insertTestAccount(db, name: 'City', type: AccountType.bank);
-      final pay = await insertTestCategory(
-        db,
-        name: 'Pay',
-        type: CategoryType.income,
-      );
-      await addTransaction(
-        db,
-        type: TransactionType.income,
-        amount: 500000,
-        accountId: cash,
-        categoryId: pay,
-        date: DateTime(2026, 10, 1),
-      );
-      await pumpAppWithDatabase(tester, db);
-      await openAddForm(tester);
-
-      expect(find.byKey(const ValueKey('type-balance-cash')), findsOneWidget);
-      expect(find.textContaining('Cash ৳5,000.00'), findsOneWidget);
-      expect(find.textContaining('Mobile banking ৳0.00'), findsOneWidget);
-      expect(find.textContaining('Bank ৳0.00'), findsOneWidget);
     });
   });
 }

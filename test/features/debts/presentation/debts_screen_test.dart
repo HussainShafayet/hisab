@@ -952,7 +952,14 @@ void main() {
       await openLoans(tester);
       await showGive(tester);
 
-      await tapKey(tester, 'card-$card');
+      // The name, on the wallet card: the buttons fill the rest of the tile.
+      await tester.tap(
+        find.descendant(
+          of: find.byKey(ValueKey('card-$card')),
+          matching: find.text('Visa'),
+        ),
+      );
+      await tester.pumpAndSettle();
 
       expect(appBarTitle('Edit account'), findsOneWidget);
       expect(find.byKey(const ValueKey('credit-limit')), findsOneWidget);

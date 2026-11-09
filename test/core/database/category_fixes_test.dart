@@ -98,9 +98,16 @@ void main() {
 
       // The same name is not used for different things (Children is a group
       // and a pocket-money person on purpose).
+      // The people of the house each hold their own Clothes, Gifts...: the
+      // path tells them apart.
+      const people = {'Wife', 'Husband', 'Children'};
       final leaves = [
         for (final e in entries)
-          if (!withChildren.contains(e.path.join(' > '))) e.name.toLowerCase(),
+          if (!withChildren.contains(e.path.join(' > ')) &&
+              !(e.path.length == 3 &&
+                  e.path.first == 'Family & gifts' &&
+                  people.contains(e.path[1])))
+            e.name.toLowerCase(),
       ];
       expect(
         leaves.where((n) => leaves.where((m) => m == n).length > 1).toSet(),
@@ -110,7 +117,9 @@ void main() {
     final paths = flattenDefaults(defaultExpenseCategories)
         .map((e) => e.path.join(' > '))
         .toList();
-    expect(paths, contains('Family & gifts > Pocket money > Children'));
+    expect(paths, contains('Family & gifts > Children > Pocket money'));
+    expect(paths, contains('Family & gifts > Wife > Clothes'));
+    expect(paths, isNot(contains('Family & gifts > Pocket money')));
     expect(paths, contains('Shopping > Clothing > Kids wear'));
     expect(paths, isNot(contains('Family & gifts > Kids pocket money')));
   });

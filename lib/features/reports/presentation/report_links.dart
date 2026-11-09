@@ -22,8 +22,13 @@ class ReportLinks {
     required DateRange range,
     required TransactionType type,
     bool ownOnly = false,
-  }) {
-    final all = ref.read(categoriesProvider(true)).value ?? const [];
+  }) async {
+    // Read now: the categories provider has no value unless a screen watches
+    // it, and without them the entries of sub-categories would be left out.
+    final all = await ref
+        .read(categoriesRepositoryProvider)
+        .getCategories(includeArchived: true);
+    if (!context.mounted) return;
     return openEntries(
       context,
       title: name,

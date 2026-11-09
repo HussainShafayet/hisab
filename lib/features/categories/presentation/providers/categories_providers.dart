@@ -2,10 +2,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hishab/core/database/database_provider.dart';
 import 'package:hishab/features/categories/data/categories_repository.dart';
 import 'package:hishab/features/categories/data/category_pack.dart';
+import 'package:hishab/features/categories/data/category_tidy.dart';
 import 'package:hishab/features/categories/domain/category.dart';
 
 final categoriesRepositoryProvider = Provider<CategoriesRepository>(
   (ref) => CategoriesRepository(ref.watch(appDatabaseProvider)),
+);
+
+/// Merges doubled categories and groups the family by person.
+final categoryTidyProvider = Provider<CategoryTidy>(
+  (ref) => CategoryTidy(ref.watch(appDatabaseProvider)),
 );
 
 /// All categories, income and expense, parents and sub-categories mixed. The
