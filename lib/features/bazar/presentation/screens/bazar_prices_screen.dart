@@ -69,7 +69,10 @@ class BazarPricesScreen extends ConsumerWidget {
       ),
       body: prices.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: describeError(error)),
+        error: (error, _) => ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(rememberedPricesProvider),
+        ),
         data: (list) => list.isEmpty
             ? EmptyState(
                 icon: Icons.sell_outlined,

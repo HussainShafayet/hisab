@@ -39,7 +39,10 @@ class GoalsScreen extends ConsumerWidget {
       ),
       body: goals.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: describeError(error)),
+        error: (error, _) => ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(goalsProvider),
+        ),
         data: (list) {
           final settings =
               ref.watch(festivalSettingsProvider).value ??

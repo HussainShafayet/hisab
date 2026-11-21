@@ -191,6 +191,78 @@ void main() {
       );
     });
 
+    testWithDatabase('a long press on an entry offers edit, copy, delete', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final a = await seed(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Accounts');
+      await tester.tap(accountCard('Cash'));
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.byKey(ValueKey('detail-entry-${a.lunch}')));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(const ValueKey('entry-action-edit')), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('entry-action-duplicate')),
+        findsOneWidget,
+      );
+      expect(find.byKey(const ValueKey('entry-action-delete')), findsOneWidget);
+
+      await tester.tap(find.byKey(const ValueKey('entry-action-edit')));
+      await tester.pumpAndSettle();
+      expect(find.text('Edit transaction'), findsOneWidget);
+    });
+
+    testWithDatabase('Duplicate on an entry opens a copy form', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final a = await seed(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Accounts');
+      await tester.tap(accountCard('Cash'));
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.byKey(ValueKey('detail-entry-${a.lunch}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('entry-action-duplicate')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Add transaction'), findsOneWidget);
+    });
+
+    testWithDatabase('Delete on an entry removes it, and Undo brings it back', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final a = await seed(db);
+      await pumpAppWithDatabase(tester, db);
+      await openFromMore(tester, 'Accounts');
+      await tester.tap(accountCard('Cash'));
+      await tester.pumpAndSettle();
+
+      await tester.longPress(find.byKey(ValueKey('detail-entry-${a.lunch}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('entry-action-delete')));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Transaction deleted'), findsOneWidget);
+      expect(find.byKey(ValueKey('detail-entry-${a.lunch}')), findsNothing);
+      expect(await db.transactionsDao.getById(a.lunch), isNull);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+
+      expect(find.byKey(ValueKey('detail-entry-${a.lunch}')), findsOneWidget);
+      expect(await db.transactionsDao.getById(a.lunch), isNotNull);
+    });
+
     testWithDatabase('the pencil edits the account', (tester, db) async {
       useTallScreen(tester);
       await seed(db);

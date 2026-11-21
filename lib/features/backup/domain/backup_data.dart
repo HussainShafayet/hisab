@@ -11,6 +11,7 @@ import 'package:hishab/features/categories/domain/category_tree.dart'
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/metals/domain/metals.dart';
+import 'package:hishab/features/debts/domain/debt_charge.dart';
 import 'package:hishab/features/recurring/domain/recurring.dart';
 import 'package:hishab/features/transactions/domain/feeling.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
@@ -32,7 +33,9 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 /// 11: business investments (`investments`, `investmentEntries`).
 /// 12: spending challenges (`challenges`).
 /// 13: the settings the person chose (`settings`).
-const backupFormatVersion = 13;
+/// 14: late fees and charges on a loan (`debtCharges`), and the transfer
+/// charge of a loan payment (`feeTransactionId` on a payment).
+const backupFormatVersion = 14;
 
 const _appId = 'hishab';
 
@@ -886,6 +889,7 @@ class BackupDebtPayment {
     required this.accountId,
     required this.transactionId,
     required this.createdAt,
+    this.feeTransactionId,
   });
 
   factory BackupDebtPayment.fromJson(Map<String, Object?> json) {
@@ -899,6 +903,7 @@ class BackupDebtPayment {
       accountId: _intOrNull(json, 'accountId', where),
       transactionId: _intOrNull(json, 'transactionId', where),
       createdAt: _date(json, 'createdAt', where),
+      feeTransactionId: _intOrNull(json, 'feeTransactionId', where),
     );
   }
 
@@ -911,6 +916,10 @@ class BackupDebtPayment {
   final int? transactionId;
   final DateTime createdAt;
 
+  /// The expense of a transfer charge paid with it (not checked: the entry
+  /// may have been deleted by hand).
+  final int? feeTransactionId;
+
   Map<String, Object?> toJson() => {
     'id': id,
     'debtId': debtId,
@@ -919,6 +928,58 @@ class BackupDebtPayment {
     'note': note,
     'accountId': accountId,
     'transactionId': transactionId,
+    'createdAt': _iso(createdAt),
+    'feeTransactionId': feeTransactionId,
+  };
+}
+
+class BackupDebtCharge {
+  const BackupDebtCharge({
+    required this.id,
+    required this.debtId,
+    required this.amount,
+    required this.chargedOn,
+    required this.kind,
+    required this.note,
+    required this.transactionId,
+    required this.expenseId,
+    required this.createdAt,
+  });
+
+  factory BackupDebtCharge.fromJson(Map<String, Object?> json) {
+    const where = 'A loan charge';
+    return BackupDebtCharge(
+      id: _int(json, 'id', where),
+      debtId: _int(json, 'debtId', where),
+      amount: _int(json, 'amount', where),
+      chargedOn: _date(json, 'chargedOn', where),
+      kind: _enum(DebtChargeKind.values, json, 'kind', where),
+      note: _string(json, 'note', where),
+      transactionId: _intOrNull(json, 'transactionId', where),
+      expenseId: _intOrNull(json, 'expenseId', where),
+      createdAt: _date(json, 'createdAt', where),
+    );
+  }
+
+  final int id;
+  final int debtId;
+  final int amount;
+  final DateTime chargedOn;
+  final DebtChargeKind kind;
+  final String note;
+  final int? transactionId;
+  final int? expenseId;
+  final DateTime createdAt;
+
+  Map<String, Object?> toJson() => {
+    'id': id,
+    'debtId': debtId,
+    'amount': amount,
+    'chargedOn': _iso(chargedOn),
+    'kind': kind.name,
+    'note': note,
+    'transactionId': transactionId,
+    'expenseId': expenseId,
     'createdAt': _iso(createdAt),
   };
 }
@@ -935,6 +996,7 @@ class BackupData {
     required this.budgets,
     this.debts = const [],
     this.debtPayments = const [],
+    this.debtCharges = const [],
     this.recurringRules = const [],
     this.goals = const [],
     this.goalEntries = const [],
@@ -1005,6 +1067,10 @@ class BackupData {
         for (final item in _optionalList(json, 'debtPayments'))
           BackupDebtPayment.fromJson(_object(item, 'A loan payment')),
       ],
+      debtCharges: [
+        for (final item in _optionalList(json, 'debtCharges'))
+          BackupDebtCharge.fromJson(_object(item, 'A loan charge')),
+      ],
       recurringRules: [
         for (final item in _optionalList(json, 'recurringRules'))
           BackupRecurringRule.fromJson(_object(item, 'A recurring item')),
@@ -1058,6 +1124,7 @@ class BackupData {
   final List<BackupBudget> budgets;
   final List<BackupDebt> debts;
   final List<BackupDebtPayment> debtPayments;
+  final List<BackupDebtCharge> debtCharges;
   final List<BackupRecurringRule> recurringRules;
   final List<BackupGoal> goals;
   final List<BackupGoalEntry> goalEntries;
@@ -1082,6 +1149,7 @@ class BackupData {
     'budgets': [for (final b in budgets) b.toJson()],
     'debts': [for (final d in debts) d.toJson()],
     'debtPayments': [for (final p in debtPayments) p.toJson()],
+    'debtCharges': [for (final c in debtCharges) c.toJson()],
     'recurringRules': [for (final r in recurringRules) r.toJson()],
     'goals': [for (final g in goals) g.toJson()],
     'goalEntries': [for (final e in goalEntries) e.toJson()],
@@ -1136,6 +1204,7 @@ class BackupData {
     uniqueIds(budgets.map((b) => b.id), 'budgets');
     final debtIds = uniqueIds(debts.map((d) => d.id), 'loans');
     uniqueIds(debtPayments.map((p) => p.id), 'loan payments');
+    uniqueIds(debtCharges.map((c) => c.id), 'loan charges');
     final transactionIds = {for (final t in transactions) t.id};
     void checkLoanLinks(String what, int id, int? account, int? transaction) {
       if (account != null && !accountIds.contains(account)) {
@@ -1247,6 +1316,20 @@ class BackupData {
         );
       }
       checkLoanLinks('loan payment', p.id, p.accountId, p.transactionId);
+    }
+    for (final c in debtCharges) {
+      if (!debtIds.contains(c.debtId)) {
+        _damaged(
+          'loan charge ${c.id} points to a loan that is not in the file.',
+        );
+      }
+      for (final link in [c.transactionId, c.expenseId]) {
+        if (link != null && !transactionIds.contains(link)) {
+          _damaged(
+            'loan charge ${c.id} points to a transaction that is not in the file.',
+          );
+        }
+      }
     }
 
     final parents = {for (final c in categories) c.id: c.parentId};

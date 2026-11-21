@@ -32,6 +32,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     text: poishaToInput(widget.item.remaining),
   );
   final _note = TextEditingController();
+  final _fee = TextEditingController();
   late DateTime _day = dateOnly(ref.read(clockProvider)());
   late int? _accountId = widget.item.debt.accountId;
   bool _saving = false;
@@ -41,6 +42,7 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
   void dispose() {
     _amount.dispose();
     _note.dispose();
+    _fee.dispose();
     super.dispose();
   }
 
@@ -60,6 +62,12 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
             paidOn: combineDayWithTime(_day, ref.read(clockProvider)()),
             note: _note.text,
             accountId: _accountId,
+            // A transfer charge only comes with an account, on a loan I took.
+            fee:
+                _accountId == null ||
+                    widget.item.debt.direction == DebtDirection.lent
+                ? 0
+                : parseTakaToPoisha(_fee.text) ?? 0,
           );
       // The payment that clears the loan: a little celebration.
       if (mounted && amount >= widget.item.remaining) celebrate(context, ref);
@@ -86,6 +94,12 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
     ];
     final lent = widget.item.debt.direction == DebtDirection.lent;
     final theme = Theme.of(context);
+    final chosenAccount = accounts.any((a) => a.account.id == _accountId)
+        ? _accountId
+        : null;
+    // What leaves the account: the payment and, for a loan I took, its charge.
+    final paying = parseTakaToPoisha(_amount.text);
+    final fee = lent ? 0 : (parseTakaToPoisha(_fee.text) ?? 0);
 
     return AlertDialog(
       title: Text(lent ? tr('They paid me') : tr('I paid them')),
@@ -139,12 +153,26 @@ class _PaymentDialogState extends ConsumerState<PaymentDialog> {
                     ? _accountId
                     : null,
                 moneyIn: lent,
-                amount: parseTakaToPoisha(_amount.text),
+                amount: paying == null ? null : paying + fee,
                 preferredId:
                     widget.item.debt.accountId ??
                     ref.read(preferencesProvider).defaultAccountId,
                 onChanged: (id) => setState(() => _accountId = id),
               ),
+              if (!lent && chosenAccount != null) ...[
+                const SizedBox(height: 8),
+                MoneyFormField(
+                  key: const ValueKey('payment-fee'),
+                  controller: _fee,
+                  label: tr('Transfer charge'),
+                  isRequired: false,
+                  helperText: tr(
+                    'Taken by the bank or bKash when you send. It is an '
+                    'expense on this account.',
+                  ),
+                  onChanged: (_) => setState(() {}),
+                ),
+              ],
               if (_error != null) ...[
                 const SizedBox(height: 8),
                 Text(

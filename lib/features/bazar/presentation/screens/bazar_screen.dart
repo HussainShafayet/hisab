@@ -440,7 +440,10 @@ class _BazarScreenState extends ConsumerState<BazarScreen> {
           Expanded(
             child: items.when(
               loading: () => const LoadingView(),
-              error: (error, _) => ErrorView(message: describeError(error)),
+              error: (error, _) => ErrorView(
+                message: describeError(error),
+                onRetry: () => ref.invalidate(bazarItemsProvider),
+              ),
               data: (list) => list.isEmpty
                   ? EmptyState(
                       icon: Icons.shopping_basket_outlined,

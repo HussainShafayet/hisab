@@ -90,7 +90,7 @@ const guideTopics = <GuideTopic>[
         'Is my data backed up? Open Backup & export: the card at the top says when Google Drive and this phone last saved a copy. Back up now saves one this second, and Check Drive looks in Drive and tells you what is there and whether it matches this phone.',
         'On the Transactions tab, tap All, Expense, Income or Transfer to narrow the list; each shows how many there are. Under the summary you see how many entries, what you spend a day, your biggest expense and where most went. A category inside another shows its place, like Food › Kacha bazar.',
         'On the add form, under the category, a line says what that category holds this month (spent, or received for income). Once you type an amount it adds "after this". If a budget covers the category, the next line says how much of it is left, and turns red when this entry goes over it. To see a wallet balance, look at the account card: it shows the balance and what is left after this.',
-        'On Accounts, each card says what came in and went out this month. Tap a card to open that account: add an expense, income or transfer on it, and see every entry of any month with its In, Out and Net. The menu on the card still has Edit, Adjust balance and Archive.',
+        'On Accounts, each card says what came in and went out this month. Tap a card to open that account: add an expense, income or transfer on it, and see every entry of any month with its In, Out and Net. Tap an entry to change it, or press and hold it to edit, copy or delete it. The menu on the card still has Edit, Adjust balance and Archive.',
         'On Reports, tap a number to see the entries behind it: Income or Expense at the top, a category in the pie or the tree, or an account. The Highlights card shows your biggest spending day, days with no spending, the average expense and which weekday takes most. Tap the biggest day to see what you spent that day.',
         'On Loans, the top says how you stand (you will get more than you give, or the other way round), and Coming up lists the next loans to fall due. Use the search and sort buttons to find a person or put the biggest amount first. Open a loan and Pay it off in parts shows what to pay each month to finish in 3, 6 or 12 months.',
         'Home has a Get started list until the first steps are done (an entry, a budget, a backup, Google Drive). The slider button at the top of Home chooses which parts Home shows.',
@@ -105,7 +105,7 @@ const guideTopics = <GuideTopic>[
       GuideSection('Finding and fixing', [
         'The Transactions tab lists everything, newest first. Use Search to find a note, category or amount, and Filter to narrow the list by type, category, account, dates, an amount range, a trip or event, or how it felt.',
         'Each filter you set shows as a chip under the month; its cross takes just that one off. Save this filter in the sheet keeps a favourite, like "Regret over ৳500", to use again.',
-        'Tap a transaction to open it, change it or delete it. Account balances follow at once.',
+        'Tap a transaction to open it and change it. The three dots at the top of an open transaction copy it or delete it. Account balances follow at once.',
         'Swipe a row to the left, all the way, to delete it: there is no question, but Undo stays on the screen for 8 seconds. Swipe right, or tap, to change it.',
         'Select several: press and hold a transaction, then tap Select several. Tap more rows, then change their category, change their account, or delete them together. Undo stays for 8 seconds. Transfers and balance fixes can only be deleted this way.',
         'A transfer moves money between your own accounts. It is not income and not an expense.',
@@ -146,7 +146,7 @@ const guideTopics = <GuideTopic>[
         'Categories are a tree. Food can hold Kacha bazar, which can hold Fish. A group\'s total is everything inside it.',
         'The defaults follow daily life in Bangladesh: kacha bazar, rickshaw, tuition, salami, fitra. Older installs can add them with the Add them card.',
         'Each category has an amount for this month on the Categories screen, so you see where the money went.',
-        'Family & gifts has a group for each person: Wife, Husband and Children. Each holds what you spend on that person: pocket money, clothes, medicine, doctor, gifts and more. The same name in two people (Clothes, Gifts) is on purpose: the place tells them apart. Family events holds Aqiqah, Khatna, Wedding, Milad and Funeral.',
+        'Family & gifts has a group for each person: Wife, Husband and Children. Each holds only what belongs to that person: pocket money, and for the children baby food, diapers, toys and vaccines. Things everyone has, like clothes, medicine, doctor, gifts and outings, are kept once in their own place (Shopping, Health, Gifts, Entertainment), so write who it was for in the note. Family events holds Aqiqah, Khatna, Wedding, Milad and Funeral.',
       ]),
       GuideSection('Adding your own', steps: true, [
         'Tap the add button and type a name. Choose an icon and a colour.',
@@ -157,7 +157,7 @@ const guideTopics = <GuideTopic>[
         'The categories are split so each thing has its own place: Bus and Rickshaw, not Bus & rickshaw. Medicine is in Health and clothes are in Shopping for everyone. To see who the money was for, use a tag. An older category that already has entries stays as it is; Data check shows it next to the new ones so you can merge them.',
         'Two names for the same thing? Open the menu of a category with no sub-categories and choose Merge into. Pick the category to keep. Its transactions, budgets, repeating entries and challenges move there, and the old one is archived. This cannot be undone here, so make a backup first if you are unsure.',
         'Move a category to another place from its Edit screen, under Inside. What is inside it goes with it.',
-        'The wand button at the top of Categories (Merge doubled categories) merges categories with the same name in the same place, and moves the old Pocket money of the wife, husband and children into each of them. Every transaction moves to the category that stays. Names that only look alike, like Bus & rickshaw and Bus, are left for you to merge.',
+        'The wand button at the top of Categories (Merge doubled categories) merges categories with the same name in the same place, moves the old Pocket money of the wife, husband and children into each of them, folds the Clothes, Medicine, Doctor, Gifts and Outings kept inside each person into their one place, and merges categories that are the same words in different layers (Gifts and Gift, Medicine & doctor and Doctor & medicine). Every transaction moves to the category that stays. Names that only share a word, like Bus & rickshaw and Bus, and Other, are left for you to merge.',
       ]),
     ],
   ),
@@ -216,9 +216,11 @@ const guideTopics = <GuideTopic>[
       GuideSection('Using it', steps: true, [
         'Tap add and choose I lent (they will pay you) or I borrowed (you will pay them). Enter the person, the amount and, if you like, a pay back day.',
         'The add button starts a loan the way of the tab that is open: on I\'ll give it starts as I borrowed, on the other tabs as I lent. You can still change it in the form.',
-        'Open a loan to record a payment. A progress bar shows how much is paid. All paid closes it in one tap.',
+        'Open a loan to record a payment. A progress bar shows how much is paid. All paid asks which account the money moves (or none), then closes the loan.',
         'Choose an account if the money really moved a wallet, and its balance changes with the loan.',
         'If someone paid a shop or a bill for you, choose I borrowed and turn on They paid a bill for me. Pick the category: it counts as your expense, you owe them, and your balance stays the same.',
+        'If money you took gets a late fee, interest or another charge, open the loan and tap Add a late fee or charge. Choose what it was for and the amount: it is added to what you owe, and the loan shows it under Charges. Leave Count it as my expense on to see it in your spending and reports; no account balance changes. A charge added by mistake can be deleted from the list.',
+        'When you pay back money you took with a bank or bKash transfer and it takes a charge, choose the account in Add a payment or All paid and type the amount in Transfer charge. It is an expense on that account, on top of the payment, and it goes if you take the payment back.',
       ]),
       GuideSection('Reading the screen', [
         'I\'ll get shows what people owe you. I\'ll give shows what you owe, and your credit cards. People shows what is left between you and each person.',

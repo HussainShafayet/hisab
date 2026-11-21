@@ -341,9 +341,23 @@ class _PieceTile extends StatelessWidget {
     return ListTile(
       key: ValueKey('piece-${piece.id}'),
       onTap: onTap,
-      leading: CircleAvatar(
-        backgroundColor: piece.metal == Metal.gold ? _goldColor : _silverColor,
-        child: const Icon(Icons.diamond_outlined, color: Colors.white),
+      leading: Builder(
+        builder: (context) {
+          final color = piece.metal == Metal.gold ? _goldColor : _silverColor;
+          // Gold and silver are light: a dark icon reads on them, white does
+          // not.
+          return CircleAvatar(
+            backgroundColor: color,
+            child: Icon(
+              Icons.diamond_outlined,
+              color:
+                  ThemeData.estimateBrightnessForColor(color) ==
+                      Brightness.light
+                  ? Colors.black87
+                  : Colors.white,
+            ),
+          );
+        },
       ),
       title: Text(piece.name),
       subtitle: Text(

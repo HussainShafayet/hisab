@@ -94,7 +94,10 @@ class _ChallengesScreenState extends ConsumerState<ChallengesScreen> {
       ),
       body: items.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: describeError(error)),
+        error: (error, _) => ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(challengesProvider),
+        ),
         data: (list) {
           if (list.isEmpty) {
             return EmptyState(

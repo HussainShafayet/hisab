@@ -117,7 +117,7 @@ class DebtTile extends StatelessWidget {
                       fit: BoxFit.scaleDown,
                       child: Text(
                         formatPoisha(
-                          item.isSettled ? item.debt.amount : item.remaining,
+                          item.isSettled ? item.total : item.remaining,
                         ),
                         key: ValueKey('debt-amount-${item.debt.id}'),
                         style: theme.textTheme.titleLarge?.tabular.copyWith(
@@ -149,7 +149,7 @@ class DebtTile extends StatelessWidget {
                     child: Text(
                       tr('Paid {paid} of {total}', {
                         'paid': formatPoisha(item.paid),
-                        'total': formatPoisha(item.debt.amount),
+                        'total': formatPoisha(item.total),
                       }),
                       style: theme.textTheme.bodySmall,
                     ),

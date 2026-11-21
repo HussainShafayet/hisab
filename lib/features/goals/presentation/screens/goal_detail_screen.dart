@@ -125,7 +125,10 @@ class GoalDetailScreen extends ConsumerWidget {
       ),
       error: (error, _) => Scaffold(
         appBar: AppBar(title: Text(tr('Savings goal'))),
-        body: ErrorView(message: describeError(error)),
+        body: ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(goalsProvider),
+        ),
       ),
       data: (list) {
         final item = list.where((g) => g.goal.id == goalId).firstOrNull;

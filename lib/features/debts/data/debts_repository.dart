@@ -4,9 +4,11 @@ import 'package:hishab/core/l10n/translator.dart';
 import 'package:hishab/core/utils/dates.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
+import 'package:hishab/features/categories/data/categories_repository.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/debts/data/debts_dao.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/debts/domain/debt_charge.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
 /// Loans: money lent to or borrowed from people, and what has been paid back.
@@ -40,6 +42,10 @@ class DebtsRepository {
   Stream<List<DebtPayment>> watchPayments(int debtId) => _db.debtsDao
       .watchPayments(debtId)
       .map((rows) => [for (final r in rows) _toPayment(r)]);
+
+  Stream<List<DebtCharge>> watchCharges(int debtId) => _db.debtsDao
+      .watchCharges(debtId)
+      .map((rows) => [for (final r in rows) _toCharge(r)]);
 
   /// The names already used, most recent first, for one-tap suggestions.
   Future<List<String>> knownPeople() async {
@@ -123,21 +129,30 @@ class DebtsRepository {
   }) {
     return _db.transaction(() async {
       final debt = await _requireDebt(id);
-      final paid = (await getDebt(id))!.paid;
+      final current = (await getDebt(id))!;
+      final paid = current.paid;
+      final charged = current.charged;
       final name = _validatedPerson(person);
       if (amount <= 0) {
         throw ValidationException(tr('The amount must be above zero.'));
       }
-      if (amount < paid) {
+      // The charges are on top of the amount, so they count towards what is
+      // paid back.
+      if (amount + charged < paid) {
         throw ValidationException(
           tr('The amount cannot be less than the {paid} already paid.', {
-            'paid': formatPoisha(paid),
+            'paid': formatPoisha(paid - charged),
           }),
         );
       }
       if (direction != debt.direction && paid > 0) {
         throw ValidationException(
           tr('The kind of loan cannot change once something is paid.'),
+        );
+      }
+      if (direction != debt.direction && charged > 0) {
+        throw ValidationException(
+          tr('The kind of loan cannot change once a charge is added.'),
         );
       }
       _validateNote(note);
@@ -195,12 +210,18 @@ class DebtsRepository {
   /// It cannot be more than what is left. With [accountId], that account's
   /// balance moves too (money comes in for a loan I gave, goes out for one I
   /// took).
+  ///
+  /// [fee] is a transfer charge the bank or bKash took for sending the money
+  /// (only for a loan I took, and only with an [accountId]). It is a real
+  /// expense on that account, in a fee category, and goes when the payment is
+  /// taken back.
   Future<int> addPayment(
     int debtId, {
     required int amount,
     required DateTime paidOn,
     String note = '',
     int? accountId,
+    int fee = 0,
   }) {
     return _db.transaction(() async {
       final item = await getDebt(debtId);
@@ -213,8 +234,23 @@ class DebtsRepository {
       }
       _validateNote(note);
       await _requireUsableAccount(accountId);
+      if (fee < 0) {
+        throw ValidationException(tr('The amount must be above zero.'));
+      }
 
       final lent = item.debt.direction == DebtDirection.lent;
+      if (fee > 0) {
+        if (lent) {
+          throw ValidationException(
+            tr('A charge can only be added to money you took.'),
+          );
+        }
+        if (accountId == null) {
+          throw ValidationException(
+            tr('Choose an account for the transfer charge.'),
+          );
+        }
+      }
       final transactionId = accountId == null
           ? null
           : await _moveBalance(
@@ -226,6 +262,14 @@ class DebtsRepository {
                   ? 'Received from ${item.debt.person}'
                   : 'Paid to ${item.debt.person}',
             );
+      final feeId = fee > 0
+          ? await _chargeFee(
+              accountId: accountId!,
+              fee: fee,
+              date: paidOn,
+              person: item.debt.person,
+            )
+          : null;
       return _db.debtsDao.insertPayment(
         DebtPaymentsCompanion.insert(
           debtId: debtId,
@@ -234,8 +278,98 @@ class DebtsRepository {
           note: Value(note.trim()),
           accountId: Value(accountId),
           transactionId: Value(transactionId),
+          feeTransactionId: Value(feeId),
         ),
       );
+    });
+  }
+
+  /// Adds [amount] to what I owe on a loan I took: a late fee, interest or
+  /// another charge. Returns the charge's id.
+  ///
+  /// With an [accountId] it is also my expense, in the fee category of [kind].
+  /// No money moves, so the account's balance stays as it was: a transaction
+  /// needs an account, and a correction of the same amount cancels the
+  /// expense on it (the way a bill paid for me is kept).
+  Future<int> addCharge(
+    int debtId, {
+    required int amount,
+    required DateTime chargedOn,
+    required DebtChargeKind kind,
+    String note = '',
+    int? accountId,
+  }) {
+    return _db.transaction(() async {
+      final item = await getDebt(debtId);
+      if (item == null) throw ValidationException(tr('Loan not found.'));
+      if (item.debt.direction != DebtDirection.borrowed) {
+        throw ValidationException(
+          tr('A charge can only be added to money you took.'),
+        );
+      }
+      if (amount <= 0) {
+        throw ValidationException(tr('The amount must be above zero.'));
+      }
+      _validateNote(note);
+      await _requireUsableAccount(accountId);
+
+      int? correctionId;
+      int? expenseId;
+      if (accountId != null) {
+        final person = item.debt.person;
+        final categoryId = await CategoriesRepository(_db)
+            .feeCategoryId(kind.category);
+        correctionId = await _moveBalance(
+          accountId: accountId,
+          type: TransactionType.income,
+          amount: amount,
+          date: chargedOn,
+          note: '${kind.category} added by $person',
+        );
+        expenseId = await _db.transactionsDao.insertTransaction(
+          TransactionsCompanion.insert(
+            type: TransactionType.expense,
+            amount: amount,
+            accountId: accountId,
+            categoryId: Value(categoryId),
+            date: chargedOn,
+            note: Value(
+              note.trim().isEmpty
+                  ? '${kind.category} on loan from $person'
+                  : note.trim(),
+            ),
+          ),
+        );
+      }
+      return _db.debtsDao.insertCharge(
+        DebtChargesCompanion.insert(
+          debtId: debtId,
+          amount: amount,
+          chargedOn: chargedOn,
+          kind: kind,
+          note: Value(note.trim()),
+          transactionId: Value(correctionId),
+          expenseId: Value(expenseId),
+        ),
+      );
+    });
+  }
+
+  /// Takes a charge back, and the expense it made. It cannot go while the
+  /// payments made are more than what would then be owed.
+  Future<void> deleteCharge(int id) {
+    return _db.transaction(() async {
+      final charge = await _db.debtsDao.getCharge(id);
+      if (charge == null) throw ValidationException(tr('Charge not found.'));
+      final item = await getDebt(charge.debtId);
+      if (item != null && item.total - charge.amount < item.paid) {
+        throw ValidationException(
+          tr('The payments made already cover this charge.'),
+        );
+      }
+      await _db.debtsDao.deleteCharge(id);
+      await _deleteTransaction(charge.transactionId);
+      await _deleteTransaction(charge.expenseId);
     });
   }
 
@@ -278,11 +412,12 @@ class DebtsRepository {
         if (payment == null) continue;
         await _db.debtsDao.deletePayment(id);
         await _deleteTransaction(payment.transactionId);
+        await _deleteTransaction(payment.feeTransactionId);
       }
     });
   }
 
-  /// Takes a payment back, and the balance change it made.
+  /// Takes a payment back, and the balance change and transfer charge it made.
   Future<void> deletePayment(int id) {
     return _db.transaction(() async {
       final payment = await _db.debtsDao.getPayment(id);
@@ -291,20 +426,55 @@ class DebtsRepository {
       }
       await _db.debtsDao.deletePayment(id);
       await _deleteTransaction(payment.transactionId);
+      await _deleteTransaction(payment.feeTransactionId);
     });
   }
 
-  /// Deletes the debt, its payments and every balance change they made.
+  /// Deletes the debt, its payments and charges, and every entry they made.
   Future<void> deleteDebt(int id) {
     return _db.transaction(() async {
       final debt = await _requireDebt(id);
       final payments = await _db.debtsDao.getPayments(id);
+      final charges = await _db.debtsDao.getCharges(id);
       await _db.debtsDao.deleteDebt(id);
       for (final payment in payments) {
         await _deleteTransaction(payment.transactionId);
+        await _deleteTransaction(payment.feeTransactionId);
+      }
+      for (final charge in charges) {
+        await _deleteTransaction(charge.transactionId);
+        await _deleteTransaction(charge.expenseId);
       }
       await _deleteTransaction(debt.transactionId);
     });
+  }
+
+  /// The transfer charge as my expense on [accountId]: in the charge category
+  /// of the wallet (bKash, Nagad) or else the bank's. Returns its id.
+  Future<int> _chargeFee({
+    required int accountId,
+    required int fee,
+    required DateTime date,
+    required String person,
+  }) async {
+    final account = await _db.accountsDao.getById(accountId);
+    final name = (account?.name ?? '').toLowerCase();
+    final category = name.contains('bkash')
+        ? 'bKash charge'
+        : name.contains('nagad')
+        ? 'Nagad charge'
+        : 'Bank charge';
+    final categoryId = await CategoriesRepository(_db).feeCategoryId(category);
+    return _db.transactionsDao.insertTransaction(
+      TransactionsCompanion.insert(
+        type: TransactionType.expense,
+        amount: fee,
+        accountId: accountId,
+        categoryId: Value(categoryId),
+        date: date,
+        note: Value('Transfer charge paying $person'),
+      ),
+    );
   }
 
   Future<int> _moveBalance({
@@ -378,7 +548,7 @@ class DebtsRepository {
   }
 
   DebtItem _toItem(DebtWithPaid row) =>
-      DebtItem(debt: _toDebt(row.debt), paid: row.paid);
+      DebtItem(debt: _toDebt(row.debt), paid: row.paid, charged: row.charged);
 
   Debt _toDebt(DebtRow row) => Debt(
     id: row.id,
@@ -389,6 +559,16 @@ class DebtsRepository {
     dueOn: row.dueOn?.toLocal(),
     note: row.note,
     accountId: row.accountId,
+  );
+
+  DebtCharge _toCharge(DebtChargeRow row) => DebtCharge(
+    id: row.id,
+    debtId: row.debtId,
+    amount: row.amount,
+    chargedOn: row.chargedOn.toLocal(),
+    kind: row.kind,
+    note: row.note,
+    isExpense: row.expenseId != null,
   );
 
   DebtPayment _toPayment(DebtPaymentRow row) => DebtPayment(

@@ -29,7 +29,12 @@ More → **Loans** (বাংলা: ধার ও বাকি).
   "3 days late", "All paid"). "Show paid ones" brings the paid loans in (last).
 - **Quick actions**: a long press opens a sheet (Add a payment, All paid, Send a
   reminder for money I will get, Edit, Delete). Swipe right to add a payment;
-  swipe left to mark it All paid, which says "All paid." with an **Undo**.
+  swipe left to mark it All paid. **All paid asks first** (`PayAllDialog`):
+  "This pays the {amount} that is left", and "Update my account too" with the
+  wallet card (the loan's own account, or none; archived accounts are not
+  offered). Confirming pays what is left, moves the chosen account (money in
+  for a loan I gave, out for one I took) and says "All paid." with an
+  **Undo**. Cancel changes nothing.
 - **One person**: a card with who owes whom and the difference, the loans with
   that person (open first, then "Paid"), **Add loan** (name filled in), **Send a
   reminder** (when they owe me) and **Set off** (see below).

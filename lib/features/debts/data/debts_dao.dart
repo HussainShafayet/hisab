@@ -4,10 +4,10 @@ import 'package:hishab/features/debts/data/debts_table.dart';
 
 part 'debts_dao.g.dart';
 
-/// A debt row with the sum of its payments.
-typedef DebtWithPaid = ({DebtRow debt, int paid});
+/// A debt row with the sum of its payments and of its charges.
+typedef DebtWithPaid = ({DebtRow debt, int paid, int charged});
 
-@DriftAccessor(tables: [Debts, DebtPayments])
+@DriftAccessor(tables: [Debts, DebtPayments, DebtCharges])
 class DebtsDao extends DatabaseAccessor<AppDatabase> with _$DebtsDaoMixin {
   DebtsDao(super.attachedDatabase);
 
@@ -20,13 +20,23 @@ class DebtsDao extends DatabaseAccessor<AppDatabase> with _$DebtsDaoMixin {
 
   Selectable<DebtWithPaid> _withPaid({int? id}) {
     return customSelect(
-      'SELECT d.*, COALESCE(SUM(p.amount), 0) AS paid '
-      'FROM debts d LEFT JOIN debt_payments p ON p.debt_id = d.id '
+      'SELECT d.*, '
+      '(SELECT COALESCE(SUM(p.amount), 0) FROM debt_payments p '
+      'WHERE p.debt_id = d.id) AS paid, '
+      '(SELECT COALESCE(SUM(c.amount), 0) FROM debt_charges c '
+      'WHERE c.debt_id = d.id) AS charged '
+      'FROM debts d '
       '${id == null ? '' : 'WHERE d.id = ? '}'
-      'GROUP BY d.id ORDER BY d.id DESC',
+      'ORDER BY d.id DESC',
       variables: [if (id != null) Variable.withInt(id)],
-      readsFrom: {debts, debtPayments},
-    ).map((row) => (debt: debts.map(row.data), paid: row.read<int>('paid')));
+      readsFrom: {debts, debtPayments, debtCharges},
+    ).map(
+      (row) => (
+        debt: debts.map(row.data),
+        paid: row.read<int>('paid'),
+        charged: row.read<int>('charged'),
+      ),
+    );
   }
 
   /// The payments of one debt, newest first.
@@ -41,6 +51,31 @@ class DebtsDao extends DatabaseAccessor<AppDatabase> with _$DebtsDaoMixin {
 
   Future<List<DebtPaymentRow>> getPayments(int debtId) =>
       (select(debtPayments)..where((p) => p.debtId.equals(debtId))).get();
+
+  /// The charges of one loan, newest first.
+  Stream<List<DebtChargeRow>> watchCharges(int debtId) =>
+      (select(debtCharges)
+            ..where((c) => c.debtId.equals(debtId))
+            ..orderBy([
+              (c) => OrderingTerm.desc(c.chargedOn),
+              (c) => OrderingTerm.desc(c.id),
+            ]))
+          .watch();
+
+  Future<List<DebtChargeRow>> getCharges(int debtId) =>
+      (select(debtCharges)..where((c) => c.debtId.equals(debtId))).get();
+
+  Future<List<DebtChargeRow>> getAllCharges() =>
+      (select(debtCharges)..orderBy([(c) => OrderingTerm.asc(c.id)])).get();
+
+  Future<DebtChargeRow?> getCharge(int id) =>
+      (select(debtCharges)..where((c) => c.id.equals(id))).getSingleOrNull();
+
+  Future<int> insertCharge(DebtChargesCompanion charge) =>
+      into(debtCharges).insert(charge);
+
+  Future<int> deleteCharge(int id) =>
+      (delete(debtCharges)..where((c) => c.id.equals(id))).go();
 
   Future<List<DebtRow>> getAllDebts() =>
       (select(debts)..orderBy([(d) => OrderingTerm.asc(d.id)])).get();

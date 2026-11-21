@@ -19,6 +19,7 @@ import 'package:hishab/features/challenges/domain/challenge.dart';
 import 'package:hishab/features/debts/data/debts_dao.dart';
 import 'package:hishab/features/debts/data/debts_table.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/debts/domain/debt_charge.dart';
 import 'package:hishab/features/goals/data/goals_dao.dart';
 import 'package:hishab/features/goals/data/goals_table.dart';
 import 'package:hishab/features/investments/data/investments_dao.dart';
@@ -64,6 +65,7 @@ final _budgetsMonthCategoryUnique = Index(
     AppSettings,
     Debts,
     DebtPayments,
+    DebtCharges,
     RecurringRules,
     SavingsGoals,
     GoalEntries,
@@ -111,6 +113,9 @@ class AppDatabase extends _$AppDatabase {
   /// 4: the `debts` and `debt_payments` tables (dhar / baki).
   /// 5: the `recurring_rules` table.
   /// 6: `accounts.credit_limit` and `accounts.bill_due_day` (credit cards).
+  /// 21: the `debt_charges` table (late fees and charges on a loan I took),
+  /// `debt_payments.fee_transaction_id` (a transfer charge paid with a payment);
+  /// the categories were tidied again (see `CategoryTidy.personRepeats`).
   /// 19: no new columns; the default categories were split and de-duplicated
   /// (see `refreshDefaultCategories`).
   /// 18: no new columns; moves the default "Kids pocket money" category
@@ -131,7 +136,7 @@ class AppDatabase extends _$AppDatabase {
   /// 7: `transactions.usd_amount` and `accounts.usd_limit` (dollar spending
   /// on credit cards).
   @override
-  int get schemaVersion => 20;
+  int get schemaVersion => 21;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -227,6 +232,15 @@ class AppDatabase extends _$AppDatabase {
         await refreshDefaultCategories(this);
       }
       if (from < 20) {
+        await tidyCategories(this);
+      }
+      // A payments table made above (before version 4) has the column.
+      if (from >= 4 && from < 21) {
+        await migrator.addColumn(debtPayments, debtPayments.feeTransactionId);
+      }
+      if (from < 21) {
+        await migrator.createTable(debtCharges);
+        // The same thing in different layers is one category now.
         await tidyCategories(this);
       }
     },

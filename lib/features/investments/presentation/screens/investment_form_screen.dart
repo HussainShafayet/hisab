@@ -31,7 +31,10 @@ class InvestmentFormScreen extends ConsumerWidget {
       loading: () => Scaffold(appBar: AppBar(), body: const LoadingView()),
       error: (error, _) => Scaffold(
         appBar: AppBar(),
-        body: ErrorView(message: describeError(error)),
+        body: ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(investmentsProvider),
+        ),
       ),
       data: (list) {
         final found = list.where((i) => i.investment.id == id).firstOrNull;

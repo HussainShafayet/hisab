@@ -31,7 +31,10 @@ class PersonDebtsScreen extends ConsumerWidget {
       loading: () => Scaffold(appBar: AppBar(), body: const LoadingView()),
       error: (error, _) => Scaffold(
         appBar: AppBar(),
-        body: ErrorView(message: describeError(error)),
+        body: ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(debtsProvider),
+        ),
       ),
       data: (items) {
         final mine = items.where((i) => personKey(i.debt.person) == key);

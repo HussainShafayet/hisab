@@ -51,7 +51,10 @@ class NotificationsScreen extends ConsumerWidget {
       ),
       body: lists.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: describeError(error)),
+        error: (error, _) => ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(notificationsProvider),
+        ),
         data: (data) => _NotificationList(
           listKey: 'notifications-sent',
           items: data.sent,

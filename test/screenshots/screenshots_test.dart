@@ -20,6 +20,11 @@ import 'package:hishab/core/files/file_gateway.dart';
 import 'package:hishab/core/router/app_router.dart';
 import 'package:hishab/core/theme/app_theme.dart';
 import 'package:hishab/core/utils/clock.dart';
+import 'package:hishab/features/accounts/presentation/widgets/account_card.dart';
+import 'package:hishab/features/debts/data/debts_repository.dart';
+import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/debts/domain/debt_charge.dart';
+import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -69,8 +74,16 @@ Future<void> _capture(WidgetTester tester, GlobalKey key, String name) async {
   });
 }
 
-Future<int> _categoryId(AppDatabase db, String name) async =>
-    (await db.categoriesDao.getAll()).firstWhere((c) => c.name == name).id;
+/// The id of the category called [name]. A name the defaults no longer have
+/// (they were tidied since) falls back to the first category of that kind, so
+/// the screens can still be drawn.
+Future<int> _categoryId(AppDatabase db, String name) async {
+  final all = await db.categoriesDao.getAll();
+  final named = all.where((c) => c.name == name).firstOrNull;
+  if (named != null) return named.id;
+  final income = const {'Salary', 'Freelance'}.contains(name);
+  return all.firstWhere((c) => (c.type.name == 'income') == income).id;
+}
 
 Future<void> _seed(AppDatabase db) async {
   final accounts = {
@@ -366,4 +379,111 @@ void main() {
     await _openTab(tester, 'Transactions');
     await _capture(tester, key, '7_transactions_dark');
   });
+
+  testWithDatabase(
+    'loan charge and entry action screenshots',
+    skip: !_enabled,
+    seedDefaults: true,
+    (tester, db) async {
+      await tester.runAsync(loadRealFonts);
+      await initializeDateFormatting('en');
+      tester.view.physicalSize = const Size(360, 740);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      await _seed(db);
+      final accounts = {
+        for (final a in await db.accountsDao.getAll()) a.name: a.id,
+      };
+      final repo = DebtsRepository(db);
+      final taken = await repo.createDebt(
+        person: 'Rahim',
+        direction: DebtDirection.borrowed,
+        amount: 1000000,
+        openedOn: DateTime(2026, 10, 1, 10),
+        dueOn: DateTime(2026, 10, 9),
+        note: 'for the deposit',
+        accountId: accounts['Bank'],
+      );
+      await repo.addCharge(
+        taken,
+        amount: 50000,
+        chargedOn: DateTime(2026, 10, 10, 9),
+        kind: DebtChargeKind.lateFee,
+        accountId: accounts['Bank'],
+      );
+      await repo.addCharge(
+        taken,
+        amount: 20000,
+        chargedOn: DateTime(2026, 10, 10, 10),
+        kind: DebtChargeKind.interest,
+        note: 'Monthly interest',
+      );
+      await repo.createDebt(
+        person: 'Karim',
+        direction: DebtDirection.lent,
+        amount: 300000,
+        openedOn: DateTime(2026, 10, 3, 10),
+        accountId: accounts['Cash'],
+      );
+
+      final key = await _pump(tester, db);
+      await _openTab(tester, 'More');
+      await tester.tap(listRow('Loans'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('tab-give')));
+      await tester.pumpAndSettle();
+      await _capture(tester, key, 'e1_loans_i_owe');
+
+      await tester.tap(find.byKey(ValueKey('debt-$taken')));
+      await tester.pumpAndSettle();
+      await _capture(tester, key, 'e2_loan_detail');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, -420));
+      await tester.pumpAndSettle();
+      await _capture(tester, key, 'e3_loan_charges');
+      await tester.drag(find.byType(Scrollable).first, const Offset(0, 420));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('add-charge')));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextFormField, 'Amount'),
+        '500',
+      );
+      await tester.pumpAndSettle();
+      await _capture(tester, key, 'e4_charge_dialog');
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byKey(const ValueKey('mark-paid')));
+      await tester.pumpAndSettle();
+      await _capture(tester, key, 'e5_all_paid_dialog');
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(BackButton));
+      await tester.pumpAndSettle();
+
+      await tester.tap(listRow('Accounts'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byWidgetPredicate(
+          (w) => w is AccountCard && w.account.name == 'Cash',
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.longPress(find.byType(TransactionTile).first);
+      await tester.pumpAndSettle();
+      await _capture(tester, key, 'f1_account_entry_menu');
+      await tester.tapAt(const Offset(180, 80));
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.byType(TransactionTile).first);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('entry-menu')));
+      await tester.pumpAndSettle();
+      await _capture(tester, key, 'f2_editor_menu');
+    },
+  );
 }

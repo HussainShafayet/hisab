@@ -73,6 +73,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [budget](budget/) | [Plan, projection and spending with no budget](budget/plan-and-unbudgeted.md) | 28 |
 | [reports](reports/) | [Every number opens its entries, and highlights](reports/drill-down-and-highlights.md) | 29 |
 | [debts](debts/) | [Loans: net, coming up, search, sort, pay in parts](debts/net-upcoming-payoff.md) | 30 |
+| [debts](debts/) | [Late fees and charges on a loan I took](debts/loan-charges.md) | 39 |
 | [insights](insights/) | [More insights, habits and a tip of the day](insights/insights-habits-tips.md) | 31 |
 | [investments](investments/) | [How long, how fast, and the list](investments/how-it-is-going.md) | 32 |
 | [settings](settings/) | [The More list](settings/more-list.md) | 33 |
@@ -80,6 +81,7 @@ lists the tests that check it. Change the spec, and the matching topic of the
 | [dashboard](dashboard/) | [Setup checklist and choosing what Home shows](dashboard/setup-and-layout.md) | 36 |
 | [search](search/) | [Search everything](search/global-search.md) | 38 |
 | [core](core/) | [Launcher shortcuts and the empty report](core/launcher-shortcuts.md) | 38 |
+| [core](core/) | [UI audit: tap size, labels, layout, contrast](core/ui-audit.md) | 39 |
 
 Specs for the earlier milestones (accounts, categories, transactions, budget,
 dashboard, reports, backup) have not been written down yet.

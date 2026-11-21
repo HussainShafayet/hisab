@@ -29,7 +29,7 @@ class HiddenIncome extends ConsumerWidget {
         : share > 1
         ? colors.expense
         : share > 0.8
-        ? Colors.orange
+        ? colors.warning
         : colors.income;
 
     return Semantics(

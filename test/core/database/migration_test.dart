@@ -11,6 +11,7 @@ import 'package:hishab/features/investments/domain/investment.dart';
 import 'package:hishab/features/categories/domain/category_type.dart';
 import 'package:hishab/features/metals/domain/metals.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/debts/domain/debt_charge.dart';
 import 'package:hishab/features/categories/domain/system_categories.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 
@@ -18,6 +19,21 @@ import 'package:hishab/features/transactions/domain/transaction_type.dart';
 /// were added after [version] back out, so the file looks as that version left
 /// it and the upgrade can add them again.
 Future<void> dropColumnsAfter(AppDatabase db, int version) async {
+  if (version < 21) {
+    await db.customStatement('DROP TABLE debt_charges');
+    // A test of an old version may have dropped the table already.
+    final payments = await db
+        .customSelect(
+          "SELECT 1 FROM sqlite_master WHERE type = 'table' "
+          "AND name = 'debt_payments'",
+        )
+        .get();
+    if (payments.isNotEmpty) {
+      await db.customStatement(
+        'ALTER TABLE debt_payments DROP COLUMN fee_transaction_id',
+      );
+    }
+  }
   if (version < 17) {
     await db.customStatement('DROP TABLE import_batches');
     await db.customStatement(
@@ -124,7 +140,7 @@ void main() {
 
       final version = await db.customSelect('PRAGMA user_version').getSingle();
       // Every upgrade step ran, up to the current version.
-      expect(version.read<int>('user_version'), 20);
+      expect(version.read<int>('user_version'), 21);
     },
   );
 
@@ -154,7 +170,7 @@ void main() {
     expect(await db.settingsDao.getAll(), {'language': 'bangla'});
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test('upgrading from version 3 adds the loan tables', () async {
@@ -197,7 +213,7 @@ void main() {
     expect((await db.debtsDao.getWithPaid(debt))!.paid, 400);
     expect((await db.accountsDao.getById(account))!.name, 'Cash');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test('upgrading from version 5 adds the credit card columns', () async {
@@ -237,7 +253,7 @@ void main() {
     expect(saved.creditLimit, 5000000);
     expect(saved.billDueDay, 15);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test('upgrading from version 6 adds the dollar columns', () async {
@@ -292,7 +308,7 @@ void main() {
     expect((await db.accountsDao.getById(card))!.usdLimit, 25000);
     expect((await db.transactionsDao.getById(after))!.usdAmount, 2500);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test('upgrading from version 7 adds the savings goal tables', () async {
@@ -325,7 +341,7 @@ void main() {
     );
     expect((await db.goalsDao.getWithSaved(goal))!.saved, 1500);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test('upgrading from version 8 adds tags', () async {
@@ -377,7 +393,7 @@ void main() {
     );
     expect((await db.transactionsDao.getById(after))!.tagId, trip);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test('upgrading from version 9 adds the bazar list tables', () async {
@@ -408,7 +424,7 @@ void main() {
     expect((await db.bazarDao.getItem(id))!.quantity, 1);
     expect((await db.bazarDao.priceFor('rice'))!.price, 12000);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test(
@@ -435,7 +451,7 @@ void main() {
         contains('app_settings'),
       );
       final version = await db.customSelect('PRAGMA user_version').getSingle();
-      expect(version.read<int>('user_version'), 20);
+      expect(version.read<int>('user_version'), 21);
       expect(
         tables.map((t) => t.read<String>('name')),
         containsAll(['debts', 'debt_payments', 'recurring_rules']),
@@ -469,7 +485,7 @@ void main() {
     );
     expect((await db.metalsDao.getById(id))!.name, 'Necklace');
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test('upgrading from version 12 adds the investment tables', () async {
@@ -513,7 +529,7 @@ void main() {
         .get();
     expect(indexes, hasLength(1));
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test('upgrading from version 13 adds the notification history', () async {
@@ -545,7 +561,7 @@ void main() {
     expect(rows.single.title, 'Bill');
     expect(rows.single.seen, isFalse);
     final version = await db.customSelect('PRAGMA user_version').getSingle();
-    expect(version.read<int>('user_version'), 20);
+    expect(version.read<int>('user_version'), 21);
   });
 
   test('upgrading from version 14 adds the challenges table', () async {
@@ -613,6 +629,111 @@ void main() {
         for (final r in await db.notificationLogDao.getAll()) r.title: r.seen,
       };
       expect(byTitle, {'Old': true, 'New': false});
+    },
+  );
+
+  test('upgrading from version 20 adds the loan charges table', () async {
+    final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    final file = File('${dir.path}/test.sqlite');
+
+    // A loan as version 20 left it: there was no table for charges.
+    var db = AppDatabase.withExecutor(
+      NativeDatabase(file),
+      seedDefaults: false,
+    );
+    await dropColumnsAfter(db, 20);
+    final debtId = await db.debtsDao.insertDebt(
+      DebtsCompanion.insert(
+        person: 'Rahim',
+        direction: DebtDirection.borrowed,
+        amount: 100000,
+        openedOn: DateTime(2026, 10, 1),
+      ),
+    );
+    await db.customStatement('PRAGMA user_version = 20');
+    await db.close();
+
+    db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+    addTearDown(db.close);
+
+    // The loan is as it was, with nothing charged; a charge can be added.
+    final before = (await db.debtsDao.getWithPaid(debtId))!;
+    expect(before.debt.amount, 100000);
+    expect(before.charged, 0);
+    await db.debtsDao.insertCharge(
+      DebtChargesCompanion.insert(
+        debtId: debtId,
+        amount: 5000,
+        chargedOn: DateTime(2026, 10, 20),
+        kind: DebtChargeKind.lateFee,
+      ),
+    );
+    expect((await db.debtsDao.getWithPaid(debtId))!.charged, 5000);
+    // And a payment can say which entry is its transfer charge.
+    await db.debtsDao.insertPayment(
+      DebtPaymentsCompanion.insert(
+        debtId: debtId,
+        amount: 1000,
+        paidOn: DateTime(2026, 10, 21),
+        feeTransactionId: const Value(7),
+      ),
+    );
+    expect((await db.debtsDao.getAllPayments()).single.feeTransactionId, 7);
+  });
+
+  test(
+    'upgrading from version 20 folds what every person has into one place',
+    () async {
+      final dir = Directory.systemTemp.createTempSync('hishab_migration_test_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final file = File('${dir.path}/test.sqlite');
+
+      // An install from before: Medicine kept again inside Wife.
+      var db = AppDatabase.withExecutor(
+        NativeDatabase(file),
+        seedDefaults: false,
+      );
+      await dropColumnsAfter(db, 20);
+      Future<int> category(String name, {int? parent}) =>
+          db.categoriesDao.insertCategory(
+            CategoriesCompanion.insert(
+              name: name,
+              type: CategoryType.expense,
+              parentId: Value(parent),
+            ),
+          );
+      final health = await category('Health');
+      final medicine = await category('Medicine', parent: health);
+      final family = await category('Family & gifts');
+      final wife = await category('Wife', parent: family);
+      final wifeMedicine = await category('Medicine', parent: wife);
+      final wifePocket = await category('Pocket money', parent: wife);
+      final cash = await db.accountsDao.insertAccount(
+        AccountsCompanion.insert(name: 'Cash', type: AccountType.cash),
+      );
+      final entry = await db.transactionsDao.insertTransaction(
+        TransactionsCompanion.insert(
+          type: TransactionType.expense,
+          amount: 25000,
+          accountId: cash,
+          categoryId: Value(wifeMedicine),
+          date: DateTime(2026, 10, 5, 12),
+        ),
+      );
+      await db.customStatement('PRAGMA user_version = 20');
+      await db.close();
+
+      db = AppDatabase.withExecutor(NativeDatabase(file), seedDefaults: false);
+      addTearDown(db.close);
+
+      // The entry is in the one Medicine, and the repeat is put away.
+      expect((await db.transactionsDao.getById(entry))!.categoryId, medicine);
+      final all = await db.categoriesDao.getAll(includeArchived: true);
+      expect(all.firstWhere((c) => c.id == wifeMedicine).isArchived, isTrue);
+      expect(all.firstWhere((c) => c.id == medicine).isArchived, isFalse);
+      // Pocket money stays inside the person.
+      expect(all.firstWhere((c) => c.id == wifePocket).isArchived, isFalse);
     },
   );
 }

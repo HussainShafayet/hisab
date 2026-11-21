@@ -85,7 +85,10 @@ class TagDetailScreen extends ConsumerWidget {
       ),
       error: (error, _) => Scaffold(
         appBar: AppBar(title: Text(tr('Trip or event'))),
-        body: ErrorView(message: describeError(error)),
+        body: ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(tagSummariesProvider),
+        ),
       ),
       data: (list) {
         final summary = list.where((s) => s.tag.id == tagId).firstOrNull;

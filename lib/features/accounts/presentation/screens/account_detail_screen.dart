@@ -21,6 +21,7 @@ import 'package:hishab/features/settings/presentation/providers/settings_provide
 import 'package:hishab/features/transactions/domain/day_groups.dart';
 import 'package:hishab/features/transactions/domain/transaction_type.dart';
 import 'package:hishab/features/transactions/presentation/providers/transactions_providers.dart';
+import 'package:hishab/features/transactions/presentation/widgets/transaction_actions.dart';
 import 'package:hishab/features/transactions/presentation/widgets/transaction_tile.dart';
 
 /// One account's page: its card, quick ways to add to it, and a month of what
@@ -238,6 +239,8 @@ class _AccountDetailScreenState extends ConsumerState<AccountDetailScreen> {
                   item: entry,
                   onTap: () =>
                       context.push(AppRoutes.editTransaction(entry.id)),
+                  onLongPress: () =>
+                      showTransactionActions(context, ref, entry),
                 ),
             ],
         ],

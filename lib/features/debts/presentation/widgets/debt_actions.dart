@@ -12,6 +12,8 @@ import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/debts/presentation/widgets/loan_share.dart';
+import 'package:hishab/features/debts/presentation/widgets/loan_charge_dialog.dart';
+import 'package:hishab/features/debts/presentation/widgets/pay_all_dialog.dart';
 import 'package:hishab/features/debts/presentation/widgets/payment_dialog.dart';
 
 /// Things to do with one loan, shared by the list, the person screen and the
@@ -29,7 +31,21 @@ Future<void> addLoanPayment(BuildContext context, DebtItem item) async {
   }
 }
 
-/// Pays what is left, today. The message has an Undo that takes it back.
+/// Asks for a late fee or charge on a loan I took and says so when it was
+/// saved.
+Future<void> addLoanCharge(BuildContext context, DebtItem item) async {
+  final messenger = ScaffoldMessenger.of(context);
+  final saved = await showDialog<bool>(
+    context: context,
+    builder: (context) => LoanChargeDialog(item: item),
+  );
+  if (saved == true) {
+    messenger.showMessage(tr('Charge added.'));
+  }
+}
+
+/// Pays what is left, today, after asking which account the money moves
+/// (or none). The message has an Undo that takes it back.
 Future<void> markLoanPaid(
   BuildContext context,
   WidgetRef ref,
@@ -38,12 +54,18 @@ Future<void> markLoanPaid(
   final messenger = ScaffoldMessenger.of(context);
   final repository = ref.read(debtsRepositoryProvider);
   final now = ref.read(clockProvider)();
+  final choice = await showDialog<PayAllChoice>(
+    context: context,
+    builder: (context) => PayAllDialog(item: item),
+  );
+  if (choice == null || !context.mounted) return;
   try {
     final paymentId = await repository.addPayment(
       item.debt.id,
       amount: item.remaining,
       paidOn: combineDayWithTime(dateOnly(now), now),
-      accountId: item.debt.accountId,
+      accountId: choice.accountId,
+      fee: choice.fee,
     );
     if (context.mounted) celebrate(context, ref);
     messenger.showMessage(
@@ -214,6 +236,13 @@ Future<void> showLoanActions(
                   ),
                 ),
             ],
+            if (!lent)
+              action(
+                'loan-action-charge',
+                Icons.receipt_long_outlined,
+                tr('Add a late fee or charge'),
+                () => addLoanCharge(context, item),
+              ),
             action(
               'loan-action-edit',
               Icons.edit_outlined,

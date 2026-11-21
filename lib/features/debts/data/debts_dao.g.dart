@@ -9,6 +9,7 @@ mixin _$DebtsDaoMixin on DatabaseAccessor<AppDatabase> {
   $TransactionsTable get transactions => attachedDatabase.transactions;
   $DebtsTable get debts => attachedDatabase.debts;
   $DebtPaymentsTable get debtPayments => attachedDatabase.debtPayments;
+  $DebtChargesTable get debtCharges => attachedDatabase.debtCharges;
   DebtsDaoManager get managers => DebtsDaoManager(this);
 }
 
@@ -25,4 +26,6 @@ class DebtsDaoManager {
       $$DebtsTableTableManager(_db.attachedDatabase, _db.debts);
   $$DebtPaymentsTableTableManager get debtPayments =>
       $$DebtPaymentsTableTableManager(_db.attachedDatabase, _db.debtPayments);
+  $$DebtChargesTableTableManager get debtCharges =>
+      $$DebtChargesTableTableManager(_db.attachedDatabase, _db.debtCharges);
 }
