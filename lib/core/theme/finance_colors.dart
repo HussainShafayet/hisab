@@ -19,8 +19,10 @@ class FinanceColors extends ThemeExtension<FinanceColors> {
   final Color warning;
 
   static const light = FinanceColors(
-    income: Color(0xFF2E7D32),
-    expense: Color(0xFFC62828),
+    // Dark enough for 4.5:1 on every surface of the light theme (cards and
+    // chips included), see test/core/theme/theme_contrast_test.dart.
+    income: Color(0xFF276B2B),
+    expense: Color(0xFFBB2323),
     warning: Color(0xFFE65100),
   );
 

@@ -213,7 +213,10 @@ class _WrappedScreenState extends ConsumerState<WrappedScreen> {
       ),
       body: data.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: describeError(error)),
+        error: (error, _) => ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(wrappedProvider(month)),
+        ),
         data: (wrapped) {
           final pages = wrappedPages(
             wrapped,

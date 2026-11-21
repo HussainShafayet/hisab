@@ -385,12 +385,13 @@ class _CategoryTile extends ConsumerWidget {
     ];
 
     return ListTile(
-      contentPadding: EdgeInsets.only(left: 4 + 20.0 * depth, right: 4),
+      contentPadding: EdgeInsets.only(left: 20.0 * depth, right: 4),
       leading: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // A tap target is at least 48 dp wide.
           SizedBox(
-            width: 40,
+            width: 48,
             child: childCount == 0
                 ? null
                 : IconButton(

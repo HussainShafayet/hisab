@@ -57,7 +57,10 @@ class TagsScreen extends ConsumerWidget {
       ),
       body: summaries.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: describeError(error)),
+        error: (error, _) => ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(tagSummariesProvider),
+        ),
         data: (list) {
           if (list.isEmpty) {
             return EmptyState(

@@ -210,29 +210,34 @@ class _Figure extends StatelessWidget {
         key: ValueKey('figure-$label'),
         borderRadius: BorderRadius.circular(8),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
-          child: Column(
-            children: [
-              Text(
-                label,
-                style: theme.textTheme.labelMedium?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
+        // A tap target is at least 48 dp high.
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(minHeight: 48),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  label,
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: theme.colorScheme.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 2),
-              hidden ??
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      formatPoisha(amount),
-                      style: theme.textTheme.titleSmall?.tabular.copyWith(
-                        color: color,
-                        fontWeight: FontWeight.w600,
+                const SizedBox(height: 2),
+                hidden ??
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        formatPoisha(amount),
+                        style: theme.textTheme.titleSmall?.tabular.copyWith(
+                          color: color,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
-                  ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

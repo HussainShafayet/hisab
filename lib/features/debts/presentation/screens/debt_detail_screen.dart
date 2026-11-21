@@ -9,7 +9,10 @@ import 'package:hishab/core/utils/clock.dart';
 import 'package:hishab/core/utils/money.dart';
 import 'package:hishab/core/utils/validation_exception.dart';
 import 'package:hishab/core/widgets/state_views.dart';
+import 'package:hishab/core/widgets/app_snack_bar.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/debts/domain/debt_charge.dart';
+import 'package:hishab/features/debts/presentation/widgets/loan_charge_dialog.dart';
 import 'package:hishab/features/debts/presentation/providers/debts_providers.dart';
 import 'package:hishab/features/debts/presentation/widgets/payoff_card.dart';
 import 'package:hishab/features/debts/presentation/widgets/debt_tile.dart';
@@ -38,18 +41,45 @@ class DebtDetailScreen extends ConsumerWidget {
     await ref.read(debtsRepositoryProvider).deletePayment(payment.id);
   }
 
+  Future<void> _deleteCharge(
+    BuildContext context,
+    WidgetRef ref,
+    DebtCharge charge,
+  ) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final ok = await confirmLoanAction(
+      context,
+      title: tr('Delete this charge?'),
+      body: tr(
+        'It is taken off what you owe, and the expense it made is removed.',
+      ),
+      action: tr('Delete'),
+    );
+    if (!ok || !context.mounted) return;
+    try {
+      await ref.read(debtsRepositoryProvider).deleteCharge(charge.id);
+    } on Object catch (e) {
+      messenger.showError(describeError(e));
+    }
+  }
+
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final item = ref.watch(debtProvider(debtId));
     final payments =
         ref.watch(debtPaymentsProvider(debtId)).value ?? const <DebtPayment>[];
+    final charges =
+        ref.watch(debtChargesProvider(debtId)).value ?? const <DebtCharge>[];
     final today = ref.read(clockProvider)();
 
     return item.when(
       loading: () => Scaffold(appBar: AppBar(), body: const LoadingView()),
       error: (error, _) => Scaffold(
         appBar: AppBar(),
-        body: ErrorView(message: describeError(error)),
+        body: ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(debtProvider(debtId)),
+        ),
       ),
       data: (debt) {
         if (debt == null) {
@@ -138,11 +168,19 @@ class DebtDetailScreen extends ConsumerWidget {
                       Text(
                         tr('Paid {paid} of {total}', {
                           'paid': formatPoisha(debt.paid),
-                          'total': formatPoisha(debt.debt.amount),
+                          'total': formatPoisha(debt.total),
                         }),
                         key: const ValueKey('paid-of-total'),
                         style: theme.textTheme.bodyMedium,
                       ),
+                      if (debt.charged > 0)
+                        Text(
+                          tr('Includes {amount} of charges', {
+                            'amount': formatPoisha(debt.charged),
+                          }),
+                          key: const ValueKey('charged-text'),
+                          style: theme.textTheme.bodySmall,
+                        ),
                       const SizedBox(height: 8),
                       Text(
                         (lent ? tr('Lent on {date}') : tr('Borrowed on {date}'))
@@ -176,7 +214,11 @@ class DebtDetailScreen extends ConsumerWidget {
                 Row(
                   children: [
                     Expanded(
+                      flex: 3,
                       child: FilledButton.icon(
+                        style: FilledButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
                         key: const ValueKey('add-payment'),
                         onPressed: () => addLoanPayment(context, debt),
                         icon: const Icon(Icons.add),
@@ -185,7 +227,11 @@ class DebtDetailScreen extends ConsumerWidget {
                     ),
                     const SizedBox(width: 12),
                     Expanded(
+                      flex: 2,
                       child: OutlinedButton.icon(
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                        ),
                         key: const ValueKey('mark-paid'),
                         onPressed: () => markLoanPaid(context, ref, debt),
                         icon: const Icon(Icons.done_all),
@@ -210,6 +256,13 @@ class DebtDetailScreen extends ConsumerWidget {
                   ),
                 ],
               ],
+              if (!lent)
+                TextButton.icon(
+                  key: const ValueKey('add-charge'),
+                  onPressed: () => addLoanCharge(context, debt),
+                  icon: const Icon(Icons.receipt_long_outlined),
+                  label: Text(tr('Add a late fee or charge')),
+                ),
               if (!debt.isSettled)
                 PayoffCard(remaining: debt.remaining, lent: lent, today: today),
               if (sameName > 1)
@@ -222,6 +275,29 @@ class DebtDetailScreen extends ConsumerWidget {
                     tr('Everything with {name}', {'name': debt.debt.person}),
                   ),
                 ),
+              if (charges.isNotEmpty) ...[
+                const SizedBox(height: 20),
+                Text(tr('Charges'), style: theme.textTheme.titleSmall),
+                for (final charge in charges)
+                  ListTile(
+                    key: ValueKey('charge-${charge.id}'),
+                    contentPadding: EdgeInsets.zero,
+                    title: Text(formatPoisha(charge.amount)),
+                    subtitle: Text(
+                      [
+                        debtChargeKindLabel(charge.kind),
+                        DateFormat('d MMM yyyy').format(charge.chargedOn),
+                        if (charge.note.isNotEmpty) charge.note,
+                      ].join(' · '),
+                    ),
+                    trailing: IconButton(
+                      key: ValueKey('delete-charge-${charge.id}'),
+                      tooltip: tr('Delete'),
+                      icon: const Icon(Icons.delete_outline),
+                      onPressed: () => _deleteCharge(context, ref, charge),
+                    ),
+                  ),
+              ],
               const SizedBox(height: 20),
               Text(tr('Payments'), style: theme.textTheme.titleSmall),
               if (payments.isEmpty)

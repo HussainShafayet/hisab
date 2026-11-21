@@ -44,7 +44,10 @@ class RecurringFormScreen extends ConsumerWidget {
       ),
       error: (error, _) => Scaffold(
         appBar: AppBar(title: Text(tr('Edit recurring'))),
-        body: ErrorView(message: describeError(error)),
+        body: ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(recurringRulesProvider),
+        ),
       ),
       data: (list) {
         final rule = list.where((r) => r.id == id).firstOrNull;

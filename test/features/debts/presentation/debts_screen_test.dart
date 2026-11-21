@@ -334,6 +334,7 @@ void main() {
 
       await longPressLoan(tester, id);
       await tapKey(tester, 'loan-action-paid');
+      await tapKey(tester, 'pay-all-confirm');
 
       expect(find.text('All paid.'), findsOneWidget);
       expect((await DebtsRepository(db).getDebt(id))!.isSettled, isTrue);
@@ -373,6 +374,7 @@ void main() {
       await openLoans(tester);
 
       await swipeLoan(tester, id, const Offset(-500, 0));
+      await tapKey(tester, 'pay-all-confirm');
 
       expect(find.text('All paid.'), findsOneWidget);
       expect((await DebtsRepository(db).getDebt(id))!.isSettled, isTrue);
@@ -1413,10 +1415,114 @@ void main() {
       expect(await db.debtsDao.getAllPayments(), hasLength(1));
     });
 
-    testWithDatabase('can be marked all paid in one tap, and undone', (
+    testWithDatabase('All paid asks which account the money goes into', (
       tester,
       db,
     ) async {
+      useTallScreen(tester);
+      final cash = await insertTestAccount(db, name: 'Cash');
+      final id = await make(db, amount: 100000);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await openDetail(tester, id);
+
+      await tapKey(tester, 'mark-paid');
+      expect(find.byKey(const ValueKey('pay-all-note')), findsOneWidget);
+      // The loan used no account, so the switch starts off.
+      expect(
+        tester
+            .widget<SwitchListTile>(
+              find.byKey(const ValueKey('pay-all-account-switch')),
+            )
+            .value,
+        isFalse,
+      );
+      await tapKey(tester, 'pay-all-account-switch');
+      expect(find.text('Goes into'), findsOneWidget);
+      // 1000 comes in.
+      expect(textOf(tester, 'balance-after-$cash'), '৳1,000.00');
+      await tapKey(tester, 'pay-all-confirm');
+
+      expect(find.text('All paid.'), findsOneWidget);
+      expect(await balanceOf(db, cash), 100000);
+      expect((await DebtsRepository(db).getDebt(id))!.isSettled, isTrue);
+
+      await tester.tap(find.text('Undo'));
+      await tester.pumpAndSettle();
+      expect(await balanceOf(db, cash), 0);
+    });
+
+    testWithDatabase(
+      'All paid takes money out of the account for a loan I took',
+      (tester, db) async {
+        useTallScreen(tester);
+        final cash = await insertTestAccount(db, name: 'Cash');
+        final id = await make(
+          db,
+          direction: DebtDirection.borrowed,
+          amount: 100000,
+        );
+        await pumpAppWithDatabase(tester, db);
+        await openLoans(tester);
+        await showGive(tester);
+        await openDetail(tester, id);
+
+        await tapKey(tester, 'mark-paid');
+        await tapKey(tester, 'pay-all-account-switch');
+        expect(find.text('Comes out of'), findsOneWidget);
+        await tapKey(tester, 'pay-all-confirm');
+
+        expect(await balanceOf(db, cash), -100000);
+      },
+    );
+
+    testWithDatabase(
+      'All paid starts on the loan\'s account, which can be left out',
+      (tester, db) async {
+        useTallScreen(tester);
+        final cash = await insertTestAccount(db, name: 'Cash');
+        final id = await make(db, amount: 100000, accountId: cash);
+        await pumpAppWithDatabase(tester, db);
+        await openLoans(tester);
+        await openDetail(tester, id);
+
+        await tapKey(tester, 'mark-paid');
+        expect(
+          tester
+              .widget<SwitchListTile>(
+                find.byKey(const ValueKey('pay-all-account-switch')),
+              )
+              .value,
+          isTrue,
+        );
+        await tapKey(tester, 'pay-all-account-switch');
+        await tapKey(tester, 'pay-all-confirm');
+
+        // The loan itself took 1000 out; nothing came back.
+        expect(await balanceOf(db, cash), -100000);
+        expect((await DebtsRepository(db).getDebt(id))!.isSettled, isTrue);
+        expect(await db.debtsDao.getAllPayments(), hasLength(1));
+      },
+    );
+
+    testWithDatabase('cancelling All paid changes nothing', (tester, db) async {
+      useTallScreen(tester);
+      final cash = await insertTestAccount(db, name: 'Cash');
+      final id = await make(db, amount: 100000, accountId: cash);
+      await pumpAppWithDatabase(tester, db);
+      await openLoans(tester);
+      await openDetail(tester, id);
+
+      await tapKey(tester, 'mark-paid');
+      await tester.tap(find.widgetWithText(TextButton, 'Cancel'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('All paid.'), findsNothing);
+      expect(await db.debtsDao.getAllPayments(), isEmpty);
+      expect(await balanceOf(db, cash), -100000);
+    });
+
+    testWithDatabase('can be marked all paid, and undone', (tester, db) async {
       useTallScreen(tester);
       final id = await make(db, amount: 100000, paid: 25000);
       await pumpAppWithDatabase(tester, db);
@@ -1424,6 +1530,7 @@ void main() {
       await openDetail(tester, id);
 
       await tapKey(tester, 'mark-paid');
+      await tapKey(tester, 'pay-all-confirm');
 
       expect(find.text('All paid.'), findsOneWidget);
       expect(textOf(tester, 'remaining'), '৳0.00');

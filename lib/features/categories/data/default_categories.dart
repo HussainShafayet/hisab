@@ -394,37 +394,23 @@ const defaultExpenseCategories = [
       ),
       DefaultCategory('Education help', icon: 'school'),
       DefaultCategory('Visits home', icon: 'directions_bus'),
-      // One group for each person of the house, holding what is spent on that
-      // person. The same name (Clothes, Gifts) inside two of them is on
-      // purpose: the path tells them apart.
+      // One group for each person of the house, holding only what belongs to
+      // that person. Things every person has (Clothes, Medicine, Doctor,
+      // Gifts, Outings) live once, in their own place (Shopping, Health,
+      // Gifts, Entertainment), not again inside each person.
       DefaultCategory(
         'Wife',
         icon: 'spa',
         children: [
           DefaultCategory('Pocket money', icon: 'wallet'),
-          DefaultCategory('Clothes', icon: 'checkroom'),
-          DefaultCategory('Jewellery', icon: 'redeem'),
-          DefaultCategory('Cosmetics'),
-          DefaultCategory('Parlour'),
-          DefaultCategory('Medicine', icon: 'medical_services'),
-          DefaultCategory('Doctor', icon: 'local_hospital'),
           DefaultCategory('Pregnancy checkup'),
           DefaultCategory('Delivery'),
-          DefaultCategory('Gifts', icon: 'card_giftcard'),
-          DefaultCategory('Outings'),
         ],
       ),
       DefaultCategory(
         'Husband',
         icon: 'work',
-        children: [
-          DefaultCategory('Pocket money', icon: 'wallet'),
-          DefaultCategory('Clothes', icon: 'checkroom'),
-          DefaultCategory('Medicine', icon: 'medical_services'),
-          DefaultCategory('Doctor', icon: 'local_hospital'),
-          DefaultCategory('Gifts', icon: 'card_giftcard'),
-          DefaultCategory('Outings'),
-        ],
+        children: [DefaultCategory('Pocket money', icon: 'wallet')],
       ),
       DefaultCategory(
         'Children',
@@ -435,13 +421,8 @@ const defaultExpenseCategories = [
           DefaultCategory('Diapers'),
           DefaultCategory('Toys', icon: 'sports_esports'),
           DefaultCategory('Treats'),
-          DefaultCategory('Clothes', icon: 'checkroom'),
-          DefaultCategory('Medicine', icon: 'medical_services'),
-          DefaultCategory('Doctor', icon: 'local_hospital'),
           DefaultCategory('Vaccine'),
           DefaultCategory('Birthday party'),
-          DefaultCategory('Gifts', icon: 'card_giftcard'),
-          DefaultCategory('Outings'),
         ],
       ),
       DefaultCategory(

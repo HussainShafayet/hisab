@@ -38,7 +38,10 @@ class BadgesScreen extends ConsumerWidget {
       ),
       body: report.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: describeError(error)),
+        error: (error, _) => ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(badgeReportProvider),
+        ),
         data: (data) => ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 32),
           children: [

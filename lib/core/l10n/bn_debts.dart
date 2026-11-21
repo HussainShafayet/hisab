@@ -22,6 +22,32 @@ const bnDebts = <String, String>{
   'This loan no longer exists.': 'এই ধারটি আর নেই।',
   'You owe': 'আপনি দেবেন',
   '{amount} is left.': '{amount} বাকি আছে।',
+  'A charge can only be added to money you took.':
+      'চার্জ শুধু নেওয়া ধারে যোগ করা যায়।',
+  'Charge not found.': 'চার্জটি পাওয়া যায়নি।',
+  'The payments made already cover this charge.':
+      'যা শোধ হয়েছে তা এই চার্জের চেয়েও বেশি, তাই এটি মোছা যাবে না।',
+  'The kind of loan cannot change once a charge is added.':
+      'চার্জ যোগ হওয়ার পর ধারের ধরন বদলানো যায় না।',
+  'It is added to what you owe {name}.':
+      '{name}-কে যা দিতে হবে, এটি তার সঙ্গে যোগ হবে।',
+  'Late fee': 'লেট ফি',
+  'Service charge': 'সার্ভিস চার্জ',
+  'Count it as my expense': 'আমার খরচ হিসেবে ধরুন',
+  'It shows in your spending and reports. No account balance changes.':
+      'এটি খরচ ও রিপোর্টে দেখা যাবে। কোনো অ্যাকাউন্টের ব্যালেন্স বদলাবে না।',
+  'Written on': 'যে অ্যাকাউন্টে লেখা হবে',
+  'Charge added.': 'চার্জ যোগ হয়েছে।',
+  'Transfer charge': 'ট্রান্সফার চার্জ',
+  'Other': 'অন্যান্য',
+  'Taken by the bank or bKash when you send. It is an expense on this account.': 'টাকা পাঠালে ব্যাংক বা বিকাশ যা কেটে নেয়। এটি এই অ্যাকাউন্টের খরচ হবে।',
+  'Choose an account for the transfer charge.': 'ট্রান্সফার চার্জের জন্য একটি অ্যাকাউন্ট বেছে নিন।',
+  'Charges': 'চার্জ',
+  'Delete this charge?': 'এই চার্জ মুছবেন?',
+  'It is taken off what you owe, and the expense it made is removed.':
+      'এটি আপনার দেনা থেকে বাদ যাবে, আর এর খরচটিও মুছে যাবে।',
+  'Includes {amount} of charges': '{amount} চার্জ ধরা আছে',
+  'This pays the {amount} that is left.': 'বাকি {amount} শোধ হবে।',
   '{note} · not in your totals': '{note} · মোটে ধরা হয়নি',
   '1 day late': '1 দিন দেরি',
   '1 loan': '1টি ধার',

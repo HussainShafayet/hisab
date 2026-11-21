@@ -39,6 +39,7 @@ import 'package:hishab/features/transactions/presentation/providers/category_sta
 import 'package:hishab/features/transactions/presentation/widgets/category_standing_note.dart';
 import 'package:hishab/features/transactions/presentation/widgets/amount_keypad.dart';
 import 'package:hishab/features/transactions/presentation/widgets/amount_text_formatter.dart';
+import 'package:hishab/features/transactions/presentation/widgets/transaction_actions.dart';
 import 'package:hishab/features/help/presentation/widgets/help_button.dart';
 import 'package:intl/intl.dart';
 import 'package:hishab/core/widgets/discard_guard.dart';
@@ -782,6 +783,18 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
     if (saved == true && mounted) context.pop(true);
   }
 
+  /// The menu of an entry being edited: a copy of it, or delete it (the
+  /// message has an Undo).
+  Future<void> _onEntryMenu(String action) async {
+    final id = widget.args.editId!;
+    if (action == 'duplicate') {
+      context.pushReplacement(AppRoutes.duplicateTransaction(id));
+      return;
+    }
+    final deleted = await deleteTransactionWithUndo(context, ref, id);
+    if (deleted && mounted) context.pop(true);
+  }
+
   Future<void> _saveAndClose() async {
     // The screen that opened the form can tell it was saved (true).
     if (await _save() && mounted) context.pop(true);
@@ -1319,6 +1332,23 @@ class _TransactionFormState extends ConsumerState<_TransactionForm> {
         title: title,
         actions: [
           const HelpButton('transactions'),
+          if (_isEditing)
+            PopupMenuButton<String>(
+              key: const ValueKey('entry-menu'),
+              onSelected: _onEntryMenu,
+              itemBuilder: (context) => [
+                PopupMenuItem(
+                  key: const ValueKey('entry-menu-duplicate'),
+                  value: 'duplicate',
+                  child: Text(tr('Duplicate')),
+                ),
+                PopupMenuItem(
+                  key: const ValueKey('entry-menu-delete'),
+                  value: 'delete',
+                  child: Text(tr('Delete')),
+                ),
+              ],
+            ),
           if (_isAdding &&
               widget.payCardId == null &&
               widget.prefillAmount == null)

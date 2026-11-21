@@ -101,6 +101,10 @@ mode, `turnKeyboardOn`, `turnCalculatorOn`, `openMoreDetails`.
   bazar). Undo puts the transaction back as it was.
 - A swipe to the right, or a tap, opens the editor. A long press has Edit,
   Duplicate and Delete.
+- **The editor has the same actions** (only when editing): a three-dot menu in
+  the app bar with Duplicate (replaces the editor with a copy form) and Delete
+  (closes the editor, *Transaction deleted* with **Undo**). The account page
+  rows have the long-press sheet too. Both use `transaction_actions.dart`.
 
 ## How the category stands (phone feedback: "category-r current balance")
 Under the category, once one is chosen, a line says what that category holds in

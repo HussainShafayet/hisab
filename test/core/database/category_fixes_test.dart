@@ -96,15 +96,14 @@ void main() {
         }
       }
 
-      // The same name is not used for different things (Children is a group
-      // and a pocket-money person on purpose).
-      // The people of the house each hold their own Clothes, Gifts...: the
-      // path tells them apart.
+      // The same name is not used twice, in any layer. Only Pocket money
+      // is in each person's group on purpose: it says who got the money.
       const people = {'Wife', 'Husband', 'Children'};
       final leaves = [
         for (final e in entries)
           if (!withChildren.contains(e.path.join(' > ')) &&
-              !(e.path.length == 3 &&
+              !(e.name == 'Pocket money' &&
+                  e.path.length == 3 &&
                   e.path.first == 'Family & gifts' &&
                   people.contains(e.path[1])))
             e.name.toLowerCase(),
@@ -118,7 +117,25 @@ void main() {
         .map((e) => e.path.join(' > '))
         .toList();
     expect(paths, contains('Family & gifts > Children > Pocket money'));
-    expect(paths, contains('Family & gifts > Wife > Clothes'));
+    // What every person has is in one place, not inside each person.
+    for (final person in ['Wife', 'Husband', 'Children']) {
+      for (final repeated in [
+        'Clothes',
+        'Medicine',
+        'Doctor',
+        'Gifts',
+        'Outings',
+        'Jewellery',
+        'Cosmetics',
+        'Parlour',
+      ]) {
+        expect(paths, isNot(contains('Family & gifts > $person > $repeated')));
+      }
+      expect(paths, contains('Family & gifts > $person > Pocket money'));
+    }
+    expect(paths, contains('Health > Medicine'));
+    expect(paths, contains('Family & gifts > Gifts'));
+    expect(paths, contains('Entertainment > Outings'));
     expect(paths, isNot(contains('Family & gifts > Pocket money')));
     expect(paths, contains('Shopping > Clothing > Kids wear'));
     expect(paths, isNot(contains('Family & gifts > Kids pocket money')));

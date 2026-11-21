@@ -29,6 +29,7 @@ class BackupRepository {
     final budgets = await _db.budgetsDao.getAll();
     final debts = await _db.debtsDao.getAllDebts();
     final debtPayments = await _db.debtsDao.getAllPayments();
+    final debtCharges = await _db.debtsDao.getAllCharges();
     final recurringRules = await _db.recurringDao.getAll();
     final goals = await _db.goalsDao.getAllGoals();
     final goalEntries = await _db.goalsDao.getAllEntries();
@@ -125,6 +126,21 @@ class BackupRepository {
             accountId: p.accountId,
             transactionId: p.transactionId,
             createdAt: p.createdAt.toUtc(),
+            feeTransactionId: p.feeTransactionId,
+          ),
+      ],
+      debtCharges: [
+        for (final c in debtCharges)
+          BackupDebtCharge(
+            id: c.id,
+            debtId: c.debtId,
+            amount: c.amount,
+            chargedOn: c.chargedOn.toUtc(),
+            kind: c.kind,
+            note: c.note,
+            transactionId: c.transactionId,
+            expenseId: c.expenseId,
+            createdAt: c.createdAt.toUtc(),
           ),
       ],
       recurringRules: [
@@ -415,7 +431,22 @@ class BackupRepository {
                 note: Value(p.note),
                 accountId: Value(p.accountId),
                 transactionId: Value(p.transactionId),
+                feeTransactionId: Value(p.feeTransactionId),
                 createdAt: Value(p.createdAt),
+              ),
+          ]);
+          batch.insertAll(_db.debtCharges, [
+            for (final c in data.debtCharges)
+              DebtChargesCompanion.insert(
+                id: Value(c.id),
+                debtId: c.debtId,
+                amount: c.amount,
+                chargedOn: c.chargedOn,
+                kind: c.kind,
+                note: Value(c.note),
+                transactionId: Value(c.transactionId),
+                expenseId: Value(c.expenseId),
+                createdAt: Value(c.createdAt),
               ),
           ]);
           batch.insertAll(_db.challenges, [
@@ -545,6 +576,7 @@ class BackupRepository {
     await _db.delete(_db.goalEntries).go();
     await _db.delete(_db.savingsGoals).go();
     await _db.delete(_db.recurringRules).go();
+    await _db.delete(_db.debtCharges).go();
     await _db.delete(_db.debtPayments).go();
     await _db.delete(_db.debts).go();
     await _db.delete(_db.budgets).go();

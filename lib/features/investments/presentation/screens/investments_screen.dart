@@ -65,7 +65,10 @@ class _InvestmentsScreenState extends ConsumerState<InvestmentsScreen> {
       ),
       body: investments.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: describeError(error)),
+        error: (error, _) => ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(investmentsProvider),
+        ),
         data: (list) {
           if (list.isEmpty) {
             return EmptyState(

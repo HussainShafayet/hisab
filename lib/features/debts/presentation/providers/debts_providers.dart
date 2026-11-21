@@ -4,6 +4,7 @@ import 'package:hishab/features/debts/data/bill_splitter.dart';
 import 'package:hishab/features/debts/data/debts_repository.dart';
 import 'package:hishab/features/debts/data/paid_for_me.dart';
 import 'package:hishab/features/debts/domain/debt.dart';
+import 'package:hishab/features/debts/domain/debt_charge.dart';
 
 final debtsRepositoryProvider = Provider<DebtsRepository>(
   (ref) => DebtsRepository(ref.watch(appDatabaseProvider)),
@@ -23,6 +24,12 @@ final debtProvider = StreamProvider.autoDispose.family<DebtItem?, int>(
 final debtPaymentsProvider = StreamProvider.autoDispose
     .family<List<DebtPayment>, int>(
       (ref, id) => ref.watch(debtsRepositoryProvider).watchPayments(id),
+    );
+
+/// The charges (late fees, interest) of one loan, newest first.
+final debtChargesProvider = StreamProvider.autoDispose
+    .family<List<DebtCharge>, int>(
+      (ref, id) => ref.watch(debtsRepositoryProvider).watchCharges(id),
     );
 
 final billSplitterProvider = Provider<BillSplitter>(

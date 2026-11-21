@@ -1,7 +1,23 @@
+import java.io.FileInputStream
+import java.util.Properties
+
 plugins {
     id("com.android.application")
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
+}
+
+// The upload key, for the app bundle that goes to Google Play. Its details are
+// in android/key.properties (never committed, see android/.gitignore). An APK
+// for the phone keeps the debug key, so it installs over the one already
+// there: only a bundle build is signed with the upload key.
+val keystoreProperties = Properties().apply {
+    val file = rootProject.file("key.properties")
+    if (file.exists()) FileInputStream(file).use { load(it) }
+}
+val hasUploadKey = keystoreProperties.getProperty("storeFile") != null
+val buildsBundle = gradle.startParameter.taskNames.any {
+    it.contains("bundle", ignoreCase = true)
 }
 
 android {
@@ -30,11 +46,25 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        if (hasUploadKey) {
+            create("upload") {
+                keyAlias = keystoreProperties.getProperty("keyAlias")
+                keyPassword = keystoreProperties.getProperty("keyPassword")
+                storeFile = file(keystoreProperties.getProperty("storeFile"))
+                storePassword = keystoreProperties.getProperty("storePassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = if (hasUploadKey && buildsBundle) {
+                signingConfigs.getByName("upload")
+            } else {
+                // `flutter build apk` and `flutter run --release`.
+                signingConfigs.getByName("debug")
+            }
         }
     }
 }

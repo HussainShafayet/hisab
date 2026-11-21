@@ -61,21 +61,26 @@ class DebtPayment {
 
 /// A [Debt] with how much of it has been paid back.
 class DebtItem {
-  const DebtItem({required this.debt, required this.paid});
+  const DebtItem({required this.debt, required this.paid, this.charged = 0});
 
   final Debt debt;
 
   /// The sum of its payments, in poisha.
   final int paid;
 
+  /// The sum of what was added to it (late fees, interest), in poisha.
+  final int charged;
+
+  /// What is to be paid back in all: the amount and its charges.
+  int get total => debt.amount + charged;
+
   /// What is still to be paid back; never below zero.
-  int get remaining => math.max(0, debt.amount - paid);
+  int get remaining => math.max(0, total - paid);
 
   bool get isSettled => remaining == 0;
 
   /// How much is paid back, from 0 to 1.
-  double get progress =>
-      debt.amount == 0 ? 0 : (paid / debt.amount).clamp(0.0, 1.0);
+  double get progress => total == 0 ? 0 : (paid / total).clamp(0.0, 1.0);
 
   /// Late: not settled and the due day is before [today].
   bool isOverdue(DateTime today) {

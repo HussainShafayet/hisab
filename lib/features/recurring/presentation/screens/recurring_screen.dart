@@ -88,7 +88,10 @@ class RecurringScreen extends ConsumerWidget {
       ),
       body: rules.when(
         loading: () => const LoadingView(),
-        error: (error, _) => ErrorView(message: describeError(error)),
+        error: (error, _) => ErrorView(
+          message: describeError(error),
+          onRetry: () => ref.invalidate(recurringRulesProvider),
+        ),
         data: (list) {
           if (list.isEmpty) {
             return EmptyState(

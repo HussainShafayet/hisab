@@ -643,6 +643,70 @@ void main() {
       );
     });
 
+    testWithDatabase('the editor menu deletes the transaction, with Undo', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final d = await seedMonth(db);
+      await pumpAppWithDatabase(tester, db);
+      await openTab(tester);
+
+      await tester.tap(row(d.lunch));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('entry-menu')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('entry-menu-delete')));
+      await settle(tester);
+
+      // The editor closed, and the entry is gone.
+      expect(appBarTitle('Edit transaction'), findsNothing);
+      expect(find.text('Transaction deleted'), findsOneWidget);
+      expect(await db.transactionsDao.getById(d.lunch), isNull);
+
+      await tester.tap(find.text('Undo'));
+      await settle(tester);
+      expect(await db.transactionsDao.getById(d.lunch), isNotNull);
+    });
+
+    testWithDatabase('the editor menu opens a copy of the transaction', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      final d = await seedMonth(db);
+      await pumpAppWithDatabase(tester, db);
+      await openTab(tester);
+
+      await tester.tap(row(d.lunch));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('entry-menu')));
+      await settle(tester);
+      await tester.tap(find.byKey(const ValueKey('entry-menu-duplicate')));
+      await settle(tester);
+
+      expect(appBarTitle('Add transaction'), findsOneWidget);
+      expect(amountText(tester), '250');
+      // The original is untouched.
+      expect(await db.transactionsDao.getById(d.lunch), isNotNull);
+    });
+
+    testWithDatabase('a new transaction has no editor menu', (
+      tester,
+      db,
+    ) async {
+      useTallScreen(tester);
+      await seedMonth(db);
+      await pumpAppWithDatabase(tester, db);
+      await openTab(tester);
+
+      await tester.tap(find.byType(FloatingActionButton));
+      await settle(tester);
+
+      expect(appBarTitle('Add transaction'), findsOneWidget);
+      expect(find.byKey(const ValueKey('entry-menu')), findsNothing);
+    });
+
     testWithDatabase('swipe right opens the editor and the row stays', (
       tester,
       db,

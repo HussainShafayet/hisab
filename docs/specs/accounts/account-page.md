@@ -20,8 +20,9 @@ Phone feedback (2026-11-05): "accounts route ta aro improve kora jay and UI also
   - A **month switcher** and a card with *In*, *Out* and *Net* of that month
     (`detail-summary`).
   - Every entry that touched the account that month, by day, as in the
-    Transactions tab; a tap opens it. *Nothing on this account in {month}* when
-    there is none.
+    Transactions tab; a tap opens it, a long press opens Edit / Duplicate /
+    Delete (`showTransactionActions`; delete has an **Undo**). *Nothing on this
+    account in {month}* when there is none.
 
 ## Rules
 - `activityByAccount` (`account_activity.dart`): income is in, spending is out; a
